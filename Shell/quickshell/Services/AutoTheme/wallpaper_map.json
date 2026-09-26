@@ -1,0 +1,482 @@
+{
+  "apathy_01.jpg": {
+    "dark": "gotham",
+    "light": "neovim-light"
+  },
+  "zenburn_02.png": {
+    "dark": "caroline",
+    "light": "grayscale-light"
+  },
+  "tokyodark-terminal_07.jpg": {
+    "dark": "material-vivid",
+    "light": "classic-light"
+  },
+  "zenburn_01.png": {
+    "dark": "grayscale-dark",
+    "light": "penumbra-light"
+  },
+  "windows-nt-light_03.jpg": {
+    "dark": "gruber",
+    "light": "sagelight"
+  },
+  "windows-highcontrast_01.jpg": {
+    "dark": "grayscale-dark",
+    "light": "dirtysea"
+  },
+  "windows-10-light_01.jpg": {
+    "dark": "nord",
+    "light": "fruit-soda"
+  },
+  "vice_02.jpg": {
+    "dark": "nova",
+    "light": "grayscale-light"
+  },
+  "vesper_01.jpg": {
+    "dark": "ocote",
+    "light": "summerfruit-light"
+  },
+  "valua_02.jpg": {
+    "dark": "codeschool",
+    "light": "classic-light"
+  },
+  "valua_01.png": {
+    "dark": "everforest-dark-medium",
+    "light": "chicago-day"
+  },
+  "uwunicorn_02.jpg": {
+    "dark": "cacao",
+    "light": "embers-light"
+  },
+  "uwunicorn_01.png": {
+    "dark": "grayscale-dark",
+    "light": "swamp-light"
+  },
+  "tokyo-night-dark_07.png": {
+    "dark": "uwunicorn",
+    "light": "shadesmear-light"
+  },
+  "tokyo-night-dark_06.png": {
+    "dark": "tokyo-night-terminal-dark",
+    "light": "shadesmear-light"
+  },
+  "tokyo-night-dark_08.jpg": {
+    "dark": "grayscale-dark",
+    "light": "shadesmear-light"
+  },
+  "gruvbox-material-dark-soft_02.jpg": {
+    "dark": "sandcastle",
+    "light": "swamp-light"
+  },
+  "precious-dark-eleven_01.png": {
+    "dark": "atelier-dune",
+    "light": "charcoal-light"
+  },
+  "tokyo-night-terminal-dark_04.png": {
+    "dark": "tokyo-night-dark",
+    "light": "neovim-light"
+  },
+  "tokyo-night-dark_03.png": {
+    "dark": "lime",
+    "light": "shadesmear-light"
+  },
+  "atelier-savanna_01.png": {
+    "dark": "everforest-dark-medium",
+    "light": "grayscale-light"
+  },
+  "rose-pine-moon_13.png": {
+    "dark": "catppuccin-frappe",
+    "light": "tokyo-city-light"
+  },
+  "gruvbox-dark-pale_01.png": {
+    "dark": "swamp-dark",
+    "light": "swamp-light"
+  },
+  "gruvbox-material-light-soft_03.png": {
+    "dark": "ascendancy",
+    "light": "embers-light"
+  },
+  "gruvbox-dark_02.png": {
+    "dark": "gruvbox-dark-soft",
+    "light": "swamp-light"
+  },
+  "gruvbox-material-dark-soft_01.png": {
+    "dark": "gruvbox-dark-soft",
+    "light": "gruvbox-light"
+  },
+  "gruvbox-dark_03.jpg": {
+    "dark": "caroline",
+    "light": "embers-light"
+  },
+  "gruvbox-dark_01.png": {
+    "dark": "caroline",
+    "light": "swamp-light"
+  },
+  "gruvbox-dark-pale_03.jpg": {
+    "dark": "gruvbox-dark-medium",
+    "light": "embers-light"
+  },
+  "windows-nt-light_01.png": {
+    "dark": "gruber",
+    "light": "sagelight"
+  },
+  "windows-95_01.png": {
+    "dark": "caroline",
+    "light": "charcoal-light"
+  },
+  "solarflare_01.jpg": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "gruvbox-light"
+  },
+  "selenized-dark_02.png": {
+    "dark": "gruvbox-dark",
+    "light": "gruvbox-light-soft"
+  },
+  "sandcastle_05.jpg": {
+    "dark": "sandcastle",
+    "light": "classic-light"
+  },
+  "sandcastle_02.png": {
+    "dark": "horizon-dark",
+    "light": "swamp-light"
+  },
+  "rose-pine-moon_14.png": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "embers-light"
+  },
+  "rose-pine-moon_03.png": {
+    "dark": "darcula",
+    "light": "sagelight"
+  },
+  "qualia_01.png": {
+    "dark": "grayscale-dark",
+    "light": "shadesmear-light"
+  },
+  "primer-dark-dimmed_01.jpg": {
+    "dark": "sandcastle",
+    "light": "shadesmear-light"
+  },
+  "papercolor-dark_01.png": {
+    "dark": "caroline",
+    "light": "shadesmear-light"
+  },
+  "onedark_04.png": {
+    "dark": "grayscale-dark",
+    "light": "embers-light"
+  },
+  "ocean_01.jpg": {
+    "dark": "everforest-dark-medium",
+    "light": "default-light"
+  },
+  "nova_03.png": {
+    "dark": "brushtrees-dark",
+    "light": "rose-pine-dawn"
+  },
+  "nord_02.jpg": {
+    "dark": "zenburn",
+    "light": "default-light"
+  },
+  "nebula_02.png": {
+    "dark": "brushtrees-dark",
+    "light": "atelier-savanna-light"
+  },
+  "mountain_02.jpg": {
+    "dark": "caroline",
+    "light": "charcoal-light"
+  },
+  "material-vivid_01.png": {
+    "dark": "zenburn",
+    "light": "default-light"
+  },
+  "irblack_01.jpg": {
+    "dark": "charcoal-dark",
+    "light": "charcoal-light"
+  },
+  "horizon-dark_01.png": {
+    "dark": "horizon-dark",
+    "light": "shadesmear-light"
+  },
+  "gruvbox-material-dark-medium_01.jpg": {
+    "dark": "gruvbox-dark-soft",
+    "light": "classic-light"
+  },
+  "equilibrium-gray-dark_02.png": {
+    "dark": "jellybeans",
+    "light": "summerfruit-light"
+  },
+  "embers-light_01.jpg": {
+    "dark": "grayscale-dark",
+    "light": "charcoal-light"
+  },
+  "darkviolet_01.png": {
+    "dark": "digital-rain",
+    "light": "summerfruit-light"
+  },
+  "da-one-paper_01.png": {
+    "dark": "caroline",
+    "light": "charcoal-light"
+  },
+  "catppuccin-mocha_05.jpg": {
+    "dark": "xcode-dusk",
+    "light": "classic-light"
+  },
+  "caroline_05.jpg": {
+    "dark": "caroline",
+    "light": "embers-light"
+  },
+  "black-metal-bathory_01.png": {
+    "dark": "shadesmear-dark",
+    "light": "shadesmear-light"
+  },
+  "apathy_02.png": {
+    "dark": "gotham",
+    "light": "neovim-light"
+  },
+  "atelier-cave-light_01.png": {
+    "dark": "tarot",
+    "light": "embers-light"
+  },
+  "atelier-estuary-light_01.png": {
+    "dark": "summercamp",
+    "light": "grayscale-light"
+  },
+  "caroline_06.jpg": {
+    "dark": "swamp-dark",
+    "light": "swamp-light"
+  },
+  "edge-light_01.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "embers-light"
+  },
+  "darktooth_05.png": {
+    "dark": "material-vivid",
+    "light": "shadesmear-light"
+  },
+  "atelier-forest_01.jpg": {
+    "dark": "embers",
+    "light": "cupcake"
+  },
+  "atelier-heath-light_01.jpg": {
+    "dark": "gruvbox-dark-soft",
+    "light": "charcoal-light"
+  },
+  "atelier-lakeside_01.png": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "classic-light"
+  },
+  "atelier-lakeside_02.jpg": {
+    "dark": "twilight",
+    "light": "classic-light"
+  },
+  "atelier-plateau_01.jpg": {
+    "dark": "grayscale-dark",
+    "light": "embers-light"
+  },
+  "atelier-savanna-light_01.png": {
+    "dark": "everforest-dark-medium",
+    "light": "rose-pine-dawn"
+  },
+  "atelier-sulphurpool-light_01.png": {
+    "dark": "brushtrees-dark",
+    "light": "rose-pine-dawn"
+  },
+  "atelier-sulphurpool_01.png": {
+    "dark": "darcula",
+    "light": "rose-pine-dawn"
+  },
+  "aztec_01.jpg": {
+    "dark": "marrakesh",
+    "light": "charcoal-light"
+  },
+  "aztec_02.png": {
+    "dark": "aztec",
+    "light": "gruvbox-material-light-soft"
+  },
+  "blueish_01.png": {
+    "dark": "nova",
+    "light": "default-light"
+  },
+  "boo-shnickle-dark_01.jpg": {
+    "dark": "gruvbox-dark-soft",
+    "light": "swamp-light"
+  },
+  "brushtrees-dark_01.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "brushtrees"
+  },
+  "brushtrees-dark_02.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "brushtrees"
+  },
+  "brushtrees-dark_03.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "rose-pine-dawn"
+  },
+  "brushtrees-dark_04.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "rose-pine-dawn"
+  },
+  "caroline_02.png": {
+    "dark": "caroline",
+    "light": "terracotta"
+  },
+  "caroline_03.png": {
+    "dark": "caroline",
+    "light": "charcoal-light"
+  },
+  "caroline_04.jpg": {
+    "dark": "caroline",
+    "light": "charcoal-light"
+  },
+  "catppuccin-frappe_02.jpg": {
+    "dark": "yesterday-night",
+    "light": "edge-light"
+  },
+  "catppuccin-macchiato_01.png": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "tokyo-city-terminal-light"
+  },
+  "catppuccin-macchiato_02.png": {
+    "dark": "yesterday-bright",
+    "light": "grayscale-light"
+  },
+  "cupcake_01.png": {
+    "dark": "grayscale-dark",
+    "light": "danqing-light"
+  },
+  "cupcake_02.png": {
+    "dark": "tinta",
+    "light": "embers-light"
+  },
+  "cupcake_03.jpg": {
+    "dark": "tinta",
+    "light": "embers-light"
+  },
+  "cupertino_01.jpg": {
+    "dark": "grayscale-dark",
+    "light": "boo-shnickle-light"
+  },
+  "darktooth_01.png": {
+    "dark": "ashes",
+    "light": "shadesmear-light"
+  },
+  "darktooth_02.jpg": {
+    "dark": "caroline",
+    "light": "grayscale-light"
+  },
+  "primer-dark-dimmed_04.png": {
+    "dark": "ocean",
+    "light": "embers-light"
+  },
+  "deep-oceanic-next_01.png": {
+    "dark": "helios",
+    "light": "cerulean-signal-light"
+  },
+  "OIP-3242920118.jpg": {
+    "dark": "heetch",
+    "light": "horizon-light"
+  },
+  "windows-nt-light_02.jpg": {
+    "dark": "gruber",
+    "light": "sagelight"
+  },
+  "catppuccin-mocha_04.jpg": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "nord-light"
+  },
+  "catppuccin-mocha_01.png": {
+    "dark": "hardhacker",
+    "light": "shadesmear-light"
+  },
+  "catppuccin-mocha_03.jpg": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "embers-light"
+  },
+  "kanagawa-dragon_01.jpg": {
+    "dark": "grayscale-dark",
+    "light": "charcoal-light"
+  },
+  "synth-midnight-dark_01.png": {
+    "dark": "hopscotch",
+    "light": "charcoal-light"
+  },
+  "terracotta-dark_02.jpg": {
+    "dark": "standardized-dark",
+    "light": "charcoal-light"
+  },
+  "sandcastle_06.jpg": {
+    "dark": "caroline",
+    "light": "grayscale-light"
+  },
+  "rose-pine-moon_06.png": {
+    "dark": "tokyo-night-terminal-storm",
+    "light": "tokyo-city-terminal-light"
+  },
+  "vice_01.png": {
+    "dark": "gotham",
+    "light": "shadesmear-light"
+  },
+  "unikitty-reversible_01.jpg": {
+    "dark": "twilight",
+    "light": "rose-pine-dawn"
+  },
+  "twilight_01.jpg": {
+    "dark": "caroline",
+    "light": "grayscale-light"
+  },
+  "tokyodark-terminal_06.png": {
+    "dark": "grayscale-dark",
+    "light": "neovim-light"
+  },
+  "tokyodark-terminal_05.png": {
+    "dark": "darkmoss",
+    "light": "shadesmear-light"
+  },
+  "tokyodark-terminal_04.jpg": {
+    "dark": "ocean",
+    "light": "default-light"
+  },
+  "tokyodark-terminal_03.png": {
+    "dark": "caroline",
+    "light": "neovim-light"
+  },
+  "tokyodark-terminal_02.png": {
+    "dark": "caroline",
+    "light": "neovim-light"
+  },
+  "tokyodark-terminal_01.jpg": {
+    "dark": "caroline",
+    "light": "tokyo-city-terminal-light"
+  },
+  "tokyo-night-terminal-dark_03.png": {
+    "dark": "shadesmear-dark",
+    "light": "shadesmear-light"
+  },
+  "tokyo-night-terminal-dark_02.jpg": {
+    "dark": "ashes",
+    "light": "shadesmear-light"
+  },
+  "tokyo-night-terminal-dark_01.png": {
+    "dark": "darcula",
+    "light": "shadesmear-light"
+  },
+  "tokyo-night-storm_01.jpg": {
+    "dark": "mountain",
+    "light": "brushtrees"
+  },
+  "tokyo-night-moon_04.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "tokyo-city-light"
+  },
+  "tokyo-night-moon_03.jpg": {
+    "dark": "atelier-sulphurpool",
+    "light": "tokyo-city-light"
+  },
+  "tokyo-night-moon_02.jpg": {
+    "dark": "gotham",
+    "light": "nord-light"
+  },
+  "primer-dark-dimmed_02.jpg": {
+    "dark": "ocean",
+    "light": "sagelight"
+  }
+}

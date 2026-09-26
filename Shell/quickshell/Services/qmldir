@@ -1,0 +1,19 @@
+module Services
+singleton WifiService 1.0 WifiService.qml
+singleton PlayerService 1.0 PlayerService.qml
+singleton BluetoothService 1.0 BluetoothService.qml
+singleton TimerService 1.0 TimerService.qml
+singleton NotificationService 1.0 NotificationService.qml
+singleton ActiveWindowService 1.0 ActiveWindowService.qml
+singleton TaskService 1.0 TaskService.qml
+singleton AudioService 1.0 AudioService.qml
+singleton LockScreenService 1.0 LockScreenService.qml
+singleton SystemMonitorService 1.0 SystemMonitorService.qml
+singleton BrightnessService 1.0 BrightnessService.qml
+singleton ClipboardService 1.0 ClipboardService.qml
+singleton AlarmService 1.0 AlarmService.qml
+singleton CavaService 1.0 CavaService.qml
+singleton MenuService 1.0 MenuService.qml
+singleton BarWidgetService 1.0 BarWidgetService.qml
+singleton RecorderService 1.0 RecorderService.qml
+WallpaperService 1.0 WallpaperService.qml

@@ -1,99 +1,83 @@
+import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import QtQuick
-import Quickshell.Io
+import qs.Services
+import qs.Modules.Bar.Widgets
 
-Text {
-    
-    font {
-        pixelSize: 14
-        family: "JetBrainsMono Nerd Font Propo"
-    }
+// === NETWORK STATUS WIDGET ===
 
-    
-    property color color1
-    property int wifiSignal: 0
-    property string wifiName: ""
-    property bool hoverEnabled: false
-    property bool hovered: false
-    property bool opened: false
+Item {
+    id: root
 
-    Process {
-        id: wifiProc
+    // Theme color properties
+    property color color1: "#c3c0ff"
+    property alias primary: root.color1
+    property alias text: root.color1
 
-        command: ["sh", "-c", 
-            "nmcli -t -f ACTIVE,SSID,SIGNAL dev wifi | grep '^yes'"
-        ]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const parts = text.trim().split(":")
+    // State properties
+    readonly property bool isHovered: hoverHandler.hovered
+    property alias hovered: root.isHovered
+    property alias opened: root.isHovered
 
-                wifiName = parts[1] || ""
-                wifiSignal = Number(parts[2]) || 0;
-            }
-        }
-    }
-    Timer {
-        id: processTimer
-        interval: 3000
-        running: true
-        repeat: true
-        onTriggered: wifiProc.running = true
-    }
+    readonly property bool isEthernet: WifiService.ethernetConnected
+    readonly property string ethName: WifiService.ethernetName
+    readonly property int wifiSignal: WifiService.activeSignal
+    readonly property string wifiName: WifiService.activeSsid
+    readonly property bool isEnabled: WifiService.wifiEnabled
+    readonly property bool isConnected: WifiService.connected || isEthernet
+    readonly property string icon: WifiService.getNetworkIcon()
 
-    Timer {
-        id: hideTimer
+    // Signals
+    signal clicked()
 
-        interval: 500
-        repeat: false
+    // Geometry and sizing
+    implicitWidth: wifiIcon.implicitWidth + 12
+    implicitHeight: wifiIcon.implicitHeight
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: implicitHeight
 
-        onTriggered: {
-            if (!hovered)
-                opened = false
+    Behavior on implicitWidth {
+        NumberAnimation {
+            duration: 250
+            easing.type: Easing.OutCubic
         }
     }
 
+    // === VISUAL CAPSULE & ICON ===
 
-    property string icon: {
-        switch (true) {
-        case wifiSignal >= 80:
-            return "󰤨";
-            break;
-        case wifiSignal >= 60:
-            return "󰤥";
-            break;
-        case wifiSignal >= 40:
-            return "󰤢";
-            break;
-        case wifiSignal >= 10:
-            return "󰤟";
-            break;
-        default:
-            return "󰤯";
-            break;
-        }
+    HoverHandler {
+        id: hoverHandler
     }
-
-    property string hoverOutput: {
-        if (wifiSignal == 0) {
-            return icon + " " + wifiSignal + "%";
-        }
-        else{
-            return icon + " " + wifiSignal + "%" + " " + wifiName + " ";
-        }
-    }
-    
-    text: opened? hoverOutput : icon
-    color: color1
 
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
+    }
 
-        onEntered: opened = true
-        onExited: {  
-            hovered = false
-            hideTimer.restart()
+    Rectangle {
+        id: capsuleBackground
+
+        anchors.fill: parent
+        radius: height / 2
+        color: root.color1
+        opacity: root.isHovered ? 0.2 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
         }
+    }
+
+    Icon {
+        id: wifiIcon
+
+        anchors.centerIn: parent
+        name: root.icon
+        color: root.color1
+        font.variableAxes: fill
     }
 }

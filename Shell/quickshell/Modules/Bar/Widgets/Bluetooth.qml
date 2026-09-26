@@ -1,69 +1,110 @@
-import Quickshell
-import Quickshell.Wayland
 import QtQuick
+import QtQuick.Layouts
+import Quickshell
 import Quickshell.Bluetooth
+import Quickshell.Wayland
+import qs.Modules.Bar.Widgets
+import qs.Services
 
 Item {
-    
+    id: root
+
     property color color1
-    
-
-    implicitWidth: bluetooth.implicitWidth
-    implicitHeight: bluetooth.implicitHeight
-
-    property bool hoverEnabled: false
-    property bool hovered: false
-    property bool opened: false
-
-    property int state: 0
-
-    property var adapter: Bluetooth.adapters.values[0]
-
+    property alias primary: root.color1
+    property alias text: root.color1
+    readonly property bool isHovered: hoverHandler.hovered
+    property alias hovered: root.isHovered
+    property alias opened: root.isHovered
+    readonly property bool isEnabled: BluetoothService.bluetoothEnabled
+    readonly property bool isConnected: BluetoothService.hasConnectedDevice
+    readonly property var connectedDev: isConnected ? BluetoothService.connectedDevices[0] : null
     property string icon: {
-        if (Bluetooth.devices.values[1].state === BluetoothDeviceState.Connected) {
-            if (Bluetooth.devices.values[1].icon === "audio-headset")
-                return "";
-            return "󰂱";
-        }
-        if (adapter.state === BluetoothAdapterState.Enabled) {
-            return "󰂯";
-        }
-        if (adapter.state === BluetoothAdapterState.Disabled || adapter.state === BluetoothAdapterState.Blocked) {
-            return "󰂲";
-        }
+        if (!isEnabled)
+            return "bluetooth_disabled";
+
+        if (isConnected)
+            return "bluetooth_connected";
+
+        return "bluetooth";
     }
 
-    Timer {
-        id: hideTimer
+    signal clicked()
 
-        interval: 500
-        repeat: false
+    implicitWidth: bluetooth.implicitWidth + 12
+    implicitHeight: bluetooth.implicitHeight
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: implicitHeight
 
-        onTriggered: {
-            if (!hovered)
-                opened = false;
-        }
-    }
-
-    Text {
-        id: bluetooth
-        font {
-            pixelSize: 14
-            family: "JetBrainsMono Nerd Font Propo"
-        }
-
-        text: opened ? icon + " " + (Bluetooth.devices.values[1].battery) * 100 + "%" : icon
-        color: color1
+    HoverHandler {
+        id: hoverHandler
     }
 
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
-
-        onEntered: opened = true
-        onExited: {
-            hovered = false;
-            hideTimer.restart();
-        }
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
     }
+
+    Rectangle {
+        id: capsuleBackground
+
+        opacity: root.isHovered ? 0.2 : 0
+        color: color1
+        anchors.fill: parent
+        radius: 100
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+    }
+
+    RowLayout {
+        id: bluetooth
+
+        anchors.centerIn: parent
+        spacing: root.isHovered ? 5 : 0
+
+        Icon {
+            name: icon
+            color: root.color1
+        }
+
+        Text {
+            id: bluetoothText
+
+            visible: opacity > 0
+            opacity: root.isHovered && isConnected && BluetoothService.activeDeviceName.length > 0 ? 1 : 0
+            font.family: "Google Sans"
+            font.pixelSize: 14
+            font.weight: 500
+            verticalAlignment: Text.AlignVCenter
+            
+            text: BluetoothService.activeDeviceName + batt
+            color: color1
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
+        }
+
+    }
+
+    Behavior on implicitWidth {
+        NumberAnimation {
+            duration: 250
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
 }

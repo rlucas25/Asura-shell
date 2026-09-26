@@ -1,1 +1,14 @@
+# Configurações do QML
 **/.qmlls.ini
+
+Shell/quickshell/config.json
+Shell/quickshell/tasks.json
+Shell/quickshell/alarms.json
+Shell/quickshell/colors.json
+Shell/quickshell/bar_widgets.json
+
+Shell/quickshell/.vscode/
+Shell/quickshell/@Notes/
+
+__pycache__/
+*.pyc
