@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Animations as ANIM
 import qs.Asura
+import Quickshell.Wayland
 
 Scope {
     id: root
@@ -35,6 +36,7 @@ Scope {
 
         PanelWindow {
             id: panelWindow
+            WlrLayershell.namespace: "volumeOSD"
             
             property real brightnessPercent: BrightnessService.brightness / 100.0
             
@@ -65,7 +67,7 @@ Scope {
                 state: ""
                 width: 0
                 opacity: 0
-                radius: 6
+                radius: 4
                 Component.onCompleted: content.state = "show"
                 states: [
                     State {
@@ -75,7 +77,7 @@ Scope {
                             target: content
                             width: parent.width
                             opacity: 1
-                            radius: 6
+                            radius: 4
                         }
 
                     }

@@ -6,10 +6,11 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.Animations as ANIM
 import qs.Asura
+import Quickshell.Wayland
 
 Scope {
     id: root
-
+    
     property bool verticalMode
     property color color1
     property color color2
@@ -41,7 +42,7 @@ Scope {
 
         PanelWindow {
             id: panelWindow
-
+            WlrLayershell.namespace: "volumeOSD"
             property bool muted: {
                 if (!Pipewire.defaultAudioSink || Pipewire.defaultAudioSink.audio.muted)
                     return true;
@@ -80,7 +81,7 @@ Scope {
                 state: ""
                 width: 0
                 opacity: 0
-                radius: 6
+                radius: 4
                 Component.onCompleted: content.state = "show"
                 states: [
                     State {
@@ -90,7 +91,7 @@ Scope {
                             target: content
                             width: parent.width
                             opacity: 1
-                            radius: 6
+                            radius: 4
                         }
 
                     }
