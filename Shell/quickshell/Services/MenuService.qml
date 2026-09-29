@@ -14,7 +14,7 @@ Singleton {
     signal closeAllRequested()
     signal toggleLauncherRequested(string monitorName)
     signal toggleWallpaperRequested(string monitorName)
-    signal toggleMainMenuRequested(string monitorName)
+    signal toggleControlPanelRequested(string monitorName)
     signal togglePlayerRequested(string monitorName)
     signal toggleRightMenuRequested(string menuType, string monitorName)
 
@@ -76,9 +76,9 @@ Singleton {
     }
 
     IpcHandler {
-        target: "mainmenu"
-        function toggle() { root.toggleMainMenuRequested(root.getFocusedMonitorName()); }
-        function open() { root.toggleMainMenuRequested(root.getFocusedMonitorName()); }
+        target: "controlpanel"
+        function toggle() { root.toggleControlPanelRequested(root.getFocusedMonitorName()); }
+        function open() { root.toggleControlPanelRequested(root.getFocusedMonitorName()); }
         function close() { root.closeAll(); }
     }
 

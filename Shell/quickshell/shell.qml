@@ -1,6 +1,4 @@
 //@ pragma UseQApplication
-//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
-//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
 
 import QtQuick
 import Quickshell
@@ -124,7 +122,7 @@ ShellRoot {
             on_primary: root.on_primary
             text: root.text
             onNotificationClicked: {
-                bar.mainMenuOpen = true;
+                bar.controlPanelOpen = true;
             }
         }
 

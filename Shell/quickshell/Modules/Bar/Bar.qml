@@ -26,7 +26,7 @@ PanelWindow {
     property bool mouseInBar: false
     property string activeMenuName: ""
     property string activeMenuZone: ""
-    property string lastMenuName: "mainmenu"
+    property string lastMenuName: "controlpanel"
     property string lastMenuZone: "center"
     readonly property string displayedMenuName: (activeMenuName !== "") ? activeMenuName : lastMenuName
     readonly property string displayedMenuZone: (activeMenuZone !== "") ? activeMenuZone : lastMenuZone
@@ -35,11 +35,11 @@ PanelWindow {
     readonly property bool centerOpen: activeMenuName !== "" && activeMenuZone === "center"
     readonly property bool rightOpen: activeMenuName !== "" && activeMenuZone === "right"
 
-    property bool mainMenuOpen: activeMenuName === "mainmenu"
-    onMainMenuOpenChanged: {
-        if (mainMenuOpen && activeMenuName !== "mainmenu") {
-            toggleMenu("mainmenu", "center");
-        } else if (!mainMenuOpen && activeMenuName === "mainmenu") {
+    property bool controlPanelOpen: activeMenuName === "controlpanel"
+    onControlPanelOpenChanged: {
+        if (controlPanelOpen && activeMenuName !== "controlpanel") {
+            toggleMenu("controlpanel", "center");
+        } else if (!controlPanelOpen && activeMenuName === "controlpanel") {
             closeMenus();
         }
     }
@@ -100,7 +100,7 @@ PanelWindow {
     // ============================================================
     // BAR BACKGROUND OPACITY
     // ============================================================
-    property string pendingMainMenuTab: "dashboard"
+    property string pendingControlPanelTab: "dashboard"
     readonly property real barOpacity: (root.bgOpacity >= 0) ? root.bgOpacity : (Config.cfg && Config.cfg.opacity !== undefined && Config.cfg.opacity >= 0) ? Config.cfg.opacity : 1
     readonly property color barBackground: Qt.alpha(root.background, Math.max(0, Math.min(1, root.barOpacity)))
     property alias color1: root.primary
@@ -111,7 +111,7 @@ PanelWindow {
 
     function toggleMenu(menuName, zone) {
         var targetZone = zone;
-        if (menuName === "mainmenu" || menuName === "launcher" || menuName === "wallpaper") {
+        if (menuName === "controlpanel" || menuName === "launcher" || menuName === "wallpaper") {
             targetZone = "center";
         }
         if (activeMenuName === menuName && activeMenuZone === targetZone) {
@@ -124,17 +124,17 @@ PanelWindow {
         }
     }
 
-    function openMainMenu(tab, zone) {
-        pendingMainMenuTab = tab;
-        activeMenuName = "mainmenu";
+    function openControlPanel(tab, zone) {
+        pendingControlPanelTab = tab;
+        activeMenuName = "controlpanel";
         activeMenuZone = "center";
-        lastMenuName = "mainmenu";
+        lastMenuName = "controlpanel";
         lastMenuZone = "center";
     }
 
     function getMenuWidth(name) {
         switch (name) {
-        case "mainmenu":
+        case "controlpanel":
             return 1040;
         case "wallpaper":
             return 900;
@@ -168,7 +168,7 @@ PanelWindow {
             return 420;
         case "power":
             return 380;
-        case "mainmenu":
+        case "controlpanel":
             return 460;
         case "wallpaper":
             return 360;
@@ -217,7 +217,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     exclusiveZone: (exclusiveMode && !autoHide) ? 30 : 0
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: (launcherOpen || wallpaperSelectorOpen || mainMenuOpen) ? WlrKeyboardFocus.Exclusive : (anyMenuOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+    WlrLayershell.keyboardFocus: (launcherOpen || wallpaperSelectorOpen || controlPanelOpen) ? WlrKeyboardFocus.Exclusive : (anyMenuOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
     implicitWidth: screen.width
     implicitHeight: screen.height
     color: "transparent"
@@ -252,9 +252,9 @@ PanelWindow {
             }
         }
 
-        function onToggleMainMenuRequested(monitorName) {
+        function onToggleControlPanelRequested(monitorName) {
             if (!monitorName || root.screen.name === monitorName) {
-                root.toggleMenu("mainmenu", "center");
+                root.toggleMenu("controlpanel", "center");
             } else {
                 root.closeMenus();
             }
@@ -552,44 +552,40 @@ PanelWindow {
 
             ConcaveCorner {
                 width: 30
-                height: 30
+                height: centerCapsule.height
                 anchors.top: centerCapsule.top
                 anchors.right: centerCapsule.left
                 anchors.rightMargin: -1
-                anchors.topMargin: root.mode != 2 && (centerOpen || centerCapsule.height > 30.5) ? 30 : 0
-                color: root.background
+                anchors.topMargin: root.mode != 2 && centerOpen ? 30 : 0
+                color: background
                 cornerRadius: 50
                 position: "topRight"
 
                 Behavior on anchors.topMargin {
-                    Anim {
-                        type: "emphasized"
-                        duration: 400
+                    NumberAnimation {
+                        duration: 600
+                        easing.type: Easing.OutExpo
                     }
 
                 }
 
             }
-
             ConcaveCorner {
                 width: 30
-                height: 30
+                height: centerCapsule.height
                 anchors.top: centerCapsule.top
                 anchors.left: centerCapsule.right
                 anchors.leftMargin: -1
-                anchors.topMargin: root.mode != 2 && (centerOpen || centerCapsule.height > 30.5) ? 30 : 0
-                color: root.background
+                anchors.topMargin: root.mode != 2 && centerOpen ? 30 : 0
+                Behavior on anchors.topMargin {
+                    NumberAnimation {
+                        duration: 600
+                        easing.type: Easing.OutExpo
+                    }
+                }
+                color: background
                 cornerRadius: 50
                 position: "topLeft"
-
-                Behavior on anchors.topMargin {
-                    Anim {
-                        type: "emphasized"
-                        duration: 400
-                    }
-
-                }
-
             }
 
             Rectangle {
@@ -678,7 +674,7 @@ PanelWindow {
         readonly property real contentImplicitWidth: {
             var m = currentMenu;
             var fallback = root.getMenuWidth(m);
-            if (m === "mainmenu" && loaderMainMenu.item && loaderMainMenu.item.implicitWidth > 0) return loaderMainMenu.item.implicitWidth;
+            if (m === "controlpanel" && loaderControlPanel.item && loaderControlPanel.item.implicitWidth > 0) return loaderControlPanel.item.implicitWidth;
             if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitWidth > 0) return loaderLauncher.item.implicitWidth;
             if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitWidth > 0) return loaderWallpaper.item.implicitWidth;
             if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitWidth > 0) return loaderPlayer.item.implicitWidth;
@@ -693,7 +689,7 @@ PanelWindow {
         readonly property real contentImplicitHeight: {
             var m = currentMenu;
             var fallback = root.getMenuHeight(m);
-            if (m === "mainmenu" && loaderMainMenu.item && loaderMainMenu.item.implicitHeight > 0) return loaderMainMenu.item.implicitHeight;
+            if (m === "controlPanel" && loaderControlPanel.item && loaderControlPanel.item.implicitHeight > 0) return loaderControlPanel.item.implicitHeight;
             if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitHeight > 0) return loaderLauncher.item.implicitHeight;
             if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitHeight > 0) return loaderWallpaper.item.implicitHeight;
             if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitHeight > 0) return loaderPlayer.item.implicitHeight;
@@ -726,19 +722,19 @@ PanelWindow {
         }
 
         Loader {
-            id: loaderMainMenu
+            id: loaderControlPanel
             anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "mainmenu"
+            active: mh.isZoneVisible && mh.currentMenu === "controlpanel"
             visible: active
             sourceComponent: Component {
-                MainMenu {
+                ControlPanel {
                     primary: root.primary
                     secondary: root.secondary
                     background: root.background
                     surfaceContainer: root.surfaceContainer
                     on_primary: root.on_primary
                     text: root.text
-                    activeTab: root.pendingMainMenuTab
+                    activeTab: root.pendingControlPanelTab
                     onHideMenu: {
                         root.closeMenus();
                     }
@@ -762,7 +758,7 @@ PanelWindow {
                     }
                     onRequestOpenMenu: function(name, tab) {
                         root.closeMenus();
-                        if (tab && tab !== "") root.pendingMainMenuTab = tab;
+                        if (tab && tab !== "") root.pendingControlPanelTab = tab;
                         Qt.callLater(function() { root.toggleMenu(name, "center"); });
                     }
                 }
@@ -995,12 +991,12 @@ PanelWindow {
                 root.cycleCenterViewMode(delta);
             }
             onClicked: {
-                if (root.activeMenuName === "mainmenu" && root.activeMenuZone === "center") {
+                if (root.activeMenuName === "controlpanel" && root.activeMenuZone === "center") {
                     root.closeMenus();
                     return;
                 }
                 var tab = root.centerViewMode === "timer" ? "timer" : "dashboard";
-                root.openMainMenu(tab, "center");
+                root.openControlPanel(tab, "center");
             }
         }
     }

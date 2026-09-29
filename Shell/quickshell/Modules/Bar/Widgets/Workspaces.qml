@@ -114,7 +114,7 @@ RowLayout {
             Layout.preferredHeight: 15
             Layout.preferredWidth: isActive ? (root.showNumbers ? 30 : 24) : (isExpanded ? (root.showNumbers ? 25 : 20) : 15)
 
-            color: isActive ? root.color1 : (isExpanded ? Qt.alpha(root.color1, 0.7) : (ws ? Qt.alpha(root.color1, 0.5) : root.base))
+            color: isActive ? root.color1 : (isExpanded ? Qt.alpha(root.color1, 0.7) : (ws ? Qt.alpha(root.color1, 0.5) : Qt.alpha(Colors.cfg.text, 0.25)))
 
             Text {
                 visible: root.showNumbers && (workspaceNode.isActive || workspaceNode.isExpanded)

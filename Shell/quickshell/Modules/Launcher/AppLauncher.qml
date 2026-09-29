@@ -209,7 +209,7 @@ Item {
                 "badge": "",
                 "execute": function() {
                     root.hideLauncher();
-                    root.requestOpenMenu("mainmenu", "system");
+                    root.requestOpenMenu("controlpanel", "system");
                 }
             });
             menus.push({
@@ -722,7 +722,7 @@ Item {
                             color: root.primary
                             opacity: (searchInput.text.length === 0 && charModel.count === 0) ? 0.35 : 0
                             font.pixelSize: Math.round(15 * uiScale)
-                            font.family: "Google Sans"
+                            font.family: "GeistMono Nerd Font Propo"
                             verticalAlignment: Text.AlignVCenter
                             visible: opacity > 0.001
 
@@ -899,7 +899,7 @@ Item {
                             selectionColor: "transparent"
                             selectedTextColor: "transparent"
                             font.pixelSize: Math.round(15 * uiScale)
-                            font.family: "Google Sans"
+                            font.family: "GeistMono Nerd Font Propo"
                             verticalAlignment: TextInput.AlignVCenter
                             clip: true
                             cursorVisible: false
@@ -1247,7 +1247,7 @@ Item {
 
                                     font {
                                         pixelSize: Math.round(15 * uiScale)
-                                        family: "GeistMono Nerd Font Propo"
+                                        family: "Google Sans"
                                         weight: Font.Bold
                                     }
 

@@ -21,7 +21,7 @@ Item {
     property color secondary: Colors.cfg.secondary
     property color tertiary: Colors.cfg.tertiary
     property color background: Colors.cfg.background
-    property color surface: Colors.cfg.surface
+    property color surface: Qt.alpha(Colors.cfg.surface, Math.max(0, Math.min(1, Config.cfg.opacity)))
     property color surfaceContainer: Colors.cfg.surfaceContainer
     property color surfaceVariant: Colors.cfg.surfaceVariant
     property color borderCol: Colors.cfg.border
@@ -2178,616 +2178,692 @@ Item {
 
                     }
 
-                 RowLayout {
-    Layout.fillHeight: true
-    Layout.fillWidth: true
-    spacing: 10 // Reduzido de 12
-
-    Rectangle {
-        id: tasksPanel
-
-        property string taskStartPeriod: "AM"
-        property string taskEndPeriod: "AM"
-
-        function normalize12Hour(value) {
-            var clean = value.trim();
-            if (clean.length === 0)
-                return "";
-
-            var parts = clean.split(":");
-            var hour = parseInt(parts[0]);
-            var minute = parts.length > 1 ? parseInt(parts[1]) : 0;
-            if (isNaN(hour))
-                return "";
-
-            if (isNaN(minute))
-                minute = 0;
-
-            hour = Math.max(1, Math.min(12, hour));
-            minute = Math.max(0, Math.min(59, minute));
-            return (hour < 10 ? "0" : "") + hour + ":" + (minute < 10 ? "0" : "") + minute;
-        }
-
-        function convertTo24Hour(value, period) {
-            var normalized = normalize12Hour(value);
-            if (normalized.length === 0)
-                return "";
-
-            var parts = normalized.split(":");
-            var hour = parseInt(parts[0]);
-            var minute = parseInt(parts[1]);
-            if (period === "AM" && hour === 12)
-                hour = 0;
-            else if (period === "PM" && hour !== 12)
-                hour += 12;
-            return (hour < 10 ? "0" : "") + hour + ":" + (minute < 10 ? "0" : "") + minute;
-        }
-
-        function convertFrom24Hour(value) {
-            if (!value || value.length < 4)
-                return {
-                "time": "",
-                "period": "AM"
-            };
-
-            var parts = value.split(":");
-            var hour = parseInt(parts[0]);
-            var minute = parseInt(parts[1]);
-            if (isNaN(hour) || isNaN(minute))
-                return {
-                "time": "",
-                "period": "AM"
-            };
-
-            var period = hour >= 12 ? "PM" : "AM";
-            var displayHour = hour % 12;
-            if (displayHour === 0)
-                displayHour = 12;
-
-            return {
-                "time": (displayHour < 10 ? "0" : "") + displayHour + ":" + (minute < 10 ? "0" : "") + minute,
-                "period": period
-            };
-        }
-
-        function prepareTimes() {
-            taskStartTimeInput.text = normalize12Hour(taskStartTimeInput.text);
-            taskEndTimeInput.text = normalize12Hour(taskEndTimeInput.text);
-            taskStartTimeInput.internalTime = convertTo24Hour(taskStartTimeInput.text, taskStartPeriod);
-            taskEndTimeInput.internalTime = convertTo24Hour(taskEndTimeInput.text, taskEndPeriod);
-        }
-
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        radius: 16 // Reduzido de 20
-        color: root.surfaceContainer
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 12 // Reduzido de 14
-            spacing: 8 // Reduzido de 10
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Text {
-                        text: "Tasks (" + root.selectedDay + " " + root.monthNames[root.displayedMonth].substring(0, 3) + ")"
-                        font.family: "Google Sans"
-                        font.pixelSize: 13 // Reduzido de 14
-                        font.weight: Font.DemiBold
-                        color: root.textColor
-                    }
-
-                    Text {
-                        text: "Tasks for the selected day"
-                        font.family: "Google Sans"
-                        font.pixelSize: 9
-                        color: root.textMuted
-                    }
-
-                }
-
-                Rectangle {
-                    implicitWidth: 26 // Reduzido de 32
-                    implicitHeight: 22 // Reduzido de 28
-                    radius: 11 // Reduzido de 14
-                    color: Qt.alpha(root.color1, 0.14)
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay).length
-                        font.family: "Google Sans"
-                        font.pixelSize: 10
-                        font.weight: Font.DemiBold
-                        color: root.color1
-                    }
-
-                }
-
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.taskIncludeDate ? 98 : 52 // Reduzido de 128 : 68
-                radius: 14 // Reduzido de 20
-                color: root.surface
-                border.width: taskInput.activeFocus || taskStartTimeInput.activeFocus || taskEndTimeInput.activeFocus ? 2 : 1
-                border.color: taskInput.activeFocus || taskStartTimeInput.activeFocus || taskEndTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 10 // Reduzido de 12
-                    spacing: 8
-
                     RowLayout {
+                        Layout.fillHeight: true
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 10
 
                         Rectangle {
+                            id: tasksPanel
+
+                            property string taskStartPeriod: "AM"
+                            property string taskEndPeriod: "AM"
+
+                            function normalize12Hour(value) {
+                                var clean = value.trim();
+                                if (clean.length === 0)
+                                    return "";
+
+                                var parts = clean.split(":");
+                                var hour = parseInt(parts[0]);
+                                var minute = parts.length > 1 ? parseInt(parts[1]) : 0;
+                                if (isNaN(hour))
+                                    return "";
+
+                                if (isNaN(minute))
+                                    minute = 0;
+
+                                hour = Math.max(1, Math.min(12, hour));
+                                minute = Math.max(0, Math.min(59, minute));
+                                return (hour < 10 ? "0" : "") + hour + ":" + (minute < 10 ? "0" : "") + minute;
+                            }
+
+                            function convertTo24Hour(value, period) {
+                                var normalized = normalize12Hour(value);
+                                if (normalized.length === 0)
+                                    return "";
+
+                                var parts = normalized.split(":");
+                                var hour = parseInt(parts[0]);
+                                var minute = parseInt(parts[1]);
+                                if (period === "AM" && hour === 12)
+                                    hour = 0;
+                                else if (period === "PM" && hour !== 12)
+                                    hour += 12;
+                                return (hour < 10 ? "0" : "") + hour + ":" + (minute < 10 ? "0" : "") + minute;
+                            }
+
+                            function convertFrom24Hour(value) {
+                                if (!value || value.length < 4)
+                                    return {
+                                    "time": "",
+                                    "period": "AM"
+                                };
+
+                                var parts = value.split(":");
+                                var hour = parseInt(parts[0]);
+                                var minute = parseInt(parts[1]);
+                                if (isNaN(hour) || isNaN(minute))
+                                    return {
+                                    "time": "",
+                                    "period": "AM"
+                                };
+
+                                var period = hour >= 12 ? "PM" : "AM";
+                                var displayHour = hour % 12;
+                                if (displayHour === 0)
+                                    displayHour = 12;
+
+                                return {
+                                    "time": (displayHour < 10 ? "0" : "") + displayHour + ":" + (minute < 10 ? "0" : "") + minute,
+                                    "period": period
+                                };
+                            }
+
+                            function prepareTimes() {
+                                taskStartTimeInput.text = normalize12Hour(taskStartTimeInput.text);
+                                taskEndTimeInput.text = normalize12Hour(taskEndTimeInput.text);
+                                taskStartTimeInput.internalTime = convertTo24Hour(taskStartTimeInput.text, taskStartPeriod);
+                                taskEndTimeInput.internalTime = convertTo24Hour(taskEndTimeInput.text, taskEndPeriod);
+                            }
+
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 30 // Reduzido de 35
-                            radius: 10 // Reduzido de 14
-                            color: Qt.alpha(root.textColor, 0.04)
-                            border.width: taskInput.activeFocus ? 2 : 1
-                            border.color: taskInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+                            Layout.fillHeight: true
+                            radius: 16
+                            color: root.surface
 
-                            TextInput {
-                                id: taskInput
-
+                            ColumnLayout {
                                 anchors.fill: parent
-                                leftPadding: 12
-                                rightPadding: 12
-                                verticalAlignment: TextInput.AlignVCenter
-                                font.family: "Google Sans"
-                                font.pixelSize: 11 // Reduzido de 12
-                                color: root.textColor
-                                clip: true
-                                selectByMouse: true
-                                onAccepted: root.submitNewTask()
+                                anchors.margins: 12
+                                spacing: 8
 
-                                Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 12
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "New task"
-                                    font.family: "Google Sans"
-                                    font.pixelSize: 11 // Reduzido de 12
-                                    color: root.textMuted
-                                    visible: !taskInput.text && !taskInput.activeFocus
-                                }
-
-                            }
-
-                        }
-
-                        Rectangle {
-                            Layout.minimumWidth: 20
-                            Layout.maximumWidth: 40
-                            Layout.preferredWidth: 30 // Reduzido de 38
-                            Layout.preferredHeight: 30 // Reduzido de 38
-                            radius: 10 // Reduzido de 14
-                            color: root.taskIncludeDate ? Qt.alpha(root.color1, 0.14) : Qt.alpha(root.textColor, 0.04)
-                            border.width: 1
-                            border.color: root.taskIncludeDate ? Qt.alpha(root.color1, 0.55) : Qt.alpha(root.textColor, 0.08)
-                            ToolTip.visible: dateHover.hovered
-                            ToolTip.text: root.taskIncludeDate ? root.selectedDay + " " + root.monthNames[root.displayedMonth].substring(0, 3) : "No date"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰸗"
-                                font.family: "Material Symbols Rounded"
-                                font.pixelSize: 16 // Reduzido de 17
-                                color: root.taskIncludeDate ? root.color1 : root.textMuted
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.taskIncludeDate = !root.taskIncludeDate;
-                                }
-                            }
-
-                            HoverHandler {
-                                id: dateHover
-                            }
-
-                        }
-
-                        Rectangle {
-                            Layout.preferredWidth: 30 // Reduzido de 38
-                            Layout.preferredHeight: 30 // Reduzido de 38
-                            radius: 15 // Reduzido de 21
-                            color: root.color1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰐕"
-                                font.family: "Material Symbols Rounded"
-                                font.pixelSize: 18 // Reduzido de 20
-                                color: root.foreground
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.submitNewTask()
-                            }
-
-                        }
-
-                    }
-
-                    RowLayout {
-                        id: taskOptionsRow
-
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        spacing: 6
-                        visible: root.taskIncludeDate
-                        opacity: root.taskIncludeDate ? 1 : 0
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 80
-                            Layout.preferredWidth: 86
-                            Layout.maximumWidth: 120
-                            Layout.preferredHeight: 32 // Reduzido de 42
-                            radius: 10 // Reduzido de 14
-                            color: taskStartTimeInput.activeFocus ? Qt.alpha(root.color1, 0.08) : Qt.alpha(root.textColor, 0.04)
-                            border.width: taskStartTimeInput.activeFocus ? 2 : 1
-                            border.color: taskStartTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
-                            clip: true
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 4
-                                spacing: 2
-
-                                TextInput {
-                                    id: taskStartTimeInput
-
-                                    property string internalTime: ""
-
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    Layout.minimumWidth: 26
-                                    Layout.preferredHeight: 28
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    horizontalAlignment: TextInput.AlignHCenter
-                                    font.family: "Google Sans"
-                                    font.pixelSize: 10 // Reduzido de 11
-                                    font.weight: Font.Medium
-                                    color: root.textColor
-                                    clip: true
-                                    selectByMouse: true
-                                    maximumLength: 5
-                                    inputMethodHints: Qt.ImhTime
-                                    onEditingFinished: {
-                                        text = tasksPanel.normalize12Hour(text);
-                                        internalTime = tasksPanel.convertTo24Hour(text, tasksPanel.taskStartPeriod);
-                                    }
-                                    onAccepted: root.submitNewTask()
+                                    spacing: 8
 
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        text: "Start"
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 9
-                                        color: root.textMuted
-                                        visible: !taskStartTimeInput.text && !taskStartTimeInput.activeFocus
-                                    }
-
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^$|^([1-9]|1[0-2])(:([0-5]?[0-9])?)?$/
-                                    }
-
-                                }
-
-                                Rectangle {
-                                    Layout.preferredWidth: 32 // Reduzido de 36
-                                    Layout.minimumWidth: 32
-                                    Layout.maximumWidth: 32
-                                    Layout.preferredHeight: 24 // Reduzido de 28
-                                    radius: 8 // Reduzido de 10
-                                    color: Qt.alpha(root.color1, 0.14)
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: tasksPanel.taskStartPeriod
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 8
-                                        font.weight: Font.DemiBold
-                                        color: root.color1
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            tasksPanel.taskStartPeriod = tasksPanel.taskStartPeriod === "AM" ? "PM" : "AM";
-                                            taskStartTimeInput.internalTime = tasksPanel.convertTo24Hour(taskStartTimeInput.text, tasksPanel.taskStartPeriod);
-                                        }
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 80
-                            Layout.preferredWidth: 86
-                            Layout.maximumWidth: 120
-                            Layout.preferredHeight: 32 // Reduzido de 42
-                            radius: 10 // Reduzido de 14
-                            color: taskEndTimeInput.activeFocus ? Qt.alpha(root.color1, 0.08) : Qt.alpha(root.textColor, 0.04)
-                            border.width: taskEndTimeInput.activeFocus ? 2 : 1
-                            border.color: taskEndTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
-                            clip: true
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 4
-                                spacing: 2
-
-                                TextInput {
-                                    id: taskEndTimeInput
-
-                                    property string internalTime: ""
-
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 26
-                                    Layout.preferredHeight: 28
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    horizontalAlignment: TextInput.AlignHCenter
-                                    font.family: "Google Sans"
-                                    font.pixelSize: 10 // Reduzido de 11
-                                    font.weight: Font.Medium
-                                    color: root.textColor
-                                    clip: true
-                                    selectByMouse: true
-                                    maximumLength: 5
-                                    inputMethodHints: Qt.ImhTime
-                                    onEditingFinished: {
-                                        text = tasksPanel.normalize12Hour(text);
-                                        internalTime = tasksPanel.convertTo24Hour(text, tasksPanel.taskEndPeriod);
-                                    }
-                                    onAccepted: root.submitNewTask()
-
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        text: "End"
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 9
-                                        color: root.textMuted
-                                        visible: !taskEndTimeInput.text && !taskEndTimeInput.activeFocus
-                                    }
-
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^$|^([1-9]|1[0-2])(:([0-5]?[0-9])?)?$/
-                                    }
-
-                                }
-
-                                Rectangle {
-                                    Layout.preferredWidth: 32 // Reduzido de 36
-                                    Layout.minimumWidth: 32
-                                    Layout.maximumWidth: 32
-                                    Layout.preferredHeight: 24 // Reduzido de 28
-                                    radius: 8 // Reduzido de 10
-                                    color: Qt.alpha(root.color1, 0.14)
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: tasksPanel.taskEndPeriod
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 8
-                                        font.weight: Font.DemiBold
-                                        color: root.color1
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            tasksPanel.taskEndPeriod = tasksPanel.taskEndPeriod === "AM" ? "PM" : "AM";
-                                            taskEndTimeInput.internalTime = tasksPanel.convertTo24Hour(taskEndTimeInput.text, tasksPanel.taskEndPeriod);
-                                        }
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                        Rectangle {
-                            readonly property bool canNotify: root.taskIncludeDate && taskStartTimeInput.text.trim().length > 0
-
-                            Layout.minimumWidth: 20
-                            Layout.maximumWidth: 40
-                            Layout.preferredWidth: 30 // Reduzido de 38
-                            Layout.preferredHeight: 30 // Reduzido de 38
-                            radius: 10 // Reduzido de 14
-                            color: canNotify && root.taskNotify ? Qt.alpha(root.color1, 0.16) : Qt.alpha(root.textColor, 0.04)
-                            border.width: 1
-                            border.color: canNotify && root.taskNotify ? Qt.alpha(root.color1, 0.5) : Qt.alpha(root.textColor, 0.08)
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.taskNotify && parent.canNotify ? "󰂚" : "󰂛"
-                                font.family: "Material Symbols Rounded"
-                                font.pixelSize: 16 // Reduzido de 17
-                                color: root.taskNotify && parent.canNotify ? root.color1 : root.textMuted
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (parent.canNotify)
-                                        root.taskNotify = !root.taskNotify;
-                                    else
-                                        taskStartTimeInput.forceActiveFocus();
-                                }
-                            }
-
-                        }
-
-                        Item {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                        }
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 180
-                                easing.type: Easing.OutCubic
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            Flickable {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                contentHeight: taskCol.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-
-                ColumnLayout {
-                    id: taskCol
-
-                    width: parent.width
-                    spacing: 4
-
-                    Repeater {
-                        model: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay)
-
-                        delegate: Rectangle {
-                            id: taskItemRoot
-
-                            required property var modelData
-                            readonly property bool isOverdue: TaskService.isOverdue(taskItemRoot.modelData)
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: taskSubtitleRow.visible ? 52 : 40 // Reduzido de 62 : 52
-                            radius: 12 // Reduzido de 16
-                            color: taskItemHover.hovered ? Qt.alpha(root.textColor, 0.05) : "transparent"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 10
-                                spacing: 10
-
-                                Rectangle {
-                                    Layout.preferredWidth: 18 // Reduzido de 22
-                                    Layout.preferredHeight: 18 // Reduzido de 22
-                                    radius: 9 // Reduzido de 11
-                                    color: taskItemRoot.modelData.done ? root.color1 : "transparent"
-                                    border.width: taskItemRoot.modelData.done ? 0 : 2
-                                    border.color: taskItemRoot.modelData.done ? root.color1 : root.textMuted
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "✓"
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 10 // Reduzido de 11
-                                        font.weight: Font.Bold
-                                        color: root.foreground
-                                        visible: taskItemRoot.modelData.done
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: TaskService.toggleTask(taskItemRoot.modelData.id)
-                                    }
-
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2 // Reduzido de 3
-
-                                    Text {
+                                    ColumnLayout {
                                         Layout.fillWidth: true
-                                        text: taskItemRoot.modelData.text
-                                        font.family: "Google Sans"
-                                        font.pixelSize: 10 // Reduzido de 11
-                                        font.weight: Font.Medium
-                                        font.strikeout: taskItemRoot.modelData.done
-                                        color: taskItemRoot.modelData.done ? root.color1 : root.textColor
-                                        elide: Text.ElideRight
-                                    }
-
-                                    RowLayout {
-                                        id: taskSubtitleRow
-
-                                        Layout.fillWidth: true
-                                        spacing: 6
-                                        visible: taskSubtitleText.text.length > 0
+                                        spacing: 2
 
                                         Text {
-                                            id: taskSubtitleText
+                                            text: "Tasks (" + root.selectedDay + " " + root.monthNames[root.displayedMonth].substring(0, 3) + ")"
+                                            font.family: "Google Sans"
+                                            font.pixelSize: 13
+                                            font.weight: Font.DemiBold
+                                            color: root.textColor
+                                        }
+
+                                        Text {
+                                            text: "Tasks for the selected day"
+                                            font.family: "Google Sans"
+                                            font.pixelSize: 9
+                                            color: root.textMuted
+                                        }
+
+                                    }
+
+                                    Rectangle {
+                                        implicitWidth: 26
+                                        implicitHeight: 22
+                                        radius: 11
+                                        color: Qt.alpha(root.color1, 0.14)
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay).length
+                                            font.family: "Google Sans"
+                                            font.pixelSize: 10
+                                            font.weight: Font.DemiBold
+                                            color: root.color1
+                                        }
+
+                                    }
+
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: root.taskIncludeDate ? 98 : 52
+                                    radius: 14
+                                    color: root.surface
+                                    border.width: taskInput.activeFocus || taskStartTimeInput.activeFocus || taskEndTimeInput.activeFocus ? 2 : 1
+                                    border.color: taskInput.activeFocus || taskStartTimeInput.activeFocus || taskEndTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        spacing: 8
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 30
+                                                radius: 10
+                                                color: Qt.alpha(root.textColor, 0.04)
+                                                border.width: taskInput.activeFocus ? 2 : 1
+                                                border.color: taskInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+
+                                                TextInput {
+                                                    id: taskInput
+
+                                                    anchors.fill: parent
+                                                    leftPadding: 12
+                                                    rightPadding: 12
+                                                    verticalAlignment: TextInput.AlignVCenter
+                                                    font.family: "Google Sans"
+                                                    font.pixelSize: 11
+                                                    color: root.textColor
+                                                    clip: true
+                                                    selectByMouse: true
+                                                    onAccepted: root.submitNewTask()
+
+                                                    Text {
+                                                        anchors.left: parent.left
+                                                        anchors.leftMargin: 12
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        text: "New task"
+                                                        font.family: "Google Sans"
+                                                        font.pixelSize: 11
+                                                        color: root.textMuted
+                                                        visible: !taskInput.text && !taskInput.activeFocus
+                                                    }
+
+                                                }
+
+                                            }
+
+                                            Rectangle {
+                                                Layout.minimumWidth: 20
+                                                Layout.maximumWidth: 40
+                                                Layout.preferredWidth: 30
+                                                Layout.preferredHeight: 30
+                                                radius: 10
+                                                color: root.taskIncludeDate ? Qt.alpha(root.color1, 0.14) : Qt.alpha(root.textColor, 0.04)
+                                                border.width: 1
+                                                border.color: root.taskIncludeDate ? Qt.alpha(root.color1, 0.55) : Qt.alpha(root.textColor, 0.08)
+                                                ToolTip.visible: dateHover.hovered
+                                                ToolTip.text: root.taskIncludeDate ? root.selectedDay + " " + root.monthNames[root.displayedMonth].substring(0, 3) : "No date"
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "󰸗"
+                                                    font.family: "Material Symbols Rounded"
+                                                    font.pixelSize: 16
+                                                    color: root.taskIncludeDate ? root.color1 : root.textMuted
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        root.taskIncludeDate = !root.taskIncludeDate;
+                                                    }
+                                                }
+
+                                                HoverHandler {
+                                                    id: dateHover
+                                                }
+
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 30
+                                                Layout.preferredHeight: 30
+                                                radius: 15
+                                                color: root.color1
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "󰐕"
+                                                    font.family: "Material Symbols Rounded"
+                                                    font.pixelSize: 18
+                                                    color: root.foreground
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: root.submitNewTask()
+                                                }
+
+                                            }
+
+                                        }
+
+                                        RowLayout {
+                                            id: taskOptionsRow
 
                                             Layout.fillWidth: true
-                                            text: {
-                                                var str = "";
-                                                var startDisp = tasksPanel.convertFrom24Hour(taskItemRoot.modelData.startTime);
-                                                var endDisp = tasksPanel.convertFrom24Hour(taskItemRoot.modelData.endTime);
-                                                var startText = startDisp.time ? startDisp.time + " " + startDisp.period : "";
-                                                var endText = endDisp.time ? endDisp.time + " " + endDisp.period : "";
-                                                var timeRange = startText + (endText ? " - " + endText : "");
-                                                if (taskItemRoot.isOverdue) {
-                                                    str = taskItemRoot.modelData.date;
-                                                    if (timeRange)
-                                                        str += " • " + timeRange;
+                                            Layout.minimumWidth: 0
+                                            spacing: 6
+                                            visible: root.taskIncludeDate
+                                            opacity: root.taskIncludeDate ? 1 : 0
 
-                                                } else if (timeRange) {
-                                                    str = timeRange;
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 80
+                                                Layout.preferredWidth: 86
+                                                Layout.maximumWidth: 120
+                                                Layout.preferredHeight: 32
+                                                radius: 10
+                                                color: taskStartTimeInput.activeFocus ? Qt.alpha(root.color1, 0.08) : Qt.alpha(root.textColor, 0.04)
+                                                border.width: taskStartTimeInput.activeFocus ? 2 : 1
+                                                border.color: taskStartTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+                                                clip: true
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 8
+                                                    anchors.rightMargin: 4
+                                                    spacing: 2
+
+                                                    TextInput {
+                                                        id: taskStartTimeInput
+
+                                                        property string internalTime: ""
+
+                                                        Layout.fillWidth: true
+                                                        Layout.minimumWidth: 26
+                                                        Layout.preferredHeight: 28
+                                                        verticalAlignment: TextInput.AlignVCenter
+                                                        horizontalAlignment: TextInput.AlignHCenter
+                                                        font.family: "Google Sans"
+                                                        font.pixelSize: 10
+                                                        font.weight: Font.Medium
+                                                        color: root.textColor
+                                                        clip: true
+                                                        selectByMouse: true
+                                                        maximumLength: 5
+                                                        inputMethodHints: Qt.ImhTime
+                                                        onEditingFinished: {
+                                                            text = tasksPanel.normalize12Hour(text);
+                                                            internalTime = tasksPanel.convertTo24Hour(text, tasksPanel.taskStartPeriod);
+                                                        }
+                                                        onAccepted: root.submitNewTask()
+
+                                                        Text {
+                                                            anchors.fill: parent
+                                                            verticalAlignment: Text.AlignVCenter
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                            text: "Start"
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 9
+                                                            color: root.textMuted
+                                                            visible: !taskStartTimeInput.text && !taskStartTimeInput.activeFocus
+                                                        }
+
+                                                        validator: RegularExpressionValidator {
+                                                            regularExpression: /^$|^([1-9]|1[0-2])(:([0-5]?[0-9])?)?$/
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 32
+                                                        Layout.minimumWidth: 32
+                                                        Layout.maximumWidth: 32
+                                                        Layout.preferredHeight: 24
+                                                        radius: 8
+                                                        color: Qt.alpha(root.color1, 0.14)
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: tasksPanel.taskStartPeriod
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 8
+                                                            font.weight: Font.DemiBold
+                                                            color: root.color1
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                tasksPanel.taskStartPeriod = tasksPanel.taskStartPeriod === "AM" ? "PM" : "AM";
+                                                                taskStartTimeInput.internalTime = tasksPanel.convertTo24Hour(taskStartTimeInput.text, tasksPanel.taskStartPeriod);
+                                                            }
+                                                        }
+
+                                                    }
+
                                                 }
-                                                return str;
+
                                             }
-                                            font.family: "Google Sans"
-                                            font.pixelSize: 8 // Reduzido de 9
-                                            font.weight: taskItemRoot.isOverdue ? Font.DemiBold : Font.Normal
-                                            color: taskItemRoot.isOverdue ? root.color2 : root.textMuted
-                                            elide: Text.ElideRight
+
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 80
+                                                Layout.preferredWidth: 86
+                                                Layout.maximumWidth: 120
+                                                Layout.preferredHeight: 32
+                                                radius: 10
+                                                color: taskEndTimeInput.activeFocus ? Qt.alpha(root.color1, 0.08) : Qt.alpha(root.textColor, 0.04)
+                                                border.width: taskEndTimeInput.activeFocus ? 2 : 1
+                                                border.color: taskEndTimeInput.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+                                                clip: true
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 8
+                                                    anchors.rightMargin: 4
+                                                    spacing: 2
+
+                                                    TextInput {
+                                                        id: taskEndTimeInput
+
+                                                        property string internalTime: ""
+
+                                                        Layout.fillWidth: true
+                                                        Layout.minimumWidth: 26
+                                                        Layout.preferredHeight: 28
+                                                        verticalAlignment: TextInput.AlignVCenter
+                                                        horizontalAlignment: TextInput.AlignHCenter
+                                                        font.family: "Google Sans"
+                                                        font.pixelSize: 10
+                                                        font.weight: Font.Medium
+                                                        color: root.textColor
+                                                        clip: true
+                                                        selectByMouse: true
+                                                        maximumLength: 5
+                                                        inputMethodHints: Qt.ImhTime
+                                                        onEditingFinished: {
+                                                            text = tasksPanel.normalize12Hour(text);
+                                                            internalTime = tasksPanel.convertTo24Hour(text, tasksPanel.taskEndPeriod);
+                                                        }
+                                                        onAccepted: root.submitNewTask()
+
+                                                        Text {
+                                                            anchors.fill: parent
+                                                            verticalAlignment: Text.AlignVCenter
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                            text: "End"
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 9
+                                                            color: root.textMuted
+                                                            visible: !taskEndTimeInput.text && !taskEndTimeInput.activeFocus
+                                                        }
+
+                                                        validator: RegularExpressionValidator {
+                                                            regularExpression: /^$|^([1-9]|1[0-2])(:([0-5]?[0-9])?)?$/
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 32
+                                                        Layout.minimumWidth: 32
+                                                        Layout.maximumWidth: 32
+                                                        Layout.preferredHeight: 24
+                                                        radius: 8
+                                                        color: Qt.alpha(root.color1, 0.14)
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: tasksPanel.taskEndPeriod
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 8
+                                                            font.weight: Font.DemiBold
+                                                            color: root.color1
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                tasksPanel.taskEndPeriod = tasksPanel.taskEndPeriod === "AM" ? "PM" : "AM";
+                                                                taskEndTimeInput.internalTime = tasksPanel.convertTo24Hour(taskEndTimeInput.text, tasksPanel.taskEndPeriod);
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                            Rectangle {
+                                                readonly property bool canNotify: root.taskIncludeDate && taskStartTimeInput.text.trim().length > 0
+
+                                                Layout.minimumWidth: 20
+                                                Layout.maximumWidth: 40
+                                                Layout.preferredWidth: 30
+                                                Layout.preferredHeight: 30
+                                                radius: 10
+                                                color: canNotify && root.taskNotify ? Qt.alpha(root.color1, 0.16) : Qt.alpha(root.textColor, 0.04)
+                                                border.width: 1
+                                                border.color: canNotify && root.taskNotify ? Qt.alpha(root.color1, 0.5) : Qt.alpha(root.textColor, 0.08)
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: root.taskNotify && parent.canNotify ? "󰂚" : "󰂛"
+                                                    font.family: "Material Symbols Rounded"
+                                                    font.pixelSize: 16
+                                                    color: root.taskNotify && parent.canNotify ? root.color1 : root.textMuted
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        if (parent.canNotify)
+                                                            root.taskNotify = !root.taskNotify;
+                                                        else
+                                                            taskStartTimeInput.forceActiveFocus();
+                                                    }
+                                                }
+
+                                            }
+
+                                            Item {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                            }
+
+                                            Behavior on opacity {
+                                                NumberAnimation {
+                                                    duration: 180
+                                                    easing.type: Easing.OutCubic
+                                                }
+
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
+
+                                Flickable {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    contentHeight: taskCol.implicitHeight
+                                    clip: true
+                                    boundsBehavior: Flickable.StopAtBounds
+
+                                    ColumnLayout {
+                                        id: taskCol
+
+                                        width: parent.width
+                                        spacing: 4
+
+                                        Repeater {
+                                            model: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay)
+
+                                            delegate: Rectangle {
+                                                id: taskItemRoot
+
+                                                required property var modelData
+                                                readonly property bool isOverdue: TaskService.isOverdue(taskItemRoot.modelData)
+
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: taskSubtitleRow.visible ? 52 : 40
+                                                radius: 12
+                                                color: taskItemHover.hovered ? Qt.alpha(root.textColor, 0.05) : "transparent"
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 10
+                                                    anchors.rightMargin: 10
+                                                    spacing: 10
+
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 18
+                                                        Layout.preferredHeight: 18
+                                                        radius: 9
+                                                        color: taskItemRoot.modelData.done ? root.color1 : "transparent"
+                                                        border.width: taskItemRoot.modelData.done ? 0 : 2
+                                                        border.color: taskItemRoot.modelData.done ? root.color1 : root.textMuted
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: "✓"
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 10
+                                                            font.weight: Font.Bold
+                                                            color: root.foreground
+                                                            visible: taskItemRoot.modelData.done
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: TaskService.toggleTask(taskItemRoot.modelData.id)
+                                                        }
+
+                                                    }
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 2
+
+                                                        Text {
+                                                            Layout.fillWidth: true
+                                                            text: taskItemRoot.modelData.text
+                                                            font.family: "Google Sans"
+                                                            font.pixelSize: 10
+                                                            font.weight: Font.Medium
+                                                            font.strikeout: taskItemRoot.modelData.done
+                                                            color: taskItemRoot.modelData.done ? root.color1 : root.textColor
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        RowLayout {
+                                                            id: taskSubtitleRow
+
+                                                            Layout.fillWidth: true
+                                                            spacing: 6
+                                                            visible: taskSubtitleText.text.length > 0
+
+                                                            Text {
+                                                                id: taskSubtitleText
+
+                                                                Layout.fillWidth: true
+                                                                text: {
+                                                                    var str = "";
+                                                                    var startDisp = tasksPanel.convertFrom24Hour(taskItemRoot.modelData.startTime);
+                                                                    var endDisp = tasksPanel.convertFrom24Hour(taskItemRoot.modelData.endTime);
+                                                                    var startText = startDisp.time ? startDisp.time + " " + startDisp.period : "";
+                                                                    var endText = endDisp.time ? endDisp.time + " " + endDisp.period : "";
+                                                                    var timeRange = startText + (endText ? " - " + endText : "");
+                                                                    if (taskItemRoot.isOverdue) {
+                                                                        str = taskItemRoot.modelData.date;
+                                                                        if (timeRange)
+                                                                            str += " • " + timeRange;
+
+                                                                    } else if (timeRange) {
+                                                                        str = timeRange;
+                                                                    }
+                                                                    return str;
+                                                                }
+                                                                font.family: "Google Sans"
+                                                                font.pixelSize: 8
+                                                                font.weight: taskItemRoot.isOverdue ? Font.DemiBold : Font.Normal
+                                                                color: taskItemRoot.isOverdue ? root.color2 : root.textMuted
+                                                                elide: Text.ElideRight
+                                                            }
+
+                                                            Rectangle {
+                                                                visible: !!taskItemRoot.modelData.notify && !taskItemRoot.modelData.done
+                                                                Layout.preferredWidth: 16
+                                                                Layout.preferredHeight: 16
+                                                                radius: 8
+                                                                color: Qt.alpha(root.color1, 0.12)
+
+                                                                Text {
+                                                                    anchors.centerIn: parent
+                                                                    text: "󰂚"
+                                                                    font.family: "Material Symbols Rounded"
+                                                                    font.pixelSize: 10
+                                                                    color: root.color1
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 26
+                                                        Layout.preferredHeight: 26
+                                                        radius: 13
+                                                        visible: taskItemHover.hovered
+                                                        color: Qt.alpha(root.textColor, 0.07)
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: "󰅖"
+                                                            font.family: "Material Symbols Rounded"
+                                                            font.pixelSize: 15
+                                                            color: root.textMuted
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: TaskService.removeTask(taskItemRoot.modelData.id)
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                HoverHandler {
+                                                    id: taskItemHover
+                                                }
+
+                                                Behavior on color {
+                                                    ColorAnimation {
+                                                        duration: 140
+                                                        easing.type: Easing.OutCubic
+                                                    }
+
+                                                }
+
+                                            }
+
                                         }
 
                                         Rectangle {
-                                            visible: !!taskItemRoot.modelData.notify && !taskItemRoot.modelData.done
-                                            Layout.preferredWidth: 16 // Reduzido de 22
-                                            Layout.preferredHeight: 16 // Reduzido de 22
-                                            radius: 8 // Reduzido de 11
-                                            color: Qt.alpha(root.color1, 0.12)
+                                            visible: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay).length === 0
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 80
+                                            radius: 14
+                                            color: Qt.alpha(root.textColor, 0.03)
 
-                                            Text {
+                                            ColumnLayout {
                                                 anchors.centerIn: parent
-                                                text: "󰂚"
-                                                font.family: "Material Symbols Rounded"
-                                                font.pixelSize: 10 // Reduzido de 12
-                                                color: root.color1
+                                                spacing: 6
+
+                                                Text {
+                                                    Layout.alignment: Qt.AlignHCenter
+                                                    text: "󰷐"
+                                                    font.family: "Material Symbols Rounded"
+                                                    font.pixelSize: 24
+                                                    color: root.textMuted
+                                                }
+
+                                                Text {
+                                                    Layout.alignment: Qt.AlignHCenter
+                                                    text: "No tasks for this day"
+                                                    font.family: "Google Sans"
+                                                    font.pixelSize: 10
+                                                    color: root.textMuted
+                                                }
+
                                             }
 
                                         }
@@ -2796,87 +2872,11 @@ Item {
 
                                 }
 
-                                Rectangle {
-                                    Layout.preferredWidth: 26 // Reduzido de 30
-                                    Layout.preferredHeight: 26 // Reduzido de 30
-                                    radius: 13 // Reduzido de 15
-                                    visible: taskItemHover.hovered
-                                    color: Qt.alpha(root.textColor, 0.07)
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "󰅖"
-                                        font.family: "Material Symbols Rounded"
-                                        font.pixelSize: 15 // Reduzido de 16
-                                        color: root.textMuted
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: TaskService.removeTask(taskItemRoot.modelData.id)
-                                    }
-
-                                }
-
-                            }
-
-                            HoverHandler {
-                                id: taskItemHover
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 140
-                                    easing.type: Easing.OutCubic
-                                }
-
                             }
 
                         }
 
                     }
-
-                    Rectangle {
-                        visible: TaskService.getTasksForDate(root.displayedYear, root.displayedMonth, root.selectedDay).length === 0
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 80 // Reduzido de 112
-                        radius: 14 // Reduzido de 18
-                        color: Qt.alpha(root.textColor, 0.03)
-
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                Layout.alignment: Qt.AlignHCenter
-                                text: "󰷐"
-                                font.family: "Material Symbols Rounded"
-                                font.pixelSize: 24 // Reduzido de 30
-                                color: root.textMuted
-                            }
-
-                            Text {
-                                Layout.alignment: Qt.AlignHCenter
-                                text: "No tasks for this day"
-                                font.family: "Google Sans"
-                                font.pixelSize: 10
-                                color: root.textMuted
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        }
-
-    }
-
-}
 
                     transform: Translate {
                         y: dashEntrance.offsetY

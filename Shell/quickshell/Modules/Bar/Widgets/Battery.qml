@@ -120,7 +120,7 @@ Item {
                 width: Math.max(0, (parent.width - 4) * (root.percent / 100))
                 radius: 3
 
-                color: root.percent > 15 ? root.color1 : root.color2
+                color: root.percent > 15 ?  root.color2: root.color1
                 opacity: 1
             }
 

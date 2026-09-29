@@ -2010,7 +2010,7 @@ ColumnLayout {
                 Text {
                     text:
                         qsTr(
-                            "Color Scheme (Matugen)"
+                            "Color Scheme"
                         )
 
                     font.pixelSize: 12
