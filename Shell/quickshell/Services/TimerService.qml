@@ -125,15 +125,26 @@ Singleton {
     property int timerTotalSeconds: 300 // 5 minutes default
     property int timerSecondsLeft: 300
     property bool timerRunning: false
+    // True while the timer has finished and the alarm is ringing
+    property bool timerRinging: false
 
     function startTimer() {
         if (timerSecondsLeft <= 0)
             timerSecondsLeft = timerTotalSeconds;
+        timerRinging = false;
         timerRunning = true;
     }
 
+    // Pause the timer; if it was ringing, stop the alarm and reset
     function pauseTimer() {
-        timerRunning = false;
+        if (timerRinging) {
+            stopAlarmLoop();
+            timerRinging = false;
+            timerRunning = false;
+            timerSecondsLeft = timerTotalSeconds;
+        } else {
+            timerRunning = false;
+        }
     }
 
     function toggleTimer() {
@@ -144,11 +155,19 @@ Singleton {
     }
 
     function resetTimer() {
+        if (timerRinging) {
+            stopAlarmLoop();
+            timerRinging = false;
+        }
         timerRunning = false;
         timerSecondsLeft = timerTotalSeconds;
     }
 
     function setTimerDuration(seconds) {
+        if (timerRinging) {
+            stopAlarmLoop();
+            timerRinging = false;
+        }
         timerRunning = false;
         timerTotalSeconds = Math.max(10, seconds);
         timerSecondsLeft = timerTotalSeconds;
@@ -225,12 +244,12 @@ Singleton {
                 }
             }
 
-            // Custom timer tick
-            if (root.timerRunning) {
+            // Custom timer tick: when it reaches zero, enter ringing state
+            if (root.timerRunning && !root.timerRinging) {
                 if (root.timerSecondsLeft > 0) {
                     root.timerSecondsLeft--;
                 } else {
-                    root.timerRunning = false;
+                    root.timerRinging = true;
                     root.startAlarmLoop();
                     root.stateTransitionOccurred("󰔛", "Time's up!");
                     NotificationService.addNotification("Timer", "Time's up!", "Your timer has expired.", "󰔛");
@@ -247,7 +266,7 @@ Singleton {
     // ─────────────────────────────────────────────────────────────────────────
     // SHARED SUMMARY PROPERTIES FOR BAR WIDGET
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property bool isAnyActive: pomodoroRunning || timerRunning || stopwatchRunning || (pomodoroSecondsLeft < (workMinutes * 60) && pomodoroSecondsLeft > 0) || (timerSecondsLeft < timerTotalSeconds && timerSecondsLeft > 0) || stopwatchSeconds > 0 || AlarmService.isRinging
+    readonly property bool isAnyActive: pomodoroRunning || timerRunning || timerRinging || stopwatchRunning || (pomodoroSecondsLeft < (workMinutes * 60) && pomodoroSecondsLeft > 0) || (timerSecondsLeft < timerTotalSeconds && timerSecondsLeft > 0) || stopwatchSeconds > 0 || AlarmService.isRinging
  readonly property string activeIcon: {
         if (activeMode === "pomodoro") {
             if (pomodoroPhase === "work") return "neurology";
@@ -272,22 +291,25 @@ Singleton {
         if (activeMode === "pomodoro") return formatSeconds(pomodoroSecondsLeft);
         if (activeMode === "timer") return formatSeconds(timerSecondsLeft);
         if (activeMode === "stopwatch") return formatSeconds(stopwatchSeconds);
-        return AlarmService.isRinging ? "Ringing!" : (AlarmService.activeCount > 0 ? (AlarmService.activeCount + " active") : "No alarms");
+        return AlarmService.isRinging ? "Ringing!" : AlarmService.nextAlarmCountdown;
     }
 
+    // Ringing timer still counts as "running" so the bar shows the pause button
     readonly property bool activeIsRunning: {
         if (activeMode === "pomodoro") return pomodoroRunning;
-        if (activeMode === "timer") return timerRunning;
+        if (activeMode === "timer") return timerRunning || timerRinging;
         if (activeMode === "stopwatch") return stopwatchRunning;
         return AlarmService.isRinging;
     }
 
+    // Full progress when the timer is ringing (bar stays filled)
     readonly property real activeProgress: {
         if (activeMode === "pomodoro") {
             var total = (pomodoroPhase === "work" ? workMinutes : (pomodoroPhase === "shortBreak" ? shortBreakMinutes : longBreakMinutes)) * 60;
             return total > 0 ? (1.0 - (pomodoroSecondsLeft / total)) : 0;
         }
         if (activeMode === "timer") {
+            if (timerRinging) return 1.0;
             return timerTotalSeconds > 0 ? (1.0 - (timerSecondsLeft / timerTotalSeconds)) : 0;
         }
         return 0;

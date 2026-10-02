@@ -9,13 +9,13 @@ import qs.Asura
 import qs.Components
 import qs.Modules
 import qs.Modules.Bar.Menus
+import qs.Modules.Bar.Menus.ControlPanel
 import qs.Modules.Bar.Widgets
 import qs.Modules.Clipboard
 import qs.Modules.Launcher
 import qs.Services
 
 PanelWindow {
-
     id: root
 
     property int mode
@@ -30,48 +30,13 @@ PanelWindow {
     property string lastMenuZone: "center"
     readonly property string displayedMenuName: (activeMenuName !== "") ? activeMenuName : lastMenuName
     readonly property string displayedMenuZone: (activeMenuZone !== "") ? activeMenuZone : lastMenuZone
-
     readonly property bool leftOpen: activeMenuName !== "" && activeMenuZone === "left"
     readonly property bool centerOpen: activeMenuName !== "" && activeMenuZone === "center"
     readonly property bool rightOpen: activeMenuName !== "" && activeMenuZone === "right"
-
     property bool controlPanelOpen: activeMenuName === "controlpanel"
-    onControlPanelOpenChanged: {
-        if (controlPanelOpen && activeMenuName !== "controlpanel") {
-            toggleMenu("controlpanel", "center");
-        } else if (!controlPanelOpen && activeMenuName === "controlpanel") {
-            closeMenus();
-        }
-    }
-
     property bool launcherOpen: activeMenuName === "launcher"
-    onLauncherOpenChanged: {
-        if (launcherOpen && activeMenuName !== "launcher") {
-            toggleMenu("launcher", "center");
-        } else if (!launcherOpen && activeMenuName === "launcher") {
-            closeMenus();
-        }
-    }
-
     property bool wallpaperSelectorOpen: activeMenuName === "wallpaper"
-    onWallpaperSelectorOpenChanged: {
-        if (wallpaperSelectorOpen && activeMenuName !== "wallpaper") {
-            toggleMenu("wallpaper", "center");
-        } else if (!wallpaperSelectorOpen && activeMenuName === "wallpaper") {
-            closeMenus();
-        }
-    }
-
     property bool playerMenuOpen: activeMenuName === "player"
-    onPlayerMenuOpenChanged: {
-        if (playerMenuOpen && activeMenuName !== "player") {
-            var zone = BarWidgetService.findWidgetZone("player") || "center";
-            toggleMenu("player", zone);
-        } else if (!playerMenuOpen && activeMenuName === "player") {
-            closeMenus();
-        }
-    }
-
     property string centerViewMode: "player"
     property string rightMenuType: activeMenuZone === "right" ? activeMenuName : lastMenuName
     property string lastRightMenuType: lastMenuName
@@ -111,9 +76,9 @@ PanelWindow {
 
     function toggleMenu(menuName, zone) {
         var targetZone = zone;
-        if (menuName === "controlpanel" || menuName === "launcher" || menuName === "wallpaper") {
+        if (menuName === "controlpanel" || menuName === "launcher" || menuName === "wallpaper")
             targetZone = "center";
-        }
+
         if (activeMenuName === menuName && activeMenuZone === targetZone) {
             closeMenus();
         } else {
@@ -194,6 +159,39 @@ PanelWindow {
         centerViewMode = modes[idx];
     }
 
+    function closeMenus() {
+        activeMenuName = "";
+        activeMenuZone = "";
+        trayMenuOpen = false;
+        root.mouseInBar = false;
+    }
+
+    onControlPanelOpenChanged: {
+        if (controlPanelOpen && activeMenuName !== "controlpanel")
+            toggleMenu("controlpanel", "center");
+        else if (!controlPanelOpen && activeMenuName === "controlpanel")
+            closeMenus();
+    }
+    onLauncherOpenChanged: {
+        if (launcherOpen && activeMenuName !== "launcher")
+            toggleMenu("launcher", "center");
+        else if (!launcherOpen && activeMenuName === "launcher")
+            closeMenus();
+    }
+    onWallpaperSelectorOpenChanged: {
+        if (wallpaperSelectorOpen && activeMenuName !== "wallpaper")
+            toggleMenu("wallpaper", "center");
+        else if (!wallpaperSelectorOpen && activeMenuName === "wallpaper")
+            closeMenus();
+    }
+    onPlayerMenuOpenChanged: {
+        if (playerMenuOpen && activeMenuName !== "player") {
+            var zone = BarWidgetService.findWidgetZone("player") || "center";
+            toggleMenu("player", zone);
+        } else if (!playerMenuOpen && activeMenuName === "player") {
+            closeMenus();
+        }
+    }
     onRightMenuTypeChanged: {
         if (rightMenuType !== "")
             lastRightMenuType = rightMenuType;
@@ -210,7 +208,6 @@ PanelWindow {
                 hideTimer.restart();
         }
     }
-
     Component.onDestruction: {
         MenuService.unregisterMenuOpen(root);
     }
@@ -222,42 +219,30 @@ PanelWindow {
     implicitHeight: screen.height
     color: "transparent"
 
-    function closeMenus() {
-        activeMenuName = "";
-        activeMenuZone = "";
-        trayMenuOpen = false;
-        root.mouseInBar = false;
-    }
-
     Connections {
-        target: MenuService
-
         function onCloseAllRequested() {
             root.closeMenus();
         }
 
         function onToggleLauncherRequested(monitorName) {
-            if (!monitorName || root.screen.name === monitorName) {
+            if (!monitorName || root.screen.name === monitorName)
                 root.toggleMenu("launcher", "center");
-            } else {
+            else
                 root.closeMenus();
-            }
         }
 
         function onToggleWallpaperRequested(monitorName) {
-            if (!monitorName || root.screen.name === monitorName) {
+            if (!monitorName || root.screen.name === monitorName)
                 root.toggleMenu("wallpaper", "center");
-            } else {
+            else
                 root.closeMenus();
-            }
         }
 
         function onToggleControlPanelRequested(monitorName) {
-            if (!monitorName || root.screen.name === monitorName) {
+            if (!monitorName || root.screen.name === monitorName)
                 root.toggleMenu("controlpanel", "center");
-            } else {
+            else
                 root.closeMenus();
-            }
         }
 
         function onTogglePlayerRequested(monitorName) {
@@ -277,25 +262,28 @@ PanelWindow {
                 root.closeMenus();
             }
         }
+
+        target: MenuService
     }
 
     Connections {
         function onIsLockedChanged() {
-            if (LockScreenService.isLocked) {
+            if (LockScreenService.isLocked)
                 root.closeMenus();
-            }
+
         }
 
         target: LockScreenService
     }
 
     Connections {
-        target: RecorderService
         function onIsRecordingChanged() {
-            if (RecorderService.isRecording) {
+            if (RecorderService.isRecording)
                 root.centerViewMode = "recording";
-            }
+
         }
+
+        target: RecorderService
     }
 
     anchors {
@@ -303,7 +291,6 @@ PanelWindow {
         left: true
         right: true
     }
-
 
     MouseArea {
         id: dismissBackdrop
@@ -570,6 +557,7 @@ PanelWindow {
                 }
 
             }
+
             ConcaveCorner {
                 width: 30
                 height: centerCapsule.height
@@ -577,15 +565,18 @@ PanelWindow {
                 anchors.left: centerCapsule.right
                 anchors.leftMargin: -1
                 anchors.topMargin: root.mode != 2 && centerOpen ? 30 : 0
+                color: background
+                cornerRadius: 50
+                position: "topLeft"
+
                 Behavior on anchors.topMargin {
                     NumberAnimation {
                         duration: 600
                         easing.type: Easing.OutExpo
                     }
+
                 }
-                color: background
-                cornerRadius: 50
-                position: "topLeft"
+
             }
 
             Rectangle {
@@ -663,206 +654,6 @@ PanelWindow {
 
     }
 
-    component MenuHost: Item {
-        id: mh
-        required property string zone
-
-        readonly property bool isZoneActive: (root.activeMenuZone === mh.zone && root.activeMenuName !== "")
-        readonly property bool isZoneVisible: isZoneActive || (root.lastMenuZone === mh.zone && (mh.zone === "left" ? leftCapsule.height > 30.5 : (mh.zone === "center" ? centerCapsule.height > 30.5 : rightCapsule.height > 30.5)))
-        readonly property string currentMenu: isZoneActive ? root.activeMenuName : root.lastMenuName
-
-        readonly property real contentImplicitWidth: {
-            var m = currentMenu;
-            var fallback = root.getMenuWidth(m);
-            if (m === "controlpanel" && loaderControlPanel.item && loaderControlPanel.item.implicitWidth > 0) return loaderControlPanel.item.implicitWidth;
-            if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitWidth > 0) return loaderLauncher.item.implicitWidth;
-            if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitWidth > 0) return loaderWallpaper.item.implicitWidth;
-            if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitWidth > 0) return loaderPlayer.item.implicitWidth;
-            if (m === "wifi" && loaderWifi.item && loaderWifi.item.implicitWidth > 0) return loaderWifi.item.implicitWidth;
-            if (m === "bluetooth" && loaderBluetooth.item && loaderBluetooth.item.implicitWidth > 0) return loaderBluetooth.item.implicitWidth;
-            if (m === "battery" && loaderBattery.item && loaderBattery.item.implicitWidth > 0) return loaderBattery.item.implicitWidth;
-            if (m === "power" && loaderPower.item && loaderPower.item.implicitWidth > 0) return loaderPower.item.implicitWidth;
-            if (m === "volume" && loaderVolume.item && loaderVolume.item.implicitWidth > 0) return loaderVolume.item.implicitWidth;
-            if (m === "clipboard" && loaderClipboard.item && loaderClipboard.item.implicitWidth > 0) return loaderClipboard.item.implicitWidth;
-            return fallback;
-        }
-        readonly property real contentImplicitHeight: {
-            var m = currentMenu;
-            var fallback = root.getMenuHeight(m);
-            if (m === "controlPanel" && loaderControlPanel.item && loaderControlPanel.item.implicitHeight > 0) return loaderControlPanel.item.implicitHeight;
-            if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitHeight > 0) return loaderLauncher.item.implicitHeight;
-            if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitHeight > 0) return loaderWallpaper.item.implicitHeight;
-            if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitHeight > 0) return loaderPlayer.item.implicitHeight;
-            if (m === "wifi" && loaderWifi.item && loaderWifi.item.implicitHeight > 0) return loaderWifi.item.implicitHeight;
-            if (m === "bluetooth" && loaderBluetooth.item && loaderBluetooth.item.implicitHeight > 0) return loaderBluetooth.item.implicitHeight;
-            if (m === "battery" && loaderBattery.item && loaderBattery.item.implicitHeight > 0) return loaderBattery.item.implicitHeight;
-            if (m === "power" && loaderPower.item && loaderPower.item.implicitHeight > 0) return loaderPower.item.implicitHeight;
-            if (m === "volume" && loaderVolume.item && loaderVolume.item.implicitHeight > 0) return loaderVolume.item.implicitHeight;
-            if (m === "clipboard" && loaderClipboard.item && loaderClipboard.item.implicitHeight > 0) return loaderClipboard.item.implicitHeight;
-            return fallback;
-        }
-
-        visible: isZoneVisible || opacity > 0.001
-        opacity: isZoneActive ? 1 : 0
-        scale: isZoneActive ? 1 : 0.95
-        transformOrigin: mh.zone === "left" ? Item.TopLeft : (mh.zone === "right" ? Item.TopRight : Item.Top)
-
-        Behavior on opacity {
-            Anim {
-                type: "effects"
-                duration: 220
-            }
-        }
-
-        Behavior on scale {
-            Anim {
-                type: "expressive"
-                duration: 400
-            }
-        }
-
-        Loader {
-            id: loaderControlPanel
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "controlpanel"
-            visible: active
-            sourceComponent: Component {
-                ControlPanel {
-                    primary: root.primary
-                    secondary: root.secondary
-                    background: root.background
-                    surfaceContainer: root.surfaceContainer
-                    on_primary: root.on_primary
-                    text: root.text
-                    activeTab: root.pendingControlPanelTab
-                    onHideMenu: {
-                        root.closeMenus();
-                    }
-                }
-            }
-        }
-
-        Loader {
-            id: loaderLauncher
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "launcher"
-            visible: active
-            sourceComponent: Component {
-                AppLauncher {
-                    isOpen: mh.isZoneActive && mh.currentMenu === "launcher"
-                    onRequestWallpaper: {
-                        root.toggleMenu("wallpaper", "center");
-                    }
-                    onHideLauncher: {
-                        root.closeMenus();
-                    }
-                    onRequestOpenMenu: function(name, tab) {
-                        root.closeMenus();
-                        if (tab && tab !== "") root.pendingControlPanelTab = tab;
-                        Qt.callLater(function() { root.toggleMenu(name, "center"); });
-                    }
-                }
-            }
-        }
-
-        Loader {
-            id: loaderWallpaper
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "wallpaper"
-            visible: active
-            sourceComponent: Component {
-                WallpaperSelector {
-                    primary: root.primary
-                    surfaceContainer: root.surfaceContainer
-                }
-            }
-        }
-
-        Loader {
-            id: loaderPlayer
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "player"
-            visible: active
-            sourceComponent: Component {
-                PlayerMenu {
-                    primary: root.primary
-                    secondary: root.secondary
-                    background: root.background
-                    surfaceContainer: root.surfaceContainer
-                    on_primary: root.on_primary
-                    text: root.text
-                    onHideMenu: {
-                        root.closeMenus();
-                    }
-                }
-            }
-        }
-
-        Loader {
-            id: loaderWifi
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "wifi"
-            visible: active
-            sourceComponent: Component {
-                WifiMenu {}
-            }
-        }
-
-        Loader {
-            id: loaderBluetooth
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "bluetooth"
-            visible: active
-            sourceComponent: Component {
-                BluetoothMenu {}
-            }
-        }
-
-        Loader {
-            id: loaderBattery
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "battery"
-            visible: active
-            sourceComponent: Component {
-                BatteryMenu {}
-            }
-        }
-
-        Loader {
-            id: loaderPower
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "power"
-            visible: active
-            sourceComponent: Component {
-                BarPowerMenu {}
-            }
-        }
-
-        Loader {
-            id: loaderVolume
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "volume"
-            visible: active
-            sourceComponent: Component {
-                VolumeMenu {}
-            }
-        }
-
-        Loader {
-            id: loaderClipboard
-            anchors.fill: parent
-            active: mh.isZoneVisible && mh.currentMenu === "clipboard"
-            visible: active
-            sourceComponent: Component {
-                ClipboardMenu {
-                    onHideMenu: {
-                        root.closeMenus();
-                    }
-                }
-            }
-        }
-    }
-
     Item {
         id: menuContentsContainer
 
@@ -875,6 +666,7 @@ PanelWindow {
 
         Item {
             id: leftMenuClip
+
             anchors.top: parent.top
             anchors.left: parent.left
             width: leftCapsule.width
@@ -888,6 +680,7 @@ PanelWindow {
 
             MenuHost {
                 id: leftMenuHost
+
                 zone: "left"
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -895,10 +688,12 @@ PanelWindow {
                 anchors.topMargin: 30
                 anchors.bottom: parent.bottom
             }
+
         }
 
         Item {
             id: centerMenuClip
+
             anchors.top: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
             width: centerCapsule.width
@@ -912,6 +707,7 @@ PanelWindow {
 
             MenuHost {
                 id: centerMenuHost
+
                 zone: "center"
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -919,10 +715,12 @@ PanelWindow {
                 anchors.topMargin: 30
                 anchors.bottom: parent.bottom
             }
+
         }
 
         Item {
             id: rightMenuClip
+
             anchors.top: parent.top
             anchors.right: parent.right
             width: rightCapsule.width
@@ -936,6 +734,7 @@ PanelWindow {
 
             MenuHost {
                 id: rightMenuHost
+
                 zone: "right"
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -943,13 +742,17 @@ PanelWindow {
                 anchors.topMargin: 30
                 anchors.bottom: parent.bottom
             }
+
         }
+
     }
 
     Component {
         id: launcherComponent
+
         LauncherIcon {
             textColor: root.text
+
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -957,21 +760,27 @@ PanelWindow {
                     root.toggleMenu("launcher", "center");
                 }
             }
+
         }
+
     }
 
     Component {
         id: workspacesComponent
+
         Workspaces {
             primary: root.primary
             surfaceContainer: root.surfaceContainer
         }
+
     }
 
     Component {
         id: trayComponent
+
         TrayButton {
             id: tb
+
             primary: root.textBright
             parentWindow: root
             onMenuOpenChanged: {
@@ -981,10 +790,12 @@ PanelWindow {
                 root.trayMenuOpen = tb.menuOpen || tb.appMenuOpen;
             }
         }
+
     }
 
     Component {
         id: playerComponent
+
         Player {
             viewMode: root.centerViewMode
             onScrollRequested: (delta) => {
@@ -993,63 +804,75 @@ PanelWindow {
             onClicked: {
                 if (root.activeMenuName === "controlpanel" && root.activeMenuZone === "center") {
                     root.closeMenus();
-                    return;
+                    return ;
                 }
                 var tab = root.centerViewMode === "timer" ? "timer" : "dashboard";
                 root.openControlPanel(tab, "center");
             }
         }
+
     }
 
     Component {
         id: clockComponent
+
         Clock {
             textColor: root.textBright
         }
+
     }
 
     Component {
         id: clipboardComponent
+
         Clipboard {
             text: root.textBright
             onClicked: {
                 root.toggleMenu("clipboard", parent.targetZone);
             }
         }
+
     }
 
     Component {
         id: volumeComponent
+
         Volume {
             text: root.textBright
             onClicked: {
                 root.toggleMenu("volume", parent.targetZone);
             }
         }
+
     }
 
     Component {
         id: bluetoothComponent
+
         Bluetooth {
             text: root.textBright
             onClicked: {
                 root.toggleMenu("bluetooth", parent.targetZone);
             }
         }
+
     }
 
     Component {
         id: wifiComponent
+
         Wifi {
             text: root.textBright
             onClicked: {
                 root.toggleMenu("wifi", parent.targetZone);
             }
         }
+
     }
 
     Component {
         id: batteryComponent
+
         Battery {
             color1: root.textBright
             color2: root.secondary
@@ -1057,10 +880,12 @@ PanelWindow {
                 root.toggleMenu("battery", parent.targetZone);
             }
         }
+
     }
 
     Component {
         id: powerComponent
+
         PowerButton {
             secondary: root.secondary
             warning: Colors.cfg.warning
@@ -1068,90 +893,27 @@ PanelWindow {
                 root.toggleMenu("power", parent.targetZone);
             }
         }
+
     }
 
-    component SingleWidgetLoader: Loader {
-        id: swl
-        property string zone: ""
-        required property var modelData
-        readonly property var widgetData: modelData
-        property string targetZone: zone
-        visible: widgetData && widgetData.visible !== false
-        active: visible
+    // Full-bar background audio visualizer placed behind widgets (z: 1)
+    Item {
+        id: barVisualizerHost
 
-        Layout.preferredWidth: item ? (item.implicitWidth > 0 ? item.implicitWidth : item.width) : implicitWidth
-        Layout.preferredHeight: item ? (item.implicitHeight > 0 ? item.implicitHeight : item.height) : implicitHeight
-        Layout.alignment: Qt.AlignVCenter
+        z: 1
+        width: root.contentWidth
+        height: 30
+        anchors.top: parent.top
+        anchors.topMargin: root.barSlideY
+        anchors.horizontalCenter: parent.horizontalCenter
+        visible: (Config.cfg && Config.cfg.barVisualizerEnabled !== undefined) ? Config.cfg.barVisualizerEnabled : true
+        clip: true
 
-        sourceComponent: {
-            if (!widgetData) return null;
-            var t = BarWidgetService.normalizeType(widgetData.type);
-            switch (t) {
-            case "launcher": return launcherComponent;
-            case "workspaces": return workspacesComponent;
-            case "tray": return trayComponent;
-            case "player": return playerComponent;
-            case "clock": return clockComponent;
-            case "clipboard": return clipboardComponent;
-            case "volume": return volumeComponent;
-            case "bluetooth": return bluetoothComponent;
-            case "wifi": return wifiComponent;
-            case "battery": return batteryComponent;
-            case "power": return powerComponent;
-            default: return null;
-            }
-        }
-    }
-
-    component WidgetGroupDelegate: Item {
-        id: wgd
-        property string zone: ""
-        required property var modelData
-
-        readonly property bool isGroup: !!(modelData && modelData.isGroup)
-        implicitWidth: isGroup ? groupItem.implicitWidth : singleLoader.implicitWidth
-        implicitHeight: isGroup ? groupItem.implicitHeight : singleLoader.implicitHeight
-        width: implicitWidth
-        height: implicitHeight
-        Layout.preferredWidth: implicitWidth
-        Layout.preferredHeight: implicitHeight
-        Layout.alignment: Qt.AlignVCenter
-
-        Item {
-            id: groupItem
-            visible: wgd.isGroup
-            implicitWidth: groupRow.implicitWidth
-            implicitHeight: groupRow.implicitHeight
-            anchors.verticalCenter: parent.verticalCenter
-            height: implicitHeight
-            width: implicitWidth
-
-            Rectangle {
-                anchors.fill: parent
-                color: root.surfaceVariant
-                radius: 100
-            }
-
-            RowLayout {
-                id: groupRow
-                anchors.fill: parent
-                spacing: 0
-
-                Repeater {
-                    model: (wgd.modelData && wgd.modelData.isGroup) ? wgd.modelData.items : []
-                    delegate: SingleWidgetLoader {
-                        zone: wgd.zone
-                    }
-                }
-            }
-        }
-
-        SingleWidgetLoader {
-            id: singleLoader
-            visible: !wgd.isGroup
-            zone: wgd.zone
-            modelData: (!wgd.isGroup && wgd.modelData) ? wgd.modelData.item : null
-            anchors.verticalCenter: parent.verticalCenter
+        BarVisualizer {
+            anchors.fill: parent
+            barRadius: root.mode === 1 ? 0 : 15
+            primaryColor: root.primary
+            secondaryColor: root.secondary
         }
     }
 
@@ -1175,10 +937,13 @@ PanelWindow {
 
             Repeater {
                 model: BarWidgetService.getGroupedWidgets(BarWidgetService.leftWidgets)
+
                 delegate: WidgetGroupDelegate {
                     zone: "left"
                 }
+
             }
+
         }
 
         RowLayout {
@@ -1189,10 +954,13 @@ PanelWindow {
 
             Repeater {
                 model: BarWidgetService.getGroupedWidgets(BarWidgetService.centerWidgets)
+
                 delegate: WidgetGroupDelegate {
                     zone: "center"
                 }
+
             }
+
         }
 
         RowLayout {
@@ -1205,11 +973,414 @@ PanelWindow {
 
             Repeater {
                 model: BarWidgetService.getGroupedWidgets(BarWidgetService.rightWidgets)
+
                 delegate: WidgetGroupDelegate {
                     zone: "right"
                 }
+
+            }
+
+        }
+
+    }
+
+    component MenuHost: Item {
+        id: mh
+
+        required property string zone
+        readonly property bool isZoneActive: (root.activeMenuZone === mh.zone && root.activeMenuName !== "")
+        readonly property bool isZoneVisible: isZoneActive || (root.lastMenuZone === mh.zone && (mh.zone === "left" ? leftCapsule.height > 30.5 : (mh.zone === "center" ? centerCapsule.height > 30.5 : rightCapsule.height > 30.5)))
+        readonly property string currentMenu: isZoneActive ? root.activeMenuName : root.lastMenuName
+        readonly property real contentImplicitWidth: {
+            var m = currentMenu;
+            var fallback = root.getMenuWidth(m);
+            if (m === "controlpanel" && loaderControlPanel.item && loaderControlPanel.item.implicitWidth > 0)
+                return loaderControlPanel.item.implicitWidth;
+
+            if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitWidth > 0)
+                return loaderLauncher.item.implicitWidth;
+
+            if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitWidth > 0)
+                return loaderWallpaper.item.implicitWidth;
+
+            if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitWidth > 0)
+                return loaderPlayer.item.implicitWidth;
+
+            if (m === "wifi" && loaderWifi.item && loaderWifi.item.implicitWidth > 0)
+                return loaderWifi.item.implicitWidth;
+
+            if (m === "bluetooth" && loaderBluetooth.item && loaderBluetooth.item.implicitWidth > 0)
+                return loaderBluetooth.item.implicitWidth;
+
+            if (m === "battery" && loaderBattery.item && loaderBattery.item.implicitWidth > 0)
+                return loaderBattery.item.implicitWidth;
+
+            if (m === "power" && loaderPower.item && loaderPower.item.implicitWidth > 0)
+                return loaderPower.item.implicitWidth;
+
+            if (m === "volume" && loaderVolume.item && loaderVolume.item.implicitWidth > 0)
+                return loaderVolume.item.implicitWidth;
+
+            if (m === "clipboard" && loaderClipboard.item && loaderClipboard.item.implicitWidth > 0)
+                return loaderClipboard.item.implicitWidth;
+
+            return fallback;
+        }
+        readonly property real contentImplicitHeight: {
+            var m = currentMenu;
+            var fallback = root.getMenuHeight(m);
+            if (m === "controlPanel" && loaderControlPanel.item && loaderControlPanel.item.implicitHeight > 0)
+                return loaderControlPanel.item.implicitHeight;
+
+            if (m === "launcher" && loaderLauncher.item && loaderLauncher.item.implicitHeight > 0)
+                return loaderLauncher.item.implicitHeight;
+
+            if (m === "wallpaper" && loaderWallpaper.item && loaderWallpaper.item.implicitHeight > 0)
+                return loaderWallpaper.item.implicitHeight;
+
+            if (m === "player" && loaderPlayer.item && loaderPlayer.item.implicitHeight > 0)
+                return loaderPlayer.item.implicitHeight;
+
+            if (m === "wifi" && loaderWifi.item && loaderWifi.item.implicitHeight > 0)
+                return loaderWifi.item.implicitHeight;
+
+            if (m === "bluetooth" && loaderBluetooth.item && loaderBluetooth.item.implicitHeight > 0)
+                return loaderBluetooth.item.implicitHeight;
+
+            if (m === "battery" && loaderBattery.item && loaderBattery.item.implicitHeight > 0)
+                return loaderBattery.item.implicitHeight;
+
+            if (m === "power" && loaderPower.item && loaderPower.item.implicitHeight > 0)
+                return loaderPower.item.implicitHeight;
+
+            if (m === "volume" && loaderVolume.item && loaderVolume.item.implicitHeight > 0)
+                return loaderVolume.item.implicitHeight;
+
+            if (m === "clipboard" && loaderClipboard.item && loaderClipboard.item.implicitHeight > 0)
+                return loaderClipboard.item.implicitHeight;
+
+            return fallback;
+        }
+
+        visible: isZoneVisible || opacity > 0.001
+        opacity: isZoneActive ? 1 : 0
+        scale: isZoneActive ? 1 : 0.95
+        transformOrigin: mh.zone === "left" ? Item.TopLeft : (mh.zone === "right" ? Item.TopRight : Item.Top)
+
+        Loader {
+            id: loaderControlPanel
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "controlpanel"
+            visible: active
+
+            sourceComponent: Component {
+                ControlPanel {
+                    primary: root.primary
+                    secondary: root.secondary
+                    background: root.background
+                    surfaceContainer: root.surfaceContainer
+                    on_primary: root.on_primary
+                    text: root.text
+                    activeTab: root.pendingControlPanelTab
+                    onHideMenu: {
+                        root.closeMenus();
+                    }
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderLauncher
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "launcher"
+            visible: active
+
+            sourceComponent: Component {
+                AppLauncher {
+                    isOpen: mh.isZoneActive && mh.currentMenu === "launcher"
+                    onRequestWallpaper: {
+                        root.toggleMenu("wallpaper", "center");
+                    }
+                    onHideLauncher: {
+                        root.closeMenus();
+                    }
+                    onRequestOpenMenu: function(name, tab) {
+                        root.closeMenus();
+                        if (tab && tab !== "")
+                            root.pendingControlPanelTab = tab;
+
+                        Qt.callLater(function() {
+                            root.toggleMenu(name, "center");
+                        });
+                    }
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderWallpaper
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "wallpaper"
+            visible: active
+
+            sourceComponent: Component {
+                WallpaperSelector {
+                    primary: root.primary
+                    surfaceContainer: root.surfaceContainer
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderPlayer
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "player"
+            visible: active
+
+            sourceComponent: Component {
+                PlayerMenu {
+                    primary: root.primary
+                    secondary: root.secondary
+                    background: root.background
+                    surfaceContainer: root.surfaceContainer
+                    on_primary: root.on_primary
+                    text: root.text
+                    onHideMenu: {
+                        root.closeMenus();
+                    }
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderWifi
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "wifi"
+            visible: active
+
+            sourceComponent: Component {
+                WifiMenu {
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderBluetooth
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "bluetooth"
+            visible: active
+
+            sourceComponent: Component {
+                BluetoothMenu {
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderBattery
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "battery"
+            visible: active
+
+            sourceComponent: Component {
+                BatteryMenu {
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderPower
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "power"
+            visible: active
+
+            sourceComponent: Component {
+                BarPowerMenu {
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderVolume
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "volume"
+            visible: active
+
+            sourceComponent: Component {
+                VolumeMenu {
+                }
+
+            }
+
+        }
+
+        Loader {
+            id: loaderClipboard
+
+            anchors.fill: parent
+            active: mh.isZoneVisible && mh.currentMenu === "clipboard"
+            visible: active
+
+            sourceComponent: Component {
+                ClipboardMenu {
+                    onHideMenu: {
+                        root.closeMenus();
+                    }
+                }
+
+            }
+
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: "effects"
+                duration: 220
+            }
+
+        }
+
+        Behavior on scale {
+            Anim {
+                type: "expressive"
+                duration: 400
+            }
+
+        }
+
+    }
+
+    component SingleWidgetLoader: Loader {
+        id: swl
+
+        property string zone: ""
+        required property var modelData
+        readonly property var widgetData: modelData
+        property string targetZone: zone
+
+        visible: widgetData && widgetData.visible !== false
+        active: visible
+        Layout.preferredWidth: item ? (item.implicitWidth > 0 ? item.implicitWidth : item.width) : implicitWidth
+        Layout.preferredHeight: item ? (item.implicitHeight > 0 ? item.implicitHeight : item.height) : implicitHeight
+        Layout.alignment: Qt.AlignVCenter
+        sourceComponent: {
+            if (!widgetData)
+                return null;
+
+            var t = BarWidgetService.normalizeType(widgetData.type);
+            switch (t) {
+            case "launcher":
+                return launcherComponent;
+            case "workspaces":
+                return workspacesComponent;
+            case "tray":
+                return trayComponent;
+            case "player":
+                return playerComponent;
+            case "clock":
+                return clockComponent;
+            case "clipboard":
+                return clipboardComponent;
+            case "volume":
+                return volumeComponent;
+            case "bluetooth":
+                return bluetoothComponent;
+            case "wifi":
+                return wifiComponent;
+            case "battery":
+                return batteryComponent;
+            case "power":
+                return powerComponent;
+            default:
+                return null;
             }
         }
+    }
+
+    component WidgetGroupDelegate: Item {
+        id: wgd
+
+        property string zone: ""
+        required property var modelData
+        readonly property bool isGroup: !!(modelData && modelData.isGroup)
+
+        implicitWidth: isGroup ? groupItem.implicitWidth : singleLoader.implicitWidth
+        implicitHeight: isGroup ? groupItem.implicitHeight : singleLoader.implicitHeight
+        width: implicitWidth
+        height: implicitHeight
+        Layout.preferredWidth: implicitWidth
+        Layout.preferredHeight: implicitHeight
+        Layout.alignment: Qt.AlignVCenter
+
+        Item {
+            id: groupItem
+
+            visible: wgd.isGroup
+            implicitWidth: groupRow.implicitWidth
+            implicitHeight: groupRow.implicitHeight
+            anchors.verticalCenter: parent.verticalCenter
+            height: implicitHeight
+            width: implicitWidth
+
+            Rectangle {
+                anchors.fill: parent
+                color: root.surfaceVariant
+                radius: 100
+            }
+
+            RowLayout {
+                id: groupRow
+
+                anchors.fill: parent
+                spacing: 0
+
+                Repeater {
+                    model: (wgd.modelData && wgd.modelData.isGroup) ? wgd.modelData.items : []
+
+                    delegate: SingleWidgetLoader {
+                        zone: wgd.zone
+                    }
+
+                }
+
+            }
+
+        }
+
+        SingleWidgetLoader {
+            id: singleLoader
+
+            visible: !wgd.isGroup
+            zone: wgd.zone
+            modelData: (!wgd.isGroup && wgd.modelData) ? wgd.modelData.item : null
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
     }
 
     Behavior on barSlideY {

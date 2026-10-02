@@ -1,18 +1,12 @@
 import Qt5Compat.GraphicalEffects
-
 import QtQuick
 import QtQuick.Layouts
-
 import Quickshell
-
 import Quickshell.Io
-
 import Quickshell.Services.Mpris
-
 import qs.Asura
-
+import qs.Components
 import qs.Modules.Bar.Widgets
-
 import qs.Services
 
 Item {
@@ -20,139 +14,96 @@ Item {
 
     property color textColor: Colors.cfg.text
     property color primary: Colors.cfg.primary
-
     property string viewMode: "player"
-
     property bool hovered: false
-
     property int barWidth: 5
     property int maxBarHeight: 20
     property int numBars: 20
     property int spacing: 4
-
     readonly property int scrollAnimationDuration: 240
     readonly property real itemStride: 36
     readonly property int scrollCooldown: 280
-
     property bool isScrollBusy: false
-    readonly property var viewList: [
-        "player",
-        "timer",
-        "recording",
-        "activeWindow"
-    ]
-
+    readonly property var viewList: ["player", "timer", "recording", "activeWindow"]
     readonly property int activeCarouselIndex: {
-        var idx = viewList.indexOf(viewMode)
-        return idx >= 0 ? idx : 0
+        var idx = viewList.indexOf(viewMode);
+        return idx >= 0 ? idx : 0;
     }
-
-    // Variáveis para controlar a rolagem infinita
+    // Scroll variables
     property int virtualScrollIndex: 0
     property int __lastCarouselIndex: 0
-
-    onActiveCarouselIndexChanged: {
-        var newIdx = activeCarouselIndex
-        var oldIdx = __lastCarouselIndex
-        var count = viewList.length
-
-        // Detecta a direção baseada na mudança circular do índice
-        if (newIdx === (oldIdx + 1) % count) {
-            virtualScrollIndex++ // Rolou para baixo/frente
-        } else if (newIdx === (oldIdx - 1 + count) % count) {
-            virtualScrollIndex-- // Rolou para cima/trás
-        } else {
-            virtualScrollIndex += (newIdx - oldIdx) // Fallback para pulos
-        }
-        __lastCarouselIndex = newIdx
-    }
-
-    // Função que reposiciona os painéis simulando uma esteira infinita
-    function getSlotY(index, vIndex) {
-        var count = viewList.length
-        if (count === 0) return 0
-        
-        var currentMod = ((vIndex % count) + count) % count
-        var diff = index - currentMod
-
-        // Mantém a diferença no intervalo [-1, count - 2]
-        while (diff < -1) diff += count
-        while (diff > count - 2) diff -= count
-
-        return (vIndex + diff) * itemStride
-    }
-
     readonly property var player: PlayerService.activePlayer
-
-    property string artUrl:
-        player && player.trackArtUrl
-            ? player.trackArtUrl
-            : ""
-
+    property string artUrl: player && player.trackArtUrl ? player.trackArtUrl : ""
     readonly property var audioBars: CavaService.bars
-
     readonly property bool wantsCava: root.viewMode === "player"
 
     signal clicked()
     signal scrollRequested(int delta)
 
+    // Function that repositions panels simulating an infinite conveyor belt
+    function getSlotY(index, vIndex) {
+        var count = viewList.length;
+        if (count === 0)
+            return 0;
+
+        var currentMod = ((vIndex % count) + count) % count;
+        var diff = index - currentMod;
+        // Keeps the difference in the interval [-1, count - 2]
+        while (diff < -1)diff += count
+        while (diff > count - 2)diff -= count
+        return (vIndex + diff) * itemStride;
+    }
+
+    onActiveCarouselIndexChanged: {
+        // Scrolled down/foward
+        // Scrolled up/back
+
+        var newIdx = activeCarouselIndex;
+        var oldIdx = __lastCarouselIndex;
+        var count = viewList.length;
+        // Detects scroll direction
+        if (newIdx === (oldIdx + 1) % count)
+            virtualScrollIndex++;
+        else if (newIdx === (oldIdx - 1 + count) % count)
+            virtualScrollIndex--;
+        else
+            virtualScrollIndex += (newIdx - oldIdx);
+        // Fallback to jumps
+        __lastCarouselIndex = newIdx;
+    }
     implicitWidth: {
         if (viewMode === "timer")
-            return timerDisplayRow.implicitWidth + 16
+            return timerDisplayRow.implicitWidth + 16;
 
-        if (viewMode === "activeWindow") {
-            return Math.min(
-                260,
-                Math.max(
-                    120,
-                    activeWinRow.implicitWidth + 16
-                )
-            )
-        }
+        if (viewMode === "activeWindow")
+            return Math.min(260, Math.max(120, activeWinRow.implicitWidth + 16));
 
-        if (viewMode === "recording") {
-            return (
-                numBars * barWidth
-            ) +
-            (
-                (numBars - 1) * spacing
-            ) +
-            96
-        }
+        if (viewMode === "recording")
+            return (numBars * barWidth) + ((numBars - 1) * spacing) + 96;
 
-        return (
-            numBars * barWidth
-        ) +
-        (
-            (numBars - 1) * spacing
-        ) +
-        92
+        return (numBars * barWidth) + ((numBars - 1) * spacing) + 92;
     }
-
     implicitHeight: maxBarHeight
-
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
-
     onWantsCavaChanged: {
         if (wantsCava)
-            CavaService.registerConsumer()
+            CavaService.registerConsumer();
         else
-            CavaService.unregisterConsumer()
+            CavaService.unregisterConsumer();
     }
-
     Component.onCompleted: {
-        // Inicializa o virtualIndex com a aba atual na criação do componente
-        virtualScrollIndex = activeCarouselIndex
-        __lastCarouselIndex = activeCarouselIndex
-
+        // Initializes virtualIndex with the current tab at component creation
+        virtualScrollIndex = activeCarouselIndex;
+        __lastCarouselIndex = activeCarouselIndex;
         if (wantsCava)
-            CavaService.registerConsumer()
-    }
+            CavaService.registerConsumer();
 
+    }
     Component.onDestruction: {
         if (wantsCava)
-            CavaService.unregisterConsumer()
+            CavaService.unregisterConsumer();
+
     }
 
     Timer {
@@ -160,49 +111,35 @@ Item {
 
         interval: root.scrollCooldown
         repeat: false
-
         onTriggered: {
-            root.isScrollBusy = false
+            root.isScrollBusy = false;
         }
     }
 
     MouseArea {
         anchors.fill: parent
-
         hoverEnabled: true
-
         cursorShape: Qt.PointingHandCursor
-
         onEntered: root.hovered = true
         onExited: root.hovered = false
         onClicked: root.clicked()
-
         onWheel: function(wheel) {
             if (root.isScrollBusy) {
-                wheel.accepted = true
-                return
+                wheel.accepted = true;
+                return ;
             }
-
-            var delta = wheel.angleDelta.y
-
+            var delta = wheel.angleDelta.y;
             if (delta === 0)
-                delta = wheel.pixelDelta.y
+                delta = wheel.pixelDelta.y;
 
             if (Math.abs(delta) < 15) {
-                wheel.accepted = true
-                return
+                wheel.accepted = true;
+                return ;
             }
-
-            root.isScrollBusy = true
-            scrollCooldownTimer.restart()
-
-            root.scrollRequested(
-                delta > 0
-                    ? 120
-                    : -120
-            )
-
-            wheel.accepted = true
+            root.isScrollBusy = true;
+            scrollCooldownTimer.restart();
+            root.scrollRequested(delta > 0 ? 120 : -120);
+            wheel.accepted = true;
         }
     }
 
@@ -218,25 +155,14 @@ Item {
 
             anchors.left: parent.left
             anchors.right: parent.right
-
-            // Animação infinita atrelada ao virtualScrollIndex em vez do index absoluto
             y: -root.virtualScrollIndex * root.itemStride
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: root.scrollAnimationDuration
-                    easing.type: Easing.OutCubic
-                }
-            }
 
             Item {
                 id: playerSlot
 
                 y: root.getSlotY(0, root.virtualScrollIndex)
-
                 width: parent.width
                 height: root.maxBarHeight
-
                 enabled: root.viewMode === "player"
 
                 Row {
@@ -252,6 +178,7 @@ Item {
 
                         Image {
                             id: coverImage
+
                             anchors.fill: parent
                             source: root.artUrl
                             fillMode: Image.PreserveAspectCrop
@@ -260,6 +187,7 @@ Item {
 
                         Rectangle {
                             id: coverMask
+
                             anchors.fill: parent
                             radius: width / 2
                             visible: false
@@ -280,10 +208,12 @@ Item {
                             font.pixelSize: 20
                             font.family: "Material Symbols Rounded"
                         }
+
                     }
 
                     Row {
                         id: barsArea
+
                         anchors.verticalCenter: parent.verticalCenter
                         height: root.maxBarHeight
                         spacing: root.spacing
@@ -293,17 +223,8 @@ Item {
 
                             Item {
                                 required property int index
-
-                                readonly property real rawVal:
-                                    (
-                                        root.audioBars &&
-                                        root.audioBars[index] !== undefined
-                                    )
-                                        ? root.audioBars[index]
-                                        : 0
-
-                                readonly property real amp:
-                                    Math.max(0, Math.min(1, rawVal / 100000))
+                                readonly property real rawVal: (root.audioBars && root.audioBars[index] !== undefined) ? root.audioBars[index] : 0
+                                readonly property real amp: Math.max(0, Math.min(1, rawVal / 100000))
 
                                 width: root.barWidth
                                 height: root.maxBarHeight
@@ -311,9 +232,7 @@ Item {
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: root.barWidth
-                                    height: rawVal > 0
-                                            ? Math.max(3, amp * root.maxBarHeight)
-                                            : 2
+                                    height: rawVal > 0 ? Math.max(3, amp * root.maxBarHeight) : 2
                                     radius: width / 2
                                     color: Qt.alpha(root.primary, 0.35 + amp * 0.65)
 
@@ -322,10 +241,15 @@ Item {
                                             duration: 50
                                             easing.type: Easing.OutCubic
                                         }
+
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
 
                     Row {
@@ -336,9 +260,7 @@ Item {
                             implicitWidth: 24
                             implicitHeight: 24
                             radius: 12
-                            color: toggleBarPlayH.hovered
-                                    ? Qt.alpha(root.textColor, 0.35)
-                                    : "transparent"
+                            color: toggleBarPlayH.hovered ? Qt.alpha(root.textColor, 0.35) : "transparent"
 
                             Icon {
                                 anchors.centerIn: parent
@@ -359,18 +281,18 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (root.player)
-                                        root.player.togglePlaying()
+                                        root.player.togglePlaying();
+
                                 }
                             }
+
                         }
 
                         Rectangle {
                             implicitWidth: 24
                             implicitHeight: 24
                             radius: 12
-                            color: nextBarTrackH.hovered
-                                    ? Qt.alpha(root.textColor, 0.35)
-                                    : "transparent"
+                            color: nextBarTrackH.hovered ? Qt.alpha(root.textColor, 0.35) : "transparent"
 
                             Icon {
                                 anchors.centerIn: parent
@@ -391,26 +313,30 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (root.player)
-                                        root.player.next()
+                                        root.player.next();
+
                                 }
                             }
+
                         }
+
                     }
+
                 }
+
             }
 
             Item {
                 id: timerSlot
 
                 y: root.getSlotY(1, root.virtualScrollIndex)
-
                 width: parent.width
                 height: root.maxBarHeight
-
                 enabled: root.viewMode === "timer"
 
                 RowLayout {
                     id: timerDisplayRow
+
                     anchors.centerIn: parent
                     spacing: 8
 
@@ -423,94 +349,60 @@ Item {
                         color: root.textColor
                     }
 
-                    Icon {
-                        id: pomodoroPizza
+                    // Dynamic pie progress indicator for pomodoro cycles
+                    PieProgress {
+                        id: pomodoroPie
 
-                        property real cycleProgress:
-                            TimerService.totalCycles > 0
-                                ? (completedCycles / TimerService.totalCycles)
-                                : 0
-
-                        visible: cycleProgress > 0.00 && TimerService.activeMode === "pomodoro"
-
-                        property int completedCycles: {
-                            if (TimerService.pomodoroPhase === "longBreak") {
-                                return TimerService.totalCycles
-                            }
-                            if (TimerService.pomodoroPhase === "shortBreak") {
-                                return TimerService.currentCycle
-                            }
-                            return Math.max(0, TimerService.currentCycle - 1)
-                        }
-
-                        fill: cycleProgress <= 0.05 ? 0 : 1
-                        font.variableAxes: fill
-                        font.pixelSize: 22
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: TimerService.activeMode === "pomodoro"
                         color: root.primary
+                        trackColor: Qt.alpha(root.textColor, 0.18)
+                        strokeColor: Qt.alpha(root.primary, 0.4)
+                        strokeWidth: 1
 
-                        text: {
-                            if (cycleProgress <= 0.05) return "circle"
-                            if (cycleProgress < 0.18) return "clock_loader_10"
-                            if (cycleProgress < 0.35) return "clock_loader_20"
-                            if (cycleProgress < 0.58) return "clock_loader_40"
-                            if (cycleProgress < 0.70) return "clock_loader_60"
-                            if (cycleProgress < 0.84) return "clock_loader_80"
-                            if (cycleProgress < 0.98) return "clock_loader_90"
-                            return "check_circle"
-                        }
-                    }
+                        // Coherent cycle progress: base completed cycles + ongoing session fraction
+                        value: {
+                            if (TimerService.totalCycles <= 0)
+                                return 0.0;
 
-                    Item {
-                        readonly property bool hasBar:
-                            TimerService.activeMode === "timer" ||
-                            TimerService.activeMode === "pomodoro"
+                            if (TimerService.pomodoroPhase === "longBreak")
+                                return 1.0;
 
-                        height: 15
-                        implicitWidth: hasBar ? 100 : timeText.implicitWidth
+                            var baseCycle = Math.max(0, TimerService.currentCycle - 1);
+                            var currentPhaseFraction = (TimerService.pomodoroPhase === "work")
+                                ? TimerService.activeProgress
+                                : 1.0;
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.alpha(root.textColor, 0.2)
-                            radius: 50
-                            visible: parent.hasBar
-                            opacity: parent.hasBar ? 1 : 0
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 250 }
-                            }
+                            return Math.max(0.0, Math.min(1.0, (baseCycle + currentPhaseFraction) / TimerService.totalCycles));
                         }
 
-                        Rectangle {
-                            height: parent.height
-                            width: parent.hasBar ? (parent.width * TimerService.activeProgress) : 0
-                            color: root.primary
-                            radius: 50
-                            visible: parent.hasBar
+                        scale: pieHover.hovered ? 1.15 : 1.0
 
-                            Behavior on width {
-                                NumberAnimation {
-                                    duration: 250
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
+                        HoverHandler {
+                            id: pieHover
                         }
 
-                        Text {
-                            id: timeText
-                            anchors.centerIn: parent
-                            text: TimerService.activeDisplayTime
-                            font.pixelSize: 10
-                            font.family: "GeistMono Nerd Font Propo"
-                            font.bold: true
-                            color: root.textColor
-                        }
-
-                        Behavior on implicitWidth {
+                        Behavior on scale {
                             NumberAnimation {
-                                duration: 250
+                                duration: 150
                                 easing.type: Easing.OutCubic
                             }
                         }
+                    }
+
+                    // Leak-proof progress bar for pomodoro and timer countdown
+                    ProgressBar {
+                        id: timerProgressBar
+
+                        height: 15
+                        hasBar: TimerService.activeMode === "timer" || TimerService.activeMode === "pomodoro"
+                        value: TimerService.activeProgress
+                        text: TimerService.activeDisplayTime
+                        color: root.primary
+                        trackColor: Qt.alpha(root.textColor, 0.2)
+                        textColor: Colors.cfg.background
                     }
 
                     Rectangle {
@@ -518,9 +410,7 @@ Item {
                         implicitWidth: 24
                         implicitHeight: 24
                         radius: 12
-                        color: toggleBarTimerH.hovered
-                                ? Qt.alpha(root.textColor, 0.35)
-                                : "transparent"
+                        color: toggleBarTimerH.hovered ? Qt.alpha(root.textColor, 0.35) : "transparent"
 
                         Icon {
                             anchors.centerIn: parent
@@ -540,26 +430,27 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                TimerService.stopAlarmLoop()
-                                TimerService.toggleActive()
+                                TimerService.toggleActive();
                             }
                         }
+
                     }
+
                 }
+
             }
 
             Item {
                 id: recordingSlot
 
                 y: root.getSlotY(2, root.virtualScrollIndex)
-
                 width: parent.width
                 height: root.maxBarHeight
-
                 enabled: root.viewMode === "recording"
 
                 Row {
                     id: recordingDisplayRow
+
                     anchors.centerIn: parent
                     spacing: 8
 
@@ -567,11 +458,7 @@ Item {
                         width: 10
                         height: 10
                         radius: 7
-                        color: RecorderService.isRecording
-                                ? Colors.cfg.error
-                                : root.textColor
-
-
+                        color: RecorderService.isRecording ? Colors.cfg.error : root.textColor
                         anchors.verticalCenter: parent.verticalCenter
 
                         SequentialAnimation on opacity {
@@ -584,13 +471,16 @@ Item {
                                 duration: 600
                                 easing.type: Easing.InOutQuad
                             }
+
                             NumberAnimation {
                                 from: 0.2
                                 to: 1
                                 duration: 600
                                 easing.type: Easing.InOutQuad
                             }
+
                         }
+
                     }
 
                     Text {
@@ -599,9 +489,7 @@ Item {
                         font.pixelSize: 11
                         font.family: "GeistMono Nerd Font Propo"
                         font.bold: true
-                        color: RecorderService.isRecording
-                                ? Colors.cfg.error
-                                : root.textColor
+                        color: RecorderService.isRecording ? Colors.cfg.error : root.textColor
                     }
 
                     Row {
@@ -614,17 +502,8 @@ Item {
 
                             Item {
                                 required property int index
-
-                                readonly property real rawVal:
-                                    (
-                                        RecorderService.bars &&
-                                        RecorderService.bars[index] !== undefined
-                                    )
-                                        ? RecorderService.bars[index]
-                                        : 0
-
-                                readonly property real amp:
-                                    Math.max(0, Math.min(1, rawVal / 100000))
+                                readonly property real rawVal: (RecorderService.bars && RecorderService.bars[index] !== undefined) ? RecorderService.bars[index] : 0
+                                readonly property real amp: Math.max(0, Math.min(1, rawVal / 100000))
 
                                 width: root.barWidth
                                 height: root.maxBarHeight
@@ -632,23 +511,24 @@ Item {
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: root.barWidth
-                                    height: rawVal > 0
-                                            ? Math.max(3, amp * root.maxBarHeight)
-                                            : 2
+                                    height: rawVal > 0 ? Math.max(3, amp * root.maxBarHeight) : 2
                                     radius: width / 2
-                                    color: RecorderService.isRecording
-                                            ? Qt.alpha(Colors.cfg.error, 0.4 + amp * 0.6)
-                                            : Qt.alpha(root.textColor, 0.25)
+                                    color: RecorderService.isRecording ? Qt.alpha(Colors.cfg.error, 0.4 + amp * 0.6) : Qt.alpha(root.textColor, 0.25)
 
                                     Behavior on height {
                                         NumberAnimation {
                                             duration: 50
                                             easing.type: Easing.OutCubic
                                         }
+
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
 
                     Rectangle {
@@ -657,12 +537,7 @@ Item {
                         width: 24
                         height: 24
                         radius: 12
-
-                        color: recBtnH.hovered
-                                ? (RecorderService.isRecording
-                                    ? Qt.alpha(Colors.cfg.error, 0.35)
-                                    : Qt.alpha(root.textColor, 0.35))
-                                : "transparent"
+                        color: recBtnH.hovered ? (RecorderService.isRecording ? Qt.alpha(Colors.cfg.error, 0.35) : Qt.alpha(root.textColor, 0.35)) : "transparent"
 
                         Icon {
                             anchors.centerIn: parent
@@ -671,9 +546,7 @@ Item {
                             font.pixelSize: 20
                             fill: 1
                             weight: 400
-                            color: RecorderService.isRecording
-                                    ? Colors.cfg.error
-                                    : root.textColor
+                            color: RecorderService.isRecording ? Colors.cfg.error : root.textColor
                         }
 
                         HoverHandler {
@@ -684,26 +557,28 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: function(mouse) {
-                                mouse.accepted = true
-                                RecorderService.toggleRecording()
+                                mouse.accepted = true;
+                                RecorderService.toggleRecording();
                             }
                         }
+
                     }
+
                 }
+
             }
 
             Item {
                 id: activeWinSlot
 
                 y: root.getSlotY(3, root.virtualScrollIndex)
-
                 width: parent.width
                 height: root.maxBarHeight
-
                 enabled: root.viewMode === "activeWindow"
 
                 RowLayout {
                     id: activeWinRow
+
                     anchors.centerIn: parent
                     spacing: 8
 
@@ -716,16 +591,13 @@ Item {
 
                     Text {
                         text: {
-                            var name = ActiveWindowService.activeDisplayName
-                            var title = ActiveWindowService.activeTitle
+                            var name = ActiveWindowService.activeDisplayName;
+                            var title = ActiveWindowService.activeTitle;
+                            if (title && title.length > 0 && !title.startsWith(name))
+                                return name + ": " + title;
 
-                            if (title && title.length > 0 && !title.startsWith(name)) {
-                                return name + ": " + title
-                            }
-
-                            return name
+                            return name;
                         }
-
                         font.pixelSize: 12
                         font.family: "GeistMono Nerd Font Propo"
                         font.bold: true
@@ -733,8 +605,21 @@ Item {
                         elide: Text.ElideRight
                         Layout.maximumWidth: 220
                     }
+
                 }
+
             }
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.scrollAnimationDuration
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
         }
+
     }
+
 }

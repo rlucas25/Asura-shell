@@ -5,7 +5,7 @@ import subprocess
 import json
 import re
 
-VOL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_volumes.json")
+VOL_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Asura", "data", "app_volumes.json")
 
 def load_saved_volumes():
     if os.path.exists(VOL_FILE):
@@ -28,6 +28,7 @@ def save_app_volume(app_key, vol, muted=None):
             data["mutes"] = {}
         data["mutes"][app_key] = muted
     try:
+        os.makedirs(os.path.dirname(VOL_FILE), exist_ok=True)
         with open(VOL_FILE, "w") as f:
             json.dump(data, f, indent=2)
     except Exception:

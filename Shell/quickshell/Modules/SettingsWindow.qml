@@ -35,6 +35,8 @@ FloatingWindow {
     property real introContent: 0
     // Navigation tabs: "general" | "theme" | "notifications" | "gtk"
     property string currentTab: "theme"
+    // Config file path resolution
+    readonly property string configFilePath: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Asura/config/config.json") : (Quickshell.env("HOME") + "/.config/quickshell/Asura/config/config.json")
     // Wallpaper Gallery State
     property bool wallpaperListExpanded: false
     property int wallpaperGalleryHeight: 320
@@ -485,6 +487,23 @@ FloatingWindow {
             root.closeWindow();
             event.accepted = true;
         }
+        // Keyboard navigation across tabs matching @REF behavior
+        Keys.onPressed: (event) => {
+            if (event.modifiers === Qt.ControlModifier) {
+                var tabOrder = ["theme", "general", "notifications", "gtk"];
+                var currIdx = tabOrder.indexOf(root.currentTab);
+                if (currIdx === -1)
+                    currIdx = 0;
+
+                if (event.key === Qt.Key_PageDown || event.key === Qt.Key_Tab) {
+                    root.currentTab = tabOrder[(currIdx + 1) % tabOrder.length];
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_PageUp || event.key === Qt.Key_Backtab) {
+                    root.currentTab = tabOrder[(currIdx - 1 + tabOrder.length) % tabOrder.length];
+                    event.accepted = true;
+                }
+            }
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -492,25 +511,28 @@ FloatingWindow {
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 0
+                anchors.margins: 12
+                spacing: 10
 
-                // Top titlebar
-                Rectangle {
+                // Top floating titlebar (inspired by @REF/ii/settings.qml)
+                Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 52
-                    color: root.surface
+                    Layout.preferredHeight: 44
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 18
-                        anchors.rightMargin: 18
+                        anchors.leftMargin: 6
+                        anchors.rightMargin: 6
                         spacing: 12
 
+                        // Window app badge icon
                         Rectangle {
                             implicitWidth: 32
                             implicitHeight: 32
-                            radius: 16
-                            color: Qt.alpha(root.color1, 0.2)
+                            radius: 10
+                            color: Qt.alpha(root.color1, 0.15)
+                            border.color: Qt.alpha(root.color1, 0.35)
+                            border.width: 1
 
                             Text {
                                 anchors.centerIn: parent
@@ -522,14 +544,21 @@ FloatingWindow {
 
                         }
 
+                        // Window title & subtitle hierarchy
                         ColumnLayout {
                             spacing: 1
 
                             Text {
-                                text: qsTr("Shell Settings")
-                                font.pixelSize: 13
+                                text: qsTr("Settings")
+                                font.pixelSize: 14
                                 font.bold: true
-                                color: root.textColor
+                                color: root.textBright
+                            }
+
+                            Text {
+                                text: qsTr("Asura Shell Configuration")
+                                font.pixelSize: 10
+                                color: root.textMuted
                             }
 
                         }
@@ -538,19 +567,21 @@ FloatingWindow {
                             Layout.fillWidth: true
                         }
 
-                        // Close Window Button
+                        // Circular window close button
                         Rectangle {
-                            implicitWidth: 30
-                            implicitHeight: 30
-                            radius: 15
-                            color: winCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.25) : Qt.alpha(root.textColor, 0.06)
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            radius: 16
+                            color: winCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.22) : (winCloseMa.pressed ? Qt.alpha(root.textColor, 0.12) : Qt.alpha(root.textColor, 0.06))
+                            border.color: winCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.4) : Qt.alpha(root.borderCol, 0.3)
+                            border.width: 1
                             scale: winCloseMa.pressed ? 0.92 : 1
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "󰅖"
                                 font.pixelSize: 14
-                                color: winCloseH.hovered ? Colors.cfg.warning : root.textColor
+                                color: winCloseH.hovered ? Colors.cfg.warning : root.textBright
 
                                 Behavior on color {
                                     ColorAnimation {
@@ -594,30 +625,147 @@ FloatingWindow {
 
                 }
 
-                // Main body: Sidebar navigation + scrollable content area
+                // Main body: Navigation Rail and elevated Content Pane
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 0
+                    spacing: 10
 
-                    // === SIDEBAR NAVIGATION ===
+                    // === NAVIGATION RAIL (inspired by @REF/ii/settings.qml) ===
                     Rectangle {
+                        id: navRailCard
+
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 240
+                        Layout.preferredWidth: 230
+                        radius: 18
                         color: root.surface
+                        border.color: Qt.alpha(root.borderCol, 0.35)
+                        border.width: 1
+                        clip: true
                         opacity: root.introSidebar
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 12
+                            anchors.margins: 10
                             spacing: 8
 
-                            // Container for tabs with animated highlight pill
+                            // M3 Floating Action Button (FAB) config shortcut from @REF
+                            Rectangle {
+                                id: fabConfig
+
+                                property bool justCopied: false
+
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 52
+                                radius: 14
+                                color: fabH.hovered ? Qt.alpha(root.color1, 0.18) : Qt.alpha(root.color1, 0.1)
+                                border.color: Qt.alpha(root.color1, fabH.hovered ? 0.4 : 0.22)
+                                border.width: 1
+                                scale: fabMa.pressed ? 0.98 : 1
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    spacing: 10
+
+                                    Rectangle {
+                                        implicitWidth: 32
+                                        implicitHeight: 32
+                                        radius: 10
+                                        color: root.color1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: fabConfig.justCopied ? "󰄬" : "󰏫"
+                                            font.pixelSize: 15
+                                            font.family: "GeistMono Nerd Font Propo Propo"
+                                            color: root.foreground
+                                        }
+
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 1
+
+                                        Text {
+                                            text: fabConfig.justCopied ? qsTr("Path Copied!") : qsTr("Config file")
+                                            font.pixelSize: 12
+                                            font.bold: true
+                                            color: root.textBright
+                                        }
+
+                                        Text {
+                                            text: fabConfig.justCopied ? qsTr("Path in clipboard") : qsTr("Left: open | Right: copy")
+                                            font.pixelSize: 9
+                                            color: root.textMuted
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+
+                                    }
+
+                                }
+
+                                Timer {
+                                    id: revertFabTimer
+
+                                    interval: 1600
+                                    onTriggered: fabConfig.justCopied = false
+                                }
+
+                                HoverHandler {
+                                    id: fabH
+                                }
+
+                                MouseArea {
+                                    id: fabMa
+
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: (mouse) => {
+                                        if (mouse.button === Qt.RightButton) {
+                                            Quickshell.clipboardText = root.configFilePath;
+                                            fabConfig.justCopied = true;
+                                            revertFabTimer.restart();
+                                        } else {
+                                            Qt.openUrlExternally("file://" + root.configFilePath);
+                                        }
+                                    }
+                                }
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 150
+                                    }
+
+                                }
+
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutQuint
+                                    }
+
+                                }
+
+                            }
+
+                            // Subtle divider line
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 1
+                                color: Qt.alpha(root.borderCol, 0.25)
+                            }
+
+                            // Navigation tabs with animated indicator pill
                             Item {
                                 Layout.fillWidth: true
                                 implicitHeight: tabsCol.implicitHeight
 
-                                // Active indicator pill (GuidePopup style)
+                                // Animated selection pill
                                 Rectangle {
                                     id: activeHighlight
 
@@ -638,7 +786,7 @@ FloatingWindow {
                                     }
 
                                     z: 0
-                                    radius: 24
+                                    radius: 14
                                     color: root.color1
                                     width: parent.width
                                     height: 48
@@ -651,15 +799,15 @@ FloatingWindow {
 
                                     Behavior on y {
                                         NumberAnimation {
-                                            duration: 320
-                                            easing.type: Easing.OutQuint
+                                            duration: 280
+                                            easing.type: Easing.OutCubic
                                         }
 
                                     }
 
                                     Behavior on opacity {
                                         NumberAnimation {
-                                            duration: 200
+                                            duration: 180
                                         }
 
                                     }
@@ -670,341 +818,150 @@ FloatingWindow {
                                     id: tabsCol
 
                                     anchors.fill: parent
-                                    spacing: 12
+                                    spacing: 8
                                     z: 1
 
-                                    // Nav 1: Theme
-                                    Rectangle {
-                                        id: tabTheme
+                                    Repeater {
+                                        model: [{
+                                            "id": "theme",
+                                            "name": qsTr("Theme & Wall"),
+                                            "desc": qsTr("Colors & wallpapers"),
+                                            "icon": "󰏘"
+                                        }, {
+                                            "id": "general",
+                                            "name": qsTr("Bar & Desktop"),
+                                            "desc": qsTr("Layout & widgets"),
+                                            "icon": "󱔓"
+                                        }, {
+                                            "id": "notifications",
+                                            "name": qsTr("Notifications"),
+                                            "desc": qsTr("Sound & toasts"),
+                                            "icon": "󰂚"
+                                        }, {
+                                            "id": "gtk",
+                                            "name": qsTr("GTK Style"),
+                                            "desc": qsTr("Theme & font config"),
+                                            "icon": "󰉼"
+                                        }]
 
-                                        readonly property bool isActive: root.currentTab === "theme"
+                                        Rectangle {
+                                            id: tabItemDelegate
 
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 48
-                                        radius: 24
-                                        opacity: root.getTabOpacity(1)
-                                        color: tabTMa.containsMouse && !isActive ? root.surfaceContainer : "transparent"
-                                        scale: tabTMa.pressed ? 0.98 : 1
+                                            required property var modelData
+                                            required property int index
+                                            readonly property bool isActive: root.currentTab === modelData.id
 
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 16
-                                            anchors.rightMargin: 16
-                                            spacing: 16
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 48
+                                            radius: 14
+                                            opacity: root.getTabOpacity(index)
+                                            color: tabMaItem.containsMouse && !isActive ? Qt.alpha(root.textColor, 0.06) : "transparent"
+                                            scale: tabMaItem.pressed ? 0.98 : 1
 
-                                            Text {
-                                                text: "󰏘"
-                                                font.pixelSize: 17
-                                                color: tabTheme.isActive ? root.foreground : root.color1
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 12
+                                                anchors.rightMargin: 12
+                                                spacing: 12
 
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
+                                                Rectangle {
+                                                    implicitWidth: 30
+                                                    implicitHeight: 30
+                                                    radius: 8
+                                                    color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.18) : (tabMaItem.containsMouse ? Qt.alpha(root.color1, 0.15) : Qt.alpha(root.textColor, 0.06))
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: tabItemDelegate.modelData.icon
+                                                        font.pixelSize: 16
+                                                        font.family: "GeistMono Nerd Font Propo Propo"
+                                                        color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.color1 : root.textBright)
+
+                                                        Behavior on color {
+                                                            ColorAnimation {
+                                                                duration: 150
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Behavior on color {
+                                                        ColorAnimation {
+                                                            duration: 150
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+
+                                                    Text {
+                                                        text: tabItemDelegate.modelData.name
+                                                        font.pixelSize: 12
+                                                        font.bold: tabItemDelegate.isActive
+                                                        color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.textBright : root.textColor)
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+
+                                                        Behavior on color {
+                                                            ColorAnimation {
+                                                                duration: 150
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    Text {
+                                                        text: tabItemDelegate.modelData.desc
+                                                        font.pixelSize: 9
+                                                        color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.75) : root.textMuted
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+
+                                                        Behavior on color {
+                                                            ColorAnimation {
+                                                                duration: 150
+                                                            }
+
+                                                        }
+
                                                     }
 
                                                 }
 
                                             }
 
-                                            Text {
-                                                text: qsTr("Theme")
-                                                font.pixelSize: 13
-                                                font.bold: tabTheme.isActive
-                                                color: tabTheme.isActive ? root.foreground : (tabTMa.containsMouse ? root.textBright : root.textColor)
-                                                Layout.fillWidth: true
+                                            MouseArea {
+                                                id: tabMaItem
 
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.currentTab = tabItemDelegate.modelData.id
+                                            }
 
+                                            transform: Translate {
+                                                x: -24 * (1 - root.getTabProgress(tabItemDelegate.index))
+                                            }
+
+                                            Behavior on color {
+                                                ColorAnimation {
+                                                    duration: 150
                                                 }
 
                                             }
 
-                                        }
-
-                                        MouseArea {
-                                            id: tabTMa
-
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.currentTab = "theme"
-                                        }
-
-                                        transform: Translate {
-                                            x: -24 * (1 - root.getTabProgress(1))
-                                        }
-
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: 150
-                                            }
-
-                                        }
-
-                                        Behavior on scale {
-                                            NumberAnimation {
-                                                duration: 250
-                                                easing.type: Easing.OutQuint
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Nav 2: General & Bar
-                                    Rectangle {
-                                        id: tabGeneral
-
-                                        readonly property bool isActive: root.currentTab === "general"
-
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 48
-                                        radius: 24
-                                        opacity: root.getTabOpacity(0)
-                                        color: tabGMa.containsMouse && !isActive ? root.surfaceContainer : "transparent"
-                                        scale: tabGMa.pressed ? 0.98 : 1
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 16
-                                            anchors.rightMargin: 16
-                                            spacing: 16
-
-                                            Text {
-                                                text: "󱔓"
-                                                font.pixelSize: 17
-                                                color: tabGeneral.isActive ? root.foreground : root.color1
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
+                                            Behavior on scale {
+                                                NumberAnimation {
+                                                    duration: 200
+                                                    easing.type: Easing.OutQuint
                                                 }
 
-                                            }
-
-                                            Text {
-                                                text: qsTr("Bar")
-                                                font.pixelSize: 13
-                                                font.bold: tabGeneral.isActive
-                                                color: tabGeneral.isActive ? root.foreground : (tabGMa.containsMouse ? root.textBright : root.textColor)
-                                                Layout.fillWidth: true
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                        MouseArea {
-                                            id: tabGMa
-
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.currentTab = "general"
-                                        }
-
-                                        transform: Translate {
-                                            x: -24 * (1 - root.getTabProgress(0))
-                                        }
-
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: 150
-                                            }
-
-                                        }
-
-                                        Behavior on scale {
-                                            NumberAnimation {
-                                                duration: 250
-                                                easing.type: Easing.OutQuint
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Nav 3: Notifications & Sound
-                                    Rectangle {
-                                        id: tabNotifications
-
-                                        readonly property bool isActive: root.currentTab === "notifications"
-
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 48
-                                        radius: 24
-                                        opacity: root.getTabOpacity(2)
-                                        color: tabNMa.containsMouse && !isActive ? root.surfaceContainer : "transparent"
-                                        scale: tabNMa.pressed ? 0.98 : 1
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 16
-                                            anchors.rightMargin: 16
-                                            spacing: 16
-
-                                            Text {
-                                                text: "󰂚"
-                                                font.pixelSize: 17
-                                                color: tabNotifications.isActive ? root.foreground : root.color1
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Text {
-                                                text: qsTr("Notifications & Sound")
-                                                font.pixelSize: 13
-                                                font.bold: tabNotifications.isActive
-                                                color: tabNotifications.isActive ? root.foreground : (tabNMa.containsMouse ? root.textBright : root.textColor)
-                                                Layout.fillWidth: true
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                        MouseArea {
-                                            id: tabNMa
-
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.currentTab = "notifications"
-                                        }
-
-                                        transform: Translate {
-                                            x: -24 * (1 - root.getTabProgress(2))
-                                        }
-
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: 150
-                                            }
-
-                                        }
-
-                                        Behavior on scale {
-                                            NumberAnimation {
-                                                duration: 250
-                                                easing.type: Easing.OutQuint
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Nav 4: GTK Settings
-                                    Rectangle {
-                                        id: tabGtk
-
-                                        readonly property bool isActive: root.currentTab === "gtk"
-
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 48
-                                        radius: 24
-                                        opacity: root.getTabOpacity(3)
-                                        color: tabKMa.containsMouse && !isActive ? root.surfaceContainer : "transparent"
-                                        scale: tabKMa.pressed ? 0.98 : 1
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 16
-                                            anchors.rightMargin: 16
-                                            spacing: 16
-
-                                            Text {
-                                                text: "󰒓"
-                                                font.pixelSize: 17
-                                                color: tabGtk.isActive ? root.foreground : root.color1
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Text {
-                                                text: qsTr("GTK Settings")
-                                                font.pixelSize: 13
-                                                font.bold: tabGtk.isActive
-                                                color: tabGtk.isActive ? root.foreground : (tabKMa.containsMouse ? root.textBright : root.textColor)
-                                                Layout.fillWidth: true
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Text {
-                                                text: "󰌹"
-                                                font.pixelSize: 14
-                                                color: tabGtk.isActive ? root.foreground : Qt.alpha(root.textColor, 0.4)
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 150
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                        MouseArea {
-                                            id: tabKMa
-
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.currentTab = "gtk"
-                                        }
-
-                                        transform: Translate {
-                                            x: -24 * (1 - root.getTabProgress(3))
-                                        }
-
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: 150
-                                            }
-
-                                        }
-
-                                        Behavior on scale {
-                                            NumberAnimation {
-                                                duration: 250
-                                                easing.type: Easing.OutQuint
                                             }
 
                                         }
@@ -1019,12 +976,16 @@ FloatingWindow {
                                 Layout.fillHeight: true
                             }
 
-                            // Quick Reload Button
+                            // Quick reload shell button
                             Rectangle {
+                                id: reloadShellBtn
+
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 40
-                                radius: 20
-                                color: relMa.containsMouse ? root.surfaceContainer : "transparent"
+                                radius: 12
+                                color: relMa.containsMouse ? Qt.alpha(root.color1, 0.12) : Qt.alpha(root.textColor, 0.05)
+                                border.color: relMa.containsMouse ? Qt.alpha(root.color1, 0.3) : Qt.alpha(root.borderCol, 0.25)
+                                border.width: 1
                                 opacity: root.getTabOpacity(4)
                                 scale: relMa.pressed ? 0.98 : 1
 
@@ -1035,6 +996,7 @@ FloatingWindow {
                                     Text {
                                         text: "󰑐"
                                         font.pixelSize: 15
+                                        font.family: "GeistMono Nerd Font Propo Propo"
                                         color: root.color1
                                     }
 
@@ -1056,15 +1018,15 @@ FloatingWindow {
                                     onClicked: reloadShellProc.running = true
                                 }
 
+                                transform: Translate {
+                                    x: -24 * (1 - root.getTabProgress(4))
+                                }
+
                                 Behavior on color {
                                     ColorAnimation {
                                         duration: 150
                                     }
 
-                                }
-
-                                transform: Translate {
-                                    x: -24 * (1 - root.getTabProgress(4))
                                 }
 
                                 Behavior on scale {
@@ -1084,13 +1046,19 @@ FloatingWindow {
 
                     }
 
-                    // === SCROLLABLE CONTENT AREA ===
+                    // === ELEVATED CONTENT CONTAINER PANE (inspired by @REF/ii/settings.qml) ===
                     Rectangle {
+                        id: contentContainerCard
+
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        color: "transparent"
+                        radius: 18
+                        color: root.surfaceContainer
+                        border.color: Qt.alpha(root.borderCol, 0.35)
+                        border.width: 1
+                        clip: true
                         opacity: root.introContent
-                        scale: 0.97 + (0.03 * root.introContent)
+                        scale: 0.98 + (0.02 * root.introContent)
 
                         Flickable {
                             id: contentFlickable
@@ -1110,7 +1078,7 @@ FloatingWindow {
                                 id: contentCol
 
                                 width: parent.width
-                                spacing: 16
+                                spacing: 20
                                 opacity: 1
 
                                 NumberAnimation {
@@ -1120,7 +1088,7 @@ FloatingWindow {
                                     property: "opacity"
                                     from: 0
                                     to: 1
-                                    duration: 300
+                                    duration: 240
                                     easing.type: Easing.OutCubic
                                 }
 
@@ -1129,22 +1097,58 @@ FloatingWindow {
 
                                     target: tabTranslate
                                     property: "y"
-                                    from: 16
+                                    from: 14
                                     to: 0
-                                    duration: 320
+                                    duration: 250
                                     easing.type: Easing.OutCubic
                                 }
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 14
+                                    spacing: 16
                                     visible: root.currentTab === "theme"
 
-                                    Text {
-                                        text: qsTr("Theme & Wallpaper Appearance")
-                                        font.pixelSize: 15
-                                        font.bold: true
-                                        color: root.textColor
+                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        Rectangle {
+                                            implicitWidth: 36
+                                            implicitHeight: 36
+                                            radius: 10
+                                            color: Qt.alpha(root.color1, 0.15)
+                                            border.color: Qt.alpha(root.color1, 0.3)
+                                            border.width: 1
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰏘"
+                                                font.pixelSize: 18
+                                                font.family: "GeistMono Nerd Font Propo Propo"
+                                                color: root.color1
+                                            }
+
+                                        }
+
+                                        ColumnLayout {
+                                            spacing: 2
+
+                                            Text {
+                                                text: qsTr("Theme & Wallpaper Appearance")
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                color: root.textBright
+                                            }
+
+                                            Text {
+                                                text: qsTr("Personalize color schemes, generate palettes from wallpaper, and manage base16 presets")
+                                                font.pixelSize: 11
+                                                color: root.textMuted
+                                            }
+
+                                        }
+
                                     }
 
                                     RowLayout {
@@ -1837,388 +1841,238 @@ FloatingWindow {
                                     }
 
                                     // Wallpaper Auto-Theme & Theme Mode
-ColumnLayout {
-    Layout.fillWidth: true
-    spacing: 12
-
-    // Wallpaper Auto-Theme
-    Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 74
-
-        radius: 14
-        color: root.surface
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 14
-
-            spacing: 12
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-
-                Text {
-                    text: qsTr("Wallpaper Auto-Theme")
-
-                    font.pixelSize: 12
-                    font.bold: true
-
-                    color: root.textColor
-                }
-
-                Text {
-                    text: qsTr(
-                        "Dynamic Material colors generated from wallpaper"
-                    )
-
-                    font.pixelSize: 10
-
-                    color: root.textMuted
-                }
-            }
-
-            Rectangle {
-                id: autoThemeSwitch
-
-                implicitWidth: 52
-                implicitHeight: 28
-
-                radius: 14
-
-                color:
-                    Config.cfg.colorsAutoGenerate
-                        ? root.color1
-                        : root.surfaceContainer
-
-                border.width: 1
-
-                border.color:
-                    Config.cfg.colorsAutoGenerate
-                        ? Qt.alpha(
-                            root.color1,
-                            0.8
-                        )
-                        : Qt.alpha(
-                            root.textColor,
-                            0.12
-                        )
-
-                Rectangle {
-                    id: autoThemeThumb
-
-                    width: 22
-                    height: 22
-
-                    radius: 11
-
-                    anchors.verticalCenter:
-                        parent.verticalCenter
-
-                    x:
-                        Config.cfg.colorsAutoGenerate
-                            ? parent.width -
-                              width -
-                              3
-                            : 3
-
-                    color:
-                        Config.cfg.colorsAutoGenerate
-                            ? root.foreground
-                            : root.textColor
-
-                    Behavior on x {
-                        NumberAnimation {
-                            duration: 180
-                            easing.type:
-                                Easing.OutCubic
-                        }
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 150
-                        }
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-
-                    cursorShape:
-                        Qt.PointingHandCursor
-
-                    onClicked: {
-                        Config.cfg.colorsAutoGenerate =
-                            !Config.cfg.colorsAutoGenerate
-
-                        Config.save()
-
-                        if (
-                            Config.cfg.colorsAutoGenerate &&
-                            Config.cfg.wallpaper
-                        ) {
-                            Colors.generateMatugenColors(
-                                Config.cfg.wallpaper,
-                                Config.cfg.isDarkMode,
-                                Config.cfg.scheme ||
-                                "tonal-spot"
-                            )
-                        } else if (
-                            !Config.cfg.colorsAutoGenerate &&
-                            Config.cfg.wallpaper
-                        ) {
-                            Colors.suggestPaletteFromWallpaper(
-                                Config.cfg.wallpaper,
-                                Config.cfg.isDarkMode
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Color Scheme
-    Rectangle {
-        id: schemeCard
-
-        Layout.fillWidth: true
-
-        radius: 14
-
-        color: root.surface
-
-        visible:
-            Config.cfg.colorsAutoGenerate
-
-        Layout.preferredHeight:
-            schemeColumn.implicitHeight + 28
-
-        ColumnLayout {
-            id: schemeColumn
-
-            anchors.fill: parent
-            anchors.margins: 14
-
-            spacing: 10
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Text {
-                    text:
-                        qsTr(
-                            "Color Scheme"
-                        )
-
-                    font.pixelSize: 12
-                    font.bold: true
-
-                    color: root.textColor
-
-                    Layout.fillWidth: true
-                }
-
-                Rectangle {
-                    implicitHeight: 22
-
-                    implicitWidth:
-                        schemeCurrentText.implicitWidth +
-                        18
-
-                    radius: 11
-
-                    color:
-                        Qt.alpha(
-                            root.color1,
-                            0.16
-                        )
-
-                    border.width: 1
-
-                    border.color:
-                        Qt.alpha(
-                            root.color1,
-                            0.35
-                        )
-
-                    Text {
-                        id: schemeCurrentText
-
-                        anchors.centerIn: parent
-
-                        text:
-                            (
-                                Config.cfg.scheme ||
-                                "tonal-spot"
-                            )
-
-                        font.pixelSize: 9
-                        font.bold: true
-
-                        color:
-                            root.color1
-                    }
-                }
-            }
-
-            Flow {
-                id: schemeFlow
-
-                Layout.fillWidth: true
-
-                spacing: 6
-
-                Repeater {
-                    model: [
-                        "tonal-spot",
-                        "neutral",
-                        "monochrome",
-                        "vibrant",
-                        "expressive",
-                        "fidelity",
-                        "content",
-                        "rainbow",
-                        "fruit-salad"
-                    ]
-
-                    delegate: Rectangle {
-                        id: schemePill
-
-                        required property string modelData
-
-                        readonly property bool isSelected:
-                            (
-                                Config.cfg.scheme ||
-                                "tonal-spot"
-                            ) === modelData
-
-                        implicitHeight: 30
-
-                        implicitWidth:
-                            schemeLabel.implicitWidth +
-                            22
-
-                        radius: 15
-
-                        color:
-                            isSelected
-                                ? root.color1
-                                : (
-                                    schemeMouse.containsMouse
-                                        ? root.surfaceContainer
-                                        : root.surface
-                                )
-
-                        border.color:
-                            isSelected
-                                ? root.color1
-                                : Qt.alpha(
-                                    root.textColor,
-                                    0.1
-                                )
-
-                        border.width:
-                            isSelected
-                                ? 0
-                                : 1
-
-                        scale:
-                            schemeMouse.pressed
-                                ? 0.95
-                                : 1.0
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 150
-                            }
-                        }
-
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 100
-
-                                easing.type:
-                                    Easing.OutQuint
-                            }
-                        }
-
-                        Text {
-                            id: schemeLabel
-
-                            anchors.centerIn: parent
-
-                            text: {
-                                switch (modelData) {
-                                case "tonal-spot":
-                                    return "Tonal Spot"
-                                case "fruit-salad":
-                                    return "Fruit Salad"
-                                default:
-                                    return modelData
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        modelData.slice(1)
-                                }
-                            }
-
-                            font.pixelSize: 10
-
-                            font.bold:
-                                schemePill.isSelected
-
-                            color:
-                                schemePill.isSelected
-                                    ? root.foreground
-                                    : (
-                                        schemeMouse.containsMouse
-                                            ? root.textBright
-                                            : root.textColor
-                                    )
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 150
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: schemeMouse
-
-                            anchors.fill: parent
-
-                            hoverEnabled: true
-
-                            cursorShape:
-                                Qt.PointingHandCursor
-
-                            onClicked: {
-                                Config.cfg.scheme =
-                                    schemePill.modelData
-
-                                Config.save()
-
-                                if (
-                                    Config.cfg.colorsAutoGenerate &&
-                                    Config.cfg.wallpaper
-                                ) {
-                                    Colors.generateMatugenColors(
-                                        Config.cfg.wallpaper,
-                                        Config.cfg.isDarkMode,
-                                        schemePill.modelData
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        // Wallpaper Auto-Theme
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 74
+                                            radius: 14
+                                            color: root.surface
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 14
+                                                spacing: 12
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 2
+
+                                                    Text {
+                                                        text: qsTr("Wallpaper Auto-Theme")
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                        color: root.textColor
+                                                    }
+
+                                                    Text {
+                                                        text: qsTr("Dynamic Material colors generated from wallpaper")
+                                                        font.pixelSize: 10
+                                                        color: root.textMuted
+                                                    }
+
+                                                }
+
+                                                Rectangle {
+                                                    id: autoThemeSwitch
+
+                                                    implicitWidth: 52
+                                                    implicitHeight: 28
+                                                    radius: 14
+                                                    color: Config.cfg.colorsAutoGenerate ? root.color1 : root.surfaceContainer
+                                                    border.width: 1
+                                                    border.color: Config.cfg.colorsAutoGenerate ? Qt.alpha(root.color1, 0.8) : Qt.alpha(root.textColor, 0.12)
+
+                                                    Rectangle {
+                                                        id: autoThemeThumb
+
+                                                        width: 22
+                                                        height: 22
+                                                        radius: 11
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        x: Config.cfg.colorsAutoGenerate ? parent.width - width - 3 : 3
+                                                        color: Config.cfg.colorsAutoGenerate ? root.foreground : root.textColor
+
+                                                        Behavior on x {
+                                                            NumberAnimation {
+                                                                duration: 180
+                                                                easing.type: Easing.OutCubic
+                                                            }
+
+                                                        }
+
+                                                        Behavior on color {
+                                                            ColorAnimation {
+                                                                duration: 150
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            Config.cfg.colorsAutoGenerate = !Config.cfg.colorsAutoGenerate;
+                                                            Config.save();
+                                                            if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
+                                                                Colors.generateMatugenColors(Config.cfg.wallpaper, Config.cfg.isDarkMode, Config.cfg.scheme || "tonal-spot");
+                                                            else if (!Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
+                                                                Colors.suggestPaletteFromWallpaper(Config.cfg.wallpaper, Config.cfg.isDarkMode);
+                                                        }
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                        // Color Scheme
+                                        Rectangle {
+                                            id: schemeCard
+
+                                            Layout.fillWidth: true
+                                            radius: 14
+                                            color: root.surface
+                                            visible: Config.cfg.colorsAutoGenerate
+                                            Layout.preferredHeight: schemeColumn.implicitHeight + 28
+
+                                            ColumnLayout {
+                                                id: schemeColumn
+
+                                                anchors.fill: parent
+                                                anchors.margins: 14
+                                                spacing: 10
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+
+                                                    Text {
+                                                        text: qsTr("Color Scheme")
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                        color: root.textColor
+                                                        Layout.fillWidth: true
+                                                    }
+
+                                                    Rectangle {
+                                                        implicitHeight: 22
+                                                        implicitWidth: schemeCurrentText.implicitWidth + 18
+                                                        radius: 11
+                                                        color: Qt.alpha(root.color1, 0.16)
+                                                        border.width: 1
+                                                        border.color: Qt.alpha(root.color1, 0.35)
+
+                                                        Text {
+                                                            id: schemeCurrentText
+
+                                                            anchors.centerIn: parent
+                                                            text: (Config.cfg.scheme || "tonal-spot")
+                                                            font.pixelSize: 9
+                                                            font.bold: true
+                                                            color: root.color1
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                Flow {
+                                                    id: schemeFlow
+
+                                                    Layout.fillWidth: true
+                                                    spacing: 6
+
+                                                    Repeater {
+                                                        model: ["tonal-spot", "neutral", "monochrome", "vibrant", "expressive", "fidelity", "content", "rainbow", "fruit-salad"]
+
+                                                        delegate: Rectangle {
+                                                            id: schemePill
+
+                                                            required property string modelData
+                                                            readonly property bool isSelected: (Config.cfg.scheme || "tonal-spot") === modelData
+
+                                                            implicitHeight: 30
+                                                            implicitWidth: schemeLabel.implicitWidth + 22
+                                                            radius: 15
+                                                            color: isSelected ? root.color1 : (schemeMouse.containsMouse ? root.surfaceContainer : root.surface)
+                                                            border.color: isSelected ? root.color1 : Qt.alpha(root.textColor, 0.1)
+                                                            border.width: isSelected ? 0 : 1
+                                                            scale: schemeMouse.pressed ? 0.95 : 1
+
+                                                            Text {
+                                                                id: schemeLabel
+
+                                                                anchors.centerIn: parent
+                                                                text: {
+                                                                    switch (modelData) {
+                                                                    case "tonal-spot":
+                                                                        return "Tonal Spot";
+                                                                    case "fruit-salad":
+                                                                        return "Fruit Salad";
+                                                                    default:
+                                                                        return modelData.charAt(0).toUpperCase() + modelData.slice(1);
+                                                                    }
+                                                                }
+                                                                font.pixelSize: 10
+                                                                font.bold: schemePill.isSelected
+                                                                color: schemePill.isSelected ? root.foreground : (schemeMouse.containsMouse ? root.textBright : root.textColor)
+
+                                                                Behavior on color {
+                                                                    ColorAnimation {
+                                                                        duration: 150
+                                                                    }
+
+                                                                }
+
+                                                            }
+
+                                                            MouseArea {
+                                                                id: schemeMouse
+
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: {
+                                                                    Config.cfg.scheme = schemePill.modelData;
+                                                                    Config.save();
+                                                                    if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
+                                                                        Colors.generateMatugenColors(Config.cfg.wallpaper, Config.cfg.isDarkMode, schemePill.modelData);
+
+                                                                }
+                                                            }
+
+                                                            Behavior on color {
+                                                                ColorAnimation {
+                                                                    duration: 150
+                                                                }
+
+                                                            }
+
+                                                            Behavior on scale {
+                                                                NumberAnimation {
+                                                                    duration: 100
+                                                                    easing.type: Easing.OutQuint
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                    }
 
                                     // Primary Accent Color (Base16 Palette Variations)
                                     Rectangle {
@@ -2766,14 +2620,50 @@ ColumnLayout {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 14
+                                    spacing: 16
                                     visible: root.currentTab === "general"
 
-                                    Text {
-                                        text: qsTr("General & Bar Configuration")
-                                        font.pixelSize: 15
-                                        font.bold: true
-                                        color: root.textColor
+                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        Rectangle {
+                                            implicitWidth: 36
+                                            implicitHeight: 36
+                                            radius: 10
+                                            color: Qt.alpha(root.color1, 0.15)
+                                            border.color: Qt.alpha(root.color1, 0.3)
+                                            border.width: 1
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󱔓"
+                                                font.pixelSize: 18
+                                                font.family: "GeistMono Nerd Font Propo Propo"
+                                                color: root.color1
+                                            }
+
+                                        }
+
+                                        ColumnLayout {
+                                            spacing: 2
+
+                                            Text {
+                                                text: qsTr("General & Bar Configuration")
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                color: root.textBright
+                                            }
+
+                                            Text {
+                                                text: qsTr("Configure bar modes, display geometry, margins, and active panel widgets")
+                                                font.pixelSize: 11
+                                                color: root.textMuted
+                                            }
+
+                                        }
+
                                     }
 
                                     Rectangle {
@@ -3280,6 +3170,506 @@ ColumnLayout {
                                                             updateOp(mouse.x);
 
                                                     }
+                                                }
+
+                                            }
+
+                                        }
+
+                                    }
+
+                                    // Bar Background Audio Visualizer Settings Card (inspired by @REF/iNiR)
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        radius: 14
+                                        color: root.surface
+                                        border.color: root.borderCol
+                                        border.width: 1
+                                        implicitHeight: visualizerConfigCol.implicitHeight + 28
+
+                                        ColumnLayout {
+                                            id: visualizerConfigCol
+
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
+
+                                            // Header with master enable toggle
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 12
+
+                                                Rectangle {
+                                                    implicitWidth: 32
+                                                    implicitHeight: 32
+                                                    radius: 8
+                                                    color: Qt.alpha(root.color1, 0.15)
+                                                    border.color: Qt.alpha(root.color1, 0.3)
+                                                    border.width: 1
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "󰎈"
+                                                        font.pixelSize: 16
+                                                        font.family: "GeistMono Nerd Font Propo Propo"
+                                                        color: root.color1
+                                                    }
+
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 2
+
+                                                    Text {
+                                                        text: qsTr("Bar Audio Visualizer (in test)")
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                        color: root.textBright
+                                                    }
+
+                                                    Text {
+                                                        text: qsTr("Paints real-time audio spectrum across the bar background when music plays")
+                                                        font.pixelSize: 10
+                                                        color: root.textMuted
+                                                    }
+
+                                                }
+
+                                                // Switch toggle pill
+                                                Rectangle {
+                                                    implicitWidth: 46
+                                                    implicitHeight: 24
+                                                    radius: 12
+                                                    color: Config.cfg.barVisualizerEnabled ? root.color1 : root.surfaceContainer
+                                                    scale: vizToggleMa.pressed ? 0.94 : 1
+
+                                                    Rectangle {
+                                                        width: 18
+                                                        height: 18
+                                                        radius: 9
+                                                        x: Config.cfg.barVisualizerEnabled ? parent.width - width - 3 : 3
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        color: Config.cfg.barVisualizerEnabled ? root.foreground : root.textBright
+
+                                                        Behavior on x {
+                                                            NumberAnimation {
+                                                                duration: 180
+                                                                easing.type: Easing.OutCubic
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    MouseArea {
+                                                        id: vizToggleMa
+
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            Config.cfg.barVisualizerEnabled = !Config.cfg.barVisualizerEnabled;
+                                                            Config.save();
+                                                        }
+                                                    }
+
+                                                    Behavior on color {
+                                                        ColorAnimation {
+                                                            duration: 150
+                                                        }
+
+                                                    }
+
+                                                    Behavior on scale {
+                                                        NumberAnimation {
+                                                            duration: 150
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                            // Expandable options panel when enabled
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 10
+                                                visible: Config.cfg.barVisualizerEnabled
+
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    implicitHeight: 1
+                                                    color: Qt.alpha(root.borderCol, 0.3)
+                                                }
+
+                                                // Style selection: Bars vs Wave (Smooth)
+                                                Text {
+                                                    text: qsTr("Visualizer Style:")
+                                                    font.pixelSize: 11
+                                                    font.bold: true
+                                                    color: root.textColor
+                                                }
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 10
+
+                                                    // Option: Bars
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 46
+                                                        radius: 10
+                                                        color: Config.cfg.barVisualizerType === "bars" ? root.color1 : root.surfaceContainer
+                                                        scale: styleBarsMa.pressed ? 0.98 : 1
+
+                                                        RowLayout {
+                                                            anchors.centerIn: parent
+                                                            spacing: 8
+
+                                                            Text {
+                                                                text: "bar_chart"
+                                                                font.family: "Material Symbols Rounded"
+                                                                font.pixelSize: 14
+                                                                color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.color1
+                                                            }
+
+                                                            ColumnLayout {
+                                                                spacing: 1
+
+                                                                Text {
+                                                                    text: qsTr("Bars")
+                                                                    font.pixelSize: 11
+                                                                    font.bold: true
+                                                                    color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.textColor
+                                                                }
+
+                                                                Text {
+                                                                    text: qsTr("Dynamic equalizer bands")
+                                                                    font.pixelSize: 9
+                                                                    color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.textMuted
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                        MouseArea {
+                                                            id: styleBarsMa
+
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                Config.cfg.barVisualizerType = "bars";
+                                                                Config.save();
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                    // Option: Wave (Smooth)
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 46
+                                                        radius: 10
+                                                        color: Config.cfg.barVisualizerType === "wave" ? root.color1 : root.surfaceContainer
+                                                        scale: styleWaveMa.pressed ? 0.98 : 1
+
+                                                        RowLayout {
+                                                            anchors.centerIn: parent
+                                                            spacing: 8
+
+                                                            Text {
+                                                                text: "airwave"
+                                                                font.family: "Material Symbols Rounded"
+                                                                font.pixelSize: 14
+                                                                color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.color1
+                                                            }
+
+                                                            ColumnLayout {
+                                                                spacing: 1
+
+                                                                Text {
+                                                                    text: qsTr("Wave")
+                                                                    font.pixelSize: 11
+                                                                    font.bold: true
+                                                                    color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.textColor
+                                                                }
+
+                                                                Text {
+                                                                    text: qsTr("Fluid continuous spline wave")
+                                                                    font.pixelSize: 9
+                                                                    color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.textMuted
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                        MouseArea {
+                                                            id: styleWaveMa
+
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                Config.cfg.barVisualizerType = "wave";
+                                                                Config.save();
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                // Spectrum Flow Origin
+                                                Text {
+                                                    text: qsTr("Spectrum Origin & Alignment:")
+                                                    font.pixelSize: 11
+                                                    font.bold: true
+                                                    color: root.textColor
+                                                }
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 8
+
+                                                    Repeater {
+                                                        model: [{
+                                                            "id": "bottom",
+                                                            "name": qsTr("Bottom")
+                                                        }, {
+                                                            "id": "center",
+                                                            "name": qsTr("Center")
+                                                        }, {
+                                                            "id": "mirror",
+                                                            "name": qsTr("Mirrored")
+                                                        }, {
+                                                            "id": "top",
+                                                            "name": qsTr("Top")
+                                                        }]
+
+                                                        Rectangle {
+                                                            required property var modelData
+
+                                                            Layout.fillWidth: true
+                                                            Layout.preferredHeight: 32
+                                                            radius: 8
+                                                            color: Config.cfg.barVisualizerBarsOrigin === modelData.id ? root.color1 : root.surfaceContainer
+                                                            scale: origMa.pressed ? 0.97 : 1
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: modelData.name
+                                                                font.pixelSize: 10
+                                                                font.bold: Config.cfg.barVisualizerBarsOrigin === modelData.id
+                                                                color: Config.cfg.barVisualizerBarsOrigin === modelData.id ? root.foreground : root.textColor
+                                                            }
+
+                                                            MouseArea {
+                                                                id: origMa
+
+                                                                anchors.fill: parent
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: {
+                                                                    Config.cfg.barVisualizerBarsOrigin = modelData.id;
+                                                                    Config.save();
+                                                                }
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                // Sliders: Height, Opacity, Density
+                                                // Slider 1: Visualizer Height
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 4
+
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+
+                                                        Text {
+                                                            text: qsTr("Visualizer Height:")
+                                                            font.pixelSize: 10
+                                                            color: root.textColor
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: Math.round(Config.cfg.barVisualizerHeight * 100) + "%"
+                                                            font.pixelSize: 10
+                                                            font.bold: true
+                                                            color: root.color1
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 14
+                                                        radius: 7
+                                                        color: root.surfaceContainer
+                                                        clip: true
+
+                                                        Rectangle {
+                                                            anchors.left: parent.left
+                                                            anchors.top: parent.top
+                                                            anchors.bottom: parent.bottom
+                                                            width: parent.width * Math.max(0.1, Math.min(1, Config.cfg.barVisualizerHeight))
+                                                            radius: 7
+                                                            color: root.color1
+                                                        }
+
+                                                        MouseArea {
+                                                            function updateHeight(mx) {
+                                                                var val = Math.max(0.1, Math.min(1, mx / width));
+                                                                Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
+                                                                Config.save();
+                                                            }
+
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: (mouse) => {
+                                                                return updateHeight(mouse.x);
+                                                            }
+                                                            onPositionChanged: (mouse) => {
+                                                                if (pressed)
+                                                                    updateHeight(mouse.x);
+
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                // Slider 2: Visualizer Opacity
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 4
+
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+
+                                                        Text {
+                                                            text: qsTr("Visualizer Opacity:")
+                                                            font.pixelSize: 10
+                                                            color: root.textColor
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: Math.round(Config.cfg.barVisualizerOpacity * 100) + "%"
+                                                            font.pixelSize: 10
+                                                            font.bold: true
+                                                            color: root.color1
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 14
+                                                        radius: 7
+                                                        color: root.surfaceContainer
+                                                        clip: true
+
+                                                        Rectangle {
+                                                            anchors.left: parent.left
+                                                            anchors.top: parent.top
+                                                            anchors.bottom: parent.bottom
+                                                            width: parent.width * Math.max(0.05, Math.min(1, Config.cfg.barVisualizerOpacity))
+                                                            radius: 7
+                                                            color: root.color1
+                                                        }
+
+                                                        MouseArea {
+                                                            function updateOp(mx) {
+                                                                var val = Math.max(0.05, Math.min(1, mx / width));
+                                                                Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
+                                                                Config.save();
+                                                            }
+
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: (mouse) => {
+                                                                return updateOp(mouse.x);
+                                                            }
+                                                            onPositionChanged: (mouse) => {
+                                                                if (pressed)
+                                                                    updateOp(mouse.x);
+
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                }
+
+                                                // Slider 3: Band Density / Pitch
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 4
+
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+
+                                                        Text {
+                                                            text: qsTr("Band Density / Step:")
+                                                            font.pixelSize: 10
+                                                            color: root.textColor
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: Config.cfg.barVisualizerDensity + " px"
+                                                            font.pixelSize: 10
+                                                            font.bold: true
+                                                            color: root.color1
+                                                        }
+
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 14
+                                                        radius: 7
+                                                        color: root.surfaceContainer
+                                                        clip: true
+
+                                                        Rectangle {
+                                                            anchors.left: parent.left
+                                                            anchors.top: parent.top
+                                                            anchors.bottom: parent.bottom
+                                                            width: parent.width * Math.max(0, Math.min(1, (Config.cfg.barVisualizerDensity - 4) / 24))
+                                                            radius: 7
+                                                            color: root.color1
+                                                        }
+
+                                                        MouseArea {
+                                                            function updateDensity(mx) {
+                                                                var frac = Math.max(0, Math.min(1, mx / width));
+                                                                Config.cfg.barVisualizerDensity = Math.round(4 + frac * 24);
+                                                                Config.save();
+                                                            }
+
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: (mouse) => {
+                                                                return updateDensity(mouse.x);
+                                                            }
+                                                            onPositionChanged: (mouse) => {
+                                                                if (pressed)
+                                                                    updateDensity(mouse.x);
+
+                                                            }
+                                                        }
+
+                                                    }
+
                                                 }
 
                                             }
@@ -4600,14 +4990,50 @@ ColumnLayout {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 14
+                                    spacing: 16
                                     visible: root.currentTab === "notifications"
 
-                                    Text {
-                                        text: qsTr("Notifications & Sound Alerts")
-                                        font.pixelSize: 15
-                                        font.bold: true
-                                        color: root.textColor
+                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        Rectangle {
+                                            implicitWidth: 36
+                                            implicitHeight: 36
+                                            radius: 10
+                                            color: Qt.alpha(root.color1, 0.15)
+                                            border.color: Qt.alpha(root.color1, 0.3)
+                                            border.width: 1
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰂚"
+                                                font.pixelSize: 18
+                                                font.family: "GeistMono Nerd Font Propo Propo"
+                                                color: root.color1
+                                            }
+
+                                        }
+
+                                        ColumnLayout {
+                                            spacing: 2
+
+                                            Text {
+                                                text: qsTr("Notifications & Sound Alerts")
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                color: root.textBright
+                                            }
+
+                                            Text {
+                                                text: qsTr("Manage notification toasts, system sound triggers, and sound volume profiles")
+                                                font.pixelSize: 11
+                                                color: root.textMuted
+                                            }
+
+                                        }
+
                                     }
 
                                     // Sound Effects Toggle Card
@@ -5035,14 +5461,50 @@ ColumnLayout {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 14
+                                    spacing: 16
                                     visible: root.currentTab === "gtk"
 
-                                    Text {
-                                        text: qsTr("GTK Interface Settings")
-                                        font.pixelSize: 15
-                                        font.bold: true
-                                        color: root.textColor
+                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        Rectangle {
+                                            implicitWidth: 36
+                                            implicitHeight: 36
+                                            radius: 10
+                                            color: Qt.alpha(root.color1, 0.15)
+                                            border.color: Qt.alpha(root.color1, 0.3)
+                                            border.width: 1
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰉼"
+                                                font.pixelSize: 18
+                                                font.family: "GeistMono Nerd Font Propo Propo"
+                                                color: root.color1
+                                            }
+
+                                        }
+
+                                        ColumnLayout {
+                                            spacing: 2
+
+                                            Text {
+                                                text: qsTr("GTK Interface Settings")
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                color: root.textBright
+                                            }
+
+                                            Text {
+                                                text: qsTr("Manage application GTK themes, icons, cursor themes, and system fonts via nwg-look")
+                                                font.pixelSize: 11
+                                                color: root.textMuted
+                                            }
+
+                                        }
+
                                     }
 
                                     Rectangle {

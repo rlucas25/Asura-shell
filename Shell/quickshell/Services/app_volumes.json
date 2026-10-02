@@ -1,9 +1,0 @@
-{
-  "volumes": {
-    "vivaldi": 100,
-    "spotify": 33
-  },
-  "mutes": {
-    "spotify": false
-  }
-}

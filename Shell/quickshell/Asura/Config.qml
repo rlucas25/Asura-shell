@@ -17,7 +17,9 @@ Singleton {
 
     FileView {
         id: file
-        path: Quickshell.shellRoot + "/config.json"
+        path: (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("Asura/config/config.json")
+            : (Quickshell.env("HOME") + "/.config/quickshell/Asura/config/config.json")
         watchChanges: false
 
         onAdapterUpdated: writeAdapter()
@@ -41,6 +43,15 @@ Singleton {
             property string theme: "sandcastle"
             property bool colorsAutoGenerate: false
             property bool isDarkMode: true
+            // Bar background audio visualizer settings
+            property bool barVisualizerEnabled: true
+            property string barVisualizerType: "bars"
+            property real barVisualizerHeight: 0.75
+            property real barVisualizerOpacity: 0.45
+            property string barVisualizerBarsOrigin: "bottom"
+            property int barVisualizerDensity: 10
+            property int barVisualizerGap: 2
+            property int barVisualizerSmoothing: 2
             property string wallpaperFolder: "/Pictures/Wallpapers"
             property string wallpaper: Quickshell.env("HOME") + "/.config/quickshell/Assets/default_wallpaper.jpg"
             property string wallpaperAnimation: "random"

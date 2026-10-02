@@ -54,8 +54,8 @@ Singleton {
     FileView {
         id: file
         path: (typeof Quickshell.shellPath === "function")
-            ? Quickshell.shellPath("colors.json")
-            : (Quickshell.env("HOME") + "/.config/quickshell/colors.json")
+            ? Quickshell.shellPath("Asura/config/colors.json")
+            : (Quickshell.env("HOME") + "/.config/quickshell/Asura/config/colors.json")
         watchChanges: false
 
         onLoaded: {

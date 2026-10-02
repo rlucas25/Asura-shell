@@ -266,7 +266,7 @@ Singleton {
             "right": rightWidgets
         };
         var jsonStr = JSON.stringify(data);
-        var pyScript = "import os, json; p = os.path.expanduser('~/.config/quickshell/bar_widgets.json'); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, 'w').write(" + JSON.stringify(jsonStr) + ")";
+        var pyScript = "import os, json; p = os.path.expanduser('~/.config/quickshell/Asura/config/bar_widgets.json'); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, 'w').write(" + JSON.stringify(jsonStr) + ")";
         saveProc.command = ["python3", "-c", pyScript];
         saveProc.running = false;
         saveProc.running = true;
@@ -274,7 +274,7 @@ Singleton {
 
     Process {
         id: loadProc
-        command: ["python3", "-c", "import os, json; p = os.path.expanduser('~/.config/quickshell/bar_widgets.json'); print(open(p).read() if os.path.exists(p) else '')"]
+        command: ["python3", "-c", "import os, json; p = os.path.expanduser('~/.config/quickshell/Asura/config/bar_widgets.json'); print(open(p).read() if os.path.exists(p) else '')"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
