@@ -4,23 +4,61 @@ import subprocess
 import sys
 from pathlib import Path
 
+import shutil
+
+def get_quickshell_bin() -> str | None:
+    """Find the Quickshell executable ('qs' or 'quickshell')."""
+    return shutil.which("qs") or shutil.which("quickshell")
+
+
 def kill(args):
-    print("Goodbye! :(")
-    subprocess.run(["pkill", "qs"])
+    print("Stopping Asura Shell...")
+    subprocess.run(["pkill", "-x", "qs"], check=False)
+    subprocess.run(["pkill", "-x", "quickshell"], check=False)
+
+
 def run(args):
+    qs_bin = get_quickshell_bin()
+    if not qs_bin:
+        print("Error: Quickshell is not installed! Neither 'qs' nor 'quickshell' was found in PATH.", file=sys.stderr)
+        print("Please install Quickshell (via AUR on Arch or COPR on Fedora).", file=sys.stderr)
+        return
+
+    shell_dir = Path.home() / ".local/share/asura/Shell/quickshell"
+    if not (shell_dir / "shell.qml").exists():
+        shell_dir = Path.home() / ".local/share/asura/Shell"
+
     print("Welcome to Asura Shell! :)")
-    subprocess.run(["qs", "-d", "-p", Path.home() / ".local/share/asura/Shell"])
+    subprocess.Popen([qs_bin, "-d", "-p", str(shell_dir)])
+
 
 def reload(args):
-    subprocess.run(["pkill","qs"])
+    kill(args)
     run(args)
 
+
 def update(args):
-    print("WIP")
-    subprocess.run(["git", "-C", Path.home() / ".local/share/asura", "pull" ])
+    print("Updating Asura Shell...")
+    asura_dir = Path.home() / ".local/share/asura"
+    if asura_dir.exists():
+        subprocess.run(["git", "-C", str(asura_dir), "pull"])
+    else:
+        print(f"Error: Directory {asura_dir} does not exist.", file=sys.stderr)
+
 
 def doctor(args):
-    print("WIP")
+    print("Checking Asura Shell dependencies...")
+    checks = {
+        "Quickshell": get_quickshell_bin(),
+        "Hyprland": shutil.which("hyprland"),
+        "Awww": shutil.which("awww"),
+        "Kitty": shutil.which("kitty"),
+        "Fish": shutil.which("fish"),
+        "Starship": shutil.which("starship"),
+    }
+    for name, path in checks.items():
+        status = f"OK ({path})" if path else "MISSING"
+        print(f"  [{'✓' if path else '✗'}] {name}: {status}")
 
 def main():
     parser = argparse.ArgumentParser(
