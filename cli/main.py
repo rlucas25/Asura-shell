@@ -6,6 +6,9 @@ from pathlib import Path
 
 import shutil
 
+__version__ = "0.1.0"
+
+
 def get_quickshell_bin() -> str | None:
     """Find the Quickshell executable ('qs' or 'quickshell')."""
     return shutil.which("qs") or shutil.which("quickshell")
@@ -47,7 +50,7 @@ def update(args):
 
 
 def doctor(args):
-    print("Checking Asura Shell dependencies...")
+    print(f"Checking Asura Shell dependencies (CLI v{__version__})...")
     checks = {
         "Quickshell": get_quickshell_bin(),
         "Hyprland": shutil.which("hyprland"),
@@ -63,8 +66,9 @@ def doctor(args):
 def main():
     parser = argparse.ArgumentParser(
         prog = "asura",
-        description ="Asura shell cli"
+        description =f"Asura Shell CLI v{__version__}"
     )
+    parser.add_argument("-v", "--version", action="version", version=f"asura {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")    
 
     # Kill command
