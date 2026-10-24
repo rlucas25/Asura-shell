@@ -49,8 +49,6 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("systemctl --user restart xdg-desktop-portal xdg-desktop-portal-hyprland")
     
-    -- CUSTOM
-    hl.exec_cmd("/usr/share/minitela/minitela &")
 end)
 
 -- Resizer listener

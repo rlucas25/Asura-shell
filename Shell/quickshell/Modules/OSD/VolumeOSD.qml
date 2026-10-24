@@ -4,14 +4,14 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
+import Quickshell.Wayland
 import qs.Animations as ANIM
 import qs.Asura
 import qs.Components
-import Quickshell.Wayland
 
 Scope {
     id: root
-    
+
     property bool verticalMode
     property color color1
     property color color2
@@ -26,16 +26,16 @@ Scope {
     Connections {
         function onVolumeChanged() {
             root.shouldShowOsd = true;
-            if (!root.isInteracting) {
+            if (!root.isInteracting)
                 hideTimer.restart();
-            }
+
         }
 
         function onMutedChanged() {
             root.shouldShowOsd = true;
-            if (!root.isInteracting) {
+            if (!root.isInteracting)
                 hideTimer.restart();
-            }
+
         }
 
         target: (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) ? Pipewire.defaultAudioSink.audio : null
@@ -46,9 +46,9 @@ Scope {
 
         interval: 2000
         onTriggered: {
-            if (!root.isInteracting) {
+            if (!root.isInteracting)
                 root.shouldShowOsd = false;
-            }
+
         }
     }
 
@@ -57,13 +57,6 @@ Scope {
 
         PanelWindow {
             id: panelWindow
-            WlrLayershell.namespace: "volumeOSD"
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-            mask: Region {
-                item: content
-            }
 
             property bool muted: {
                 if (!Pipewire.defaultAudioSink || Pipewire.defaultAudioSink.audio.muted)
@@ -82,6 +75,9 @@ Scope {
                 return "volume_down";
             }
 
+            WlrLayershell.namespace: "volumeOSD"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             implicitWidth: verticalMode ? 50 : 340
             implicitHeight: verticalMode ? 300 : 54
             color: "transparent"
@@ -96,9 +92,7 @@ Scope {
 
                 readonly property real effectiveRadius: {
                     var maxR = (verticalMode ? (parent ? parent.width : 50) : height) / 2;
-                    var userR = (typeof Config !== "undefined" && Config.effectiveGeneralRadius !== undefined)
-                        ? Config.effectiveGeneralRadius
-                        : 20;
+                    var userR = (typeof Config !== "undefined" && Config.effectiveGeneralRadius !== undefined) ? Config.effectiveGeneralRadius : 20;
                     return Math.max(0, Math.min(maxR, userR));
                 }
 
@@ -106,29 +100,13 @@ Scope {
                 height: implicitHeight
                 anchors.margins: 0
                 anchors.centerIn: parent
-  
                 color: root.background
                 clip: false
                 state: ""
                 width: 0
                 opacity: 0
                 radius: effectiveRadius
-                scale: root.isInteracting ? (osdSlider.pressed ? 0.98 : 1.02) : 1.0
-
-                Behavior on scale {
-                    NumberAnimation {
-                        duration: 150
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on radius {
-                    NumberAnimation {
-                        duration: 120
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
+                scale: root.isInteracting ? (osdSlider.pressed ? 0.98 : 1.02) : 1
                 Component.onCompleted: content.state = "show"
                 states: [
                     State {
@@ -173,36 +151,35 @@ Scope {
                     radius: content.effectiveRadius
                     thumbWidth: 10
                     showFloatingTooltip: false
-
                     onInteractionStarted: {
                         root.isInteracting = true;
                         hideTimer.stop();
                     }
-
                     onInteractionEnded: {
                         root.isInteracting = false;
                         hideTimer.restart();
                     }
-
                     onRightClicked: {
                         if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
                             Pipewire.defaultAudioSink.audio.muted = !Pipewire.defaultAudioSink.audio.muted;
                             hideTimer.restart();
                         }
                     }
-
                     onMoved: (val) => {
-                        if (!Pipewire.defaultAudioSink || !Pipewire.defaultAudioSink.audio) return;
-                        var fraction = Math.max(0, Math.min(1.0, val / 100));
-                        if (Pipewire.defaultAudioSink.audio.muted && fraction > 0) {
+                        if (!Pipewire.defaultAudioSink || !Pipewire.defaultAudioSink.audio)
+                            return ;
+
+                        var fraction = Math.max(0, Math.min(1, val / 100));
+                        if (Pipewire.defaultAudioSink.audio.muted && fraction > 0)
                             Pipewire.defaultAudioSink.audio.muted = false;
-                        }
+
                         Pipewire.defaultAudioSink.audio.volume = fraction;
                     }
                 }
 
                 Item {
                     id: iconArea
+
                     z: 3
                     anchors.bottom: verticalMode ? parent.bottom : undefined
                     anchors.horizontalCenter: verticalMode ? parent.horizontalCenter : undefined
@@ -214,31 +191,27 @@ Scope {
                     Text {
                         anchors.centerIn: parent
                         text: panelWindow.icon
-                        color: (panelWindow.muted || panelWindow.volumeLevel === 0)
-                            ? root.color2
-                            : (osdSlider.fraction > 0.15 ? root.background : root.color1)
+                        color: (panelWindow.muted || panelWindow.volumeLevel === 0) ? root.color2 : (osdSlider.fraction > 0.15 ? root.background : root.color1)
 
                         font {
                             pixelSize: 22
                             family: "Material Symbols Rounded"
                         }
+
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-
                         onEntered: {
                             root.isInteracting = true;
                             hideTimer.stop();
                         }
-
                         onExited: {
                             root.isInteracting = false;
                             hideTimer.restart();
                         }
-
                         onClicked: {
                             if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
                                 Pipewire.defaultAudioSink.audio.muted = !Pipewire.defaultAudioSink.audio.muted;
@@ -246,8 +219,29 @@ Scope {
                             }
                         }
                     }
+
                 }
 
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on radius {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+            }
+
+            mask: Region {
+                item: content
             }
 
         }
