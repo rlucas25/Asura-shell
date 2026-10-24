@@ -54,7 +54,7 @@ def doctor(args):
     checks = {
         "Quickshell": get_quickshell_bin(),
         "Hyprland": shutil.which("hyprland"),
-        "Awww": shutil.which("awww"),
+        "Awww": shutil.which("awww") or shutil.which("swww"),
         "Kitty": shutil.which("kitty"),
         "Fish": shutil.which("fish"),
         "Starship": shutil.which("starship"),
