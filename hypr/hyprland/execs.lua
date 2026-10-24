@@ -27,7 +27,7 @@ hl.on("hyprland.start", function()
 
     -- Start shell
     hl.exec_cmd("awww-daemon &")
-    hl.exec_cmd("qs -d")
+    hl.exec_cmd("asura run")
 
     -- Start hyprland plugins
     hl.exec_cmd("hyprpm reload")
