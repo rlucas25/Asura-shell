@@ -1171,9 +1171,9 @@ FloatingWindow {
     Process {
         id: reloadShellProc
 
-        command: ["quickshell", "ipc", "call", "settings", "reload"]
+        command: ["asura", "reload"]
         onExited: (exitCode) => {
-            root.showToast(qsTr("Quickshell reloaded"), "refresh");
+            root.showToast(qsTr("Asura Shell reloaded"), "refresh");
         }
     }
 

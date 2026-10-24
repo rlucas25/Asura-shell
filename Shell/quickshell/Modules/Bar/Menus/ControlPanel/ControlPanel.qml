@@ -200,7 +200,7 @@ Item {
     Process {
         id: openSettingsProc
 
-        command: ["quickshell", "ipc", "call", "settings", "open"]
+        command: ["asura", "settings", "open"]
     }
 
     Rectangle {
@@ -581,8 +581,7 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                openSettingsProc.running = false;
-                                openSettingsProc.running = true;
+                                SettingsService.open();
                                 root.hideMenu();
                             }
                         }

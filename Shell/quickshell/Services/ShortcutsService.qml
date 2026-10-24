@@ -15,7 +15,9 @@ Item {
     property int conflictCount: 0
     property bool busy: false
 
-    readonly property string managerPath: Quickshell.env("HOME") + "/Documents/Shell/quickshell/Services/shortcuts_manager.py"
+    readonly property string managerPath: (typeof Quickshell.shellPath === "function")
+        ? Quickshell.shellPath("Services/shortcuts_manager.py")
+        : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Services/shortcuts_manager.py")
 
     signal shortcutsLoaded()
 

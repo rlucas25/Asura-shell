@@ -53,12 +53,12 @@ hl.bind("XF86AudioStop", hl.dsp.exec_cmd("playerctl stop"), { locked = true })
 hl.bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"), { release = true })
 hl.bind(
     "CTRL + SUPER + ALT + R",
-    hl.dsp.exec_cmd("pkill qs; sleep .1; qs"),
+    hl.dsp.exec_cmd("asura reload"),
     { release = true }
 )
 hl.bind(
     "SUPER + ALT + Q",
-    hl.dsp.exec_cmd("pkill qs"),
+    hl.dsp.exec_cmd("asura kill"),
     { release = true }
 )
 
