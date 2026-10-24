@@ -12,13 +12,11 @@ Item {
     property real wallpaperAnimationDuration: Config.cfg.wallpaperAnimationDuration
 
     function applyWallpaper() {
+        if (!root.wallpaper)
+            return ;
         wallpaperProcess.running = false;
         wallpaperProcess.command = ["sh", "-c", "awww img \"" + root.wallpaper + "\" --transition-type " + root.wallpaperAnimation + " --transition-duration " + root.wallpaperAnimationDuration];
         wallpaperProcess.running = true;
-
-        if (colorsAutoGenerate) {
-            Colors.generateMatugenColors(root.wallpaper, Config.cfg.isDarkMode, Config.cfg.scheme);
-        }
     }
 
     Process {

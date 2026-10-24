@@ -7,14 +7,10 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Ethernet State
-
     property bool ethernetConnected: false
     property string ethernetName: ""
     property string ethernetIp: ""
     property string ethernetIface: ""
-
-    // Wi-Fi State
 
     property bool wifiEnabled: true
     property bool connected: activeSsid !== ""
@@ -27,11 +23,7 @@ Singleton {
     property string activeBssid: ""
     property var networks: []
 
-    // Combined Online State
-
     readonly property bool isOnline: ethernetConnected || connected
-
-    // Operation State
 
     property bool isScanning: false
     property string connectingSsid: ""
@@ -39,15 +31,9 @@ Singleton {
     property bool isError: false
     property bool paused: false
 
-    // Script location
-
     readonly property string scriptPath: (typeof Quickshell.shellPath === "function")
         ? Quickshell.shellPath("Services/wifi_manager.py")
         : Quickshell.configPath("Services/wifi_manager.py")
-
-    // ---------------------------------------------------------
-    // ICONS
-    // ---------------------------------------------------------
 
     function getSignalIcon(signal, enabled) {
         if (enabled === false)
@@ -84,10 +70,6 @@ Singleton {
         return "signal_wifi_off"
     }
 
-    // ---------------------------------------------------------
-    // STATUS
-    // ---------------------------------------------------------
-
     function showStatus(msg, isErr) {
         statusMessage = msg
         isError = !!isErr
@@ -101,11 +83,9 @@ Singleton {
         try {
             const data = JSON.parse(text.trim())
 
-            // Ethernet
-
             if (data.ethernet && data.ethernet.connected) {
                 root.ethernetConnected = true
-                root.ethernetName = data.ethernet.name || "Conexão Cabeada"
+                root.ethernetName = data.ethernet.name || "Wired Connection"
                 root.ethernetIp = data.ethernet.ip || ""
                 root.ethernetIface = data.ethernet.iface || ""
             } else {
@@ -114,8 +94,6 @@ Singleton {
                 root.ethernetIp = ""
                 root.ethernetIface = ""
             }
-
-            // Wi-Fi
 
             root.wifiEnabled = !!data.enabled
 
@@ -145,29 +123,17 @@ Singleton {
 
         } catch (e) {
             console.warn(
-                "WifiService: Erro ao parsear JSON de status:",
+                "WifiService: Error parsing status JSON:",
                 e
             )
         }
     }
-
-    // ---------------------------------------------------------
-    // REFRESH
-    // ---------------------------------------------------------
-
-    // Refresh current status without forcing full rescan
 
     function refresh() {
         if (!root.paused && !statusProc.running) {
             statusProc.running = true
         }
     }
-
-    // ---------------------------------------------------------
-    // SCAN
-    // ---------------------------------------------------------
-
-    // Force scan for nearby networks
 
     function rescan() {
         if (root.isScanning)
@@ -176,12 +142,6 @@ Singleton {
         root.isScanning = true
         rescanProc.running = true
     }
-
-    // ---------------------------------------------------------
-    // WI-FI TOGGLE
-    // ---------------------------------------------------------
-
-    // Toggle Wi-Fi Radio
 
     function toggleWifi(enable) {
         const action = enable ? "on" : "off"
@@ -207,12 +167,6 @@ Singleton {
         actionProc.running = true
     }
 
-    // ---------------------------------------------------------
-    // CONNECT
-    // ---------------------------------------------------------
-
-    // Connect to network
-
     function connect(ssid, password, isHidden) {
         if (!ssid)
             return
@@ -220,7 +174,7 @@ Singleton {
         root.connectingSsid = ssid
 
         root.showStatus(
-            "Conectando a " + ssid + "...",
+            "Connecting to " + ssid + "...",
             false
         )
 
@@ -246,7 +200,7 @@ Singleton {
 
             if (data && data.success) {
                 root.showStatus(
-                    "Conectado a " + ssid + "!",
+                    "Connected to " + ssid + "!",
                     false
                 )
 
@@ -254,7 +208,7 @@ Singleton {
             } else {
                 const errMsg = (data && data.message)
                     ? data.message
-                    : "Falha ao conectar."
+                    : "Failed to connect."
 
                 root.showStatus(errMsg, true)
             }
@@ -263,17 +217,11 @@ Singleton {
         actionProc.running = true
     }
 
-    // ---------------------------------------------------------
-    // DISCONNECT
-    // ---------------------------------------------------------
-
-    // Disconnect from current Wi-Fi
-
     function disconnect() {
         const prevSsid = root.activeSsid
 
         root.showStatus(
-            "Desconectando...",
+            "Disconnecting...",
             false
         )
 
@@ -289,14 +237,14 @@ Singleton {
                 root.activeSignal = 0
 
                 root.showStatus(
-                    "Desconectado de " + prevSsid,
+                    "Disconnected from " + prevSsid,
                     false
                 )
 
                 root.refresh()
             } else {
                 root.showStatus(
-                    "Erro ao desconectar.",
+                    "Failed to disconnect.",
                     true
                 )
             }
@@ -304,12 +252,6 @@ Singleton {
 
         actionProc.running = true
     }
-
-    // ---------------------------------------------------------
-    // FORGET NETWORK
-    // ---------------------------------------------------------
-
-    // Forget / Delete saved network
 
     function forget(ssid) {
         if (!ssid)
@@ -325,14 +267,14 @@ Singleton {
         actionProc.callback = function(data) {
             if (data && data.success) {
                 root.showStatus(
-                    "Rede " + ssid + " esquecida.",
+                    "Network " + ssid + " forgotten.",
                     false
                 )
 
                 root.refresh()
             } else {
                 root.showStatus(
-                    "Falha ao esquecer rede " + ssid,
+                    "Failed to forget network " + ssid,
                     true
                 )
             }
@@ -340,10 +282,6 @@ Singleton {
 
         actionProc.running = true
     }
-
-    // ---------------------------------------------------------
-    // PROCESSES
-    // ---------------------------------------------------------
 
     Process {
         id: statusProc
@@ -407,10 +345,6 @@ Singleton {
         }
     }
 
-    // ---------------------------------------------------------
-    // TIMERS
-    // ---------------------------------------------------------
-
     Timer {
         id: pollTimer
 
@@ -432,10 +366,6 @@ Singleton {
             root.isError = false
         }
     }
-
-    // ---------------------------------------------------------
-    // LIFECYCLE
-    // ---------------------------------------------------------
 
     Component.onCompleted: {
         root.refresh()

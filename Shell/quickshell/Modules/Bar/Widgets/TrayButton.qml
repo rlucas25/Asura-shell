@@ -11,7 +11,8 @@ Item {
     id: root
 
     readonly property int itemCount: (SystemTray.items && SystemTray.items.values) ? SystemTray.items.values.length : (SystemTray.items ? SystemTray.items.length : 0)
-    property color color1: Colors.cfg.primary
+    readonly property bool isVertical: Config.isBarVertical
+    property color color1: Colors.cfg.textBright
     property alias primary: root.color1
     property alias text: root.color1
     property bool openTray: false
@@ -21,8 +22,8 @@ Item {
     property bool hovered: false
 
     visible: itemCount > 0
-    implicitWidth: visible ? mainRow.implicitWidth : 0
-    implicitHeight: 30
+    implicitWidth: visible ? (isVertical ? Math.round(24 * Config.barIconScale) : mainLayout.implicitWidth) : 0
+    implicitHeight: visible ? (isVertical ? mainLayout.implicitHeight : Math.round(30 * Config.barIconScale)) : 0
 
     Timer {
         id: hideTimer
@@ -32,24 +33,27 @@ Item {
         onTriggered: {
             if (!root.hovered && !root.appMenuOpen)
                 root.openTray = false;
-
         }
     }
 
-    RowLayout {
-        id: mainRow
+    GridLayout {
+        id: mainLayout
 
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 8
+        columns: isVertical ? 1 : -1
+        rows: isVertical ? -1 : 1
+        anchors.centerIn: parent
+        rowSpacing: isVertical ? 6 : 0
+        columnSpacing: isVertical ? 0 : 8
 
         Item {
-            implicitWidth: 20
-            implicitHeight: 20
+            implicitWidth: Math.round(20 * Config.barIconScale)
+            implicitHeight: Math.round(20 * Config.barIconScale)
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
             Text {
                 anchors.centerIn: parent
-                text: root.openTray ? "󰅂" : "󰅀"
-                font.pixelSize: 16
+                text: isVertical ? (root.openTray ? "󰅃" : "󰅀") : (root.openTray ? "󰅂" : "󰅀")
+                font.pixelSize: Math.round(16 * Config.barIconScale)
                 font.family: "GeistMono Nerd Font Propo Propo"
                 color: root.color1
 
@@ -57,9 +61,7 @@ Item {
                     ColorAnimation {
                         duration: 150
                     }
-
                 }
-
             }
 
             HoverHandler {
@@ -83,18 +85,20 @@ Item {
                     root.openTray = !root.openTray;
                     if (root.openTray)
                         hideTimer.stop();
-
                 }
             }
-
         }
 
-        RowLayout {
+        GridLayout {
             id: trayIcons
 
+            columns: isVertical ? 1 : -1
+            rows: isVertical ? -1 : 1
             visible: root.openTray
             opacity: root.openTray ? 1 : 0
-            spacing: 6
+            rowSpacing: isVertical ? 6 : 0
+            columnSpacing: isVertical ? 0 : 6
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
             Repeater {
                 model: SystemTray.items
@@ -104,18 +108,19 @@ Item {
 
                     required property var modelData
 
-                    implicitWidth: 22
-                    implicitHeight: 22
-                    radius: 6
+                    implicitWidth: Math.round(22 * Config.barIconScale)
+                    implicitHeight: Math.round(22 * Config.barIconScale)
+                    radius: Math.round(6 * Config.barIconScale)
                     color: itemMouse.containsMouse ? Qt.alpha(root.color1, 0.2) : "transparent"
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
                     Image {
                         anchors.centerIn: parent
-                        width: 16
-                        height: 16
+                        width: Math.round(16 * Config.barIconScale)
+                        height: Math.round(16 * Config.barIconScale)
                         source: trayItemRoot.modelData.icon
-                        sourceSize.width: 16
-                        sourceSize.height: 16
+                        sourceSize.width: Math.round(16 * Config.barIconScale)
+                        sourceSize.height: Math.round(16 * Config.barIconScale)
                         smooth: true
                     }
 
@@ -125,8 +130,19 @@ Item {
                         menu: trayItemRoot.modelData.menu
                         parentWindow: root.parentWindow
                         trayItem: trayItemRoot.modelData
-                        x: trayItemRoot.mapToItem(null, 0, trayItemRoot.height).x
-                        y: trayItemRoot.mapToItem(null, 0, trayItemRoot.height).y
+                        x: {
+                            if (!root.isVertical)
+                                return trayItemRoot.mapToItem(null, 0, trayItemRoot.height).x;
+                            if (Config.barPosition === "right")
+                                return Math.max(8, trayItemRoot.mapToItem(null, -256, 0).x);
+                            return Math.min(Screen.width - 256, trayItemRoot.mapToItem(null, trayItemRoot.width + 6, 0).x);
+                        }
+                        y: {
+                            if (!root.isVertical)
+                                return trayItemRoot.mapToItem(null, 0, trayItemRoot.height).y;
+                            var targetY = trayItemRoot.mapToItem(null, 0, 0).y;
+                            return Math.max(8, Math.min(Screen.height - 300, targetY));
+                        }
                         onOpened: {
                             root.appMenuOpen = true;
                             root.hovered = true;
@@ -136,7 +152,6 @@ Item {
                             root.appMenuOpen = false;
                             if (!root.hovered)
                                 hideTimer.restart();
-
                         }
                     }
 
@@ -155,7 +170,6 @@ Item {
                             root.hovered = false;
                             if (!trayMenu.visible)
                                 hideTimer.restart();
-
                         }
                         onClicked: (mouse) => {
                             if (mouse.button === Qt.RightButton) {
@@ -165,11 +179,11 @@ Item {
                                     else
                                         trayMenu.open();
                                 }
-                                return ;
+                                return;
                             }
                             if (mouse.button === Qt.MiddleButton) {
                                 trayItemRoot.modelData.secondaryActivate();
-                                return ;
+                                return;
                             }
                             if (trayItemRoot.modelData.onlyMenu && trayItemRoot.modelData.hasMenu)
                                 trayMenu.open();
@@ -180,7 +194,6 @@ Item {
                             var delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y;
                             if (delta !== 0)
                                 trayItemRoot.modelData.scroll(delta > 0 ? 1 : -1, Qt.Vertical);
-
                         }
                     }
 
@@ -188,11 +201,8 @@ Item {
                         ColorAnimation {
                             duration: 100
                         }
-
                     }
-
                 }
-
             }
 
             Behavior on opacity {
@@ -200,11 +210,7 @@ Item {
                     duration: 300
                     easing.type: Easing.OutCirc
                 }
-
             }
-
         }
-
     }
-
 }

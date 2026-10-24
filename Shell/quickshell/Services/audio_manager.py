@@ -5,7 +5,10 @@ import subprocess
 import json
 import re
 
-VOL_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Asura", "data", "app_volumes.json")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from icon_resolver import resolve_app_icon
+
+VOL_FILE = os.path.expanduser("~/.config/asura/data/app_volumes.json")
 
 def load_saved_volumes():
     if os.path.exists(VOL_FILE):
@@ -41,25 +44,8 @@ def run_cmd(cmd):
     except Exception as e:
         return -1, "", str(e)
 
-def get_app_icon(name):
-    lower = name.lower()
-    if 'spotify' in lower:
-        return "󰓇"
-    if 'firefox' in lower:
-        return "󰈹"
-    if 'chrome' in lower or 'chromium' in lower or 'brave' in lower or 'vivaldi' in lower:
-        return "󰊯"
-    if 'discord' in lower or 'vesktop' in lower or 'webcord' in lower:
-        return "󰙯"
-    if 'vlc' in lower or 'mpv' in lower or 'video' in lower:
-        return "󰕼"
-    if 'telegram' in lower:
-        return "󰔁"
-    if 'steam' in lower or 'game' in lower or 'terraria' in lower or 'minecraft' in lower:
-        return "󰊴"
-    if 'obs' in lower:
-        return "󰑋"
-    return "󰓃"
+def get_app_icon(name, binary=None):
+    return resolve_app_icon(name, binary)
 
 def get_audio_info():
     code, out_vol, _ = run_cmd(['wpctl', 'get-volume', '@DEFAULT_AUDIO_SINK@'])
@@ -125,7 +111,7 @@ def get_audio_info():
                     if m_vol:
                         vol = int(m_vol.group(1))
 
-            final_name = app_name or binary_name or media_name or "Aplicativo"
+            final_name = app_name or binary_name or media_name or "Application"
             if "spotify" in final_name.lower() or "spotify" in binary_name.lower():
                 final_name = "Spotify"
 
@@ -150,7 +136,7 @@ def get_audio_info():
             apps.append({
                 'id': int(sink_id),
                 'name': final_name,
-                'icon': get_app_icon(final_name),
+                'icon': get_app_icon(final_name, binary_name),
                 'volume': vol,
                 'muted': muted
             })
@@ -255,7 +241,7 @@ def main():
         print(json.dumps({'success': True}))
 
     else:
-        print(json.dumps({'error': 'Comando inválido'}))
+        print(json.dumps({'error': 'Invalid command'}))
 
 if __name__ == '__main__':
     main()

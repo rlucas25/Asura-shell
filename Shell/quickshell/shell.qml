@@ -8,43 +8,23 @@ import qs.Asura
 import qs.Components
 import qs.Modules
 import qs.Modules.Bar
+import qs.Modules.Clipboard
 import qs.Modules.Launcher
 import qs.Modules.LockScreen
-
-
 import qs.Modules.OSD
 import qs.Services
-import qs.Modules.Clipboard
-ShellRoot {
-    //OverlayScreenFormat{}
-    /*
-    FloatingWindow{
-        width: 500
-        height: 500
-        StyledRectangle{
-        }
-    }
-*/
-    /*
-    ConfigMenu {
-        background: root.backgroundColor
-        surfaceContainer: root.surfaceContainer
-        primary: root.primary
-        on_primary: root.on_primary
-        text: root.textColor
-        secondary: root.secondary
-    }
-    */
 
+ShellRoot {
     id: root
 
-    property bool verticalMode: false // comming soon
-    property real opacity: Config.cfg.opacity
+    property string barPosition: Config.barPosition
+    property bool verticalMode: Config.isBarVertical
+    property real opacity: Config.effectiveBarOpacity
+    property real generalOpacity: Config.effectiveGeneralOpacity
     property real widthS: Config.cfg.widthS
-    // 0: float mode | 1: capsule mode  | 2: full mode
     property int barMode: Config.cfg.barMode
-    property bool exclusiveMode: Config.cfg.exclusiveMode
-    property bool autoHide: Config.cfg.autoHide
+    property bool exclusiveMode: Config.ready ? (Config.cfg && Config.cfg.exclusiveMode !== false) : ((Config.cfg && Config.cfg.exclusiveMode !== undefined) ? Config.cfg.exclusiveMode : true)
+    property bool autoHide: Config.ready ? (Config.cfg && Config.cfg.autoHide === true) : ((Config.cfg && Config.cfg.autoHide !== undefined) ? Config.cfg.autoHide : false)
     property bool colorsAutoGenerate: Config.cfg.colorsAutoGenerate
     property color background: Colors.cfg.background
     property color surface: Colors.cfg.surface
@@ -60,21 +40,18 @@ ShellRoot {
     property color success: Colors.cfg.success
     property color warning: Colors.cfg.warning
     property color error: Colors.cfg.error
-    // Compatibility aliases
     property alias backgroundColor: root.background
     property alias textColor: root.text
 
-
-    // PlayerMenu {}
     Variants {
-        // A lista de todos os monitores atualmente conectados
-        model: Quickshell.screens
+        model: !root.verticalMode ? Quickshell.screens : []
 
         Bar {
             required property var modelData
 
             screen: modelData
             WlrLayershell.namespace: "asura-bar-" + modelData.name
+            barPosition: root.barPosition
             mode: root.barMode
             bgOpacity: root.opacity
             on_primary: root.on_primary
@@ -84,16 +61,28 @@ ShellRoot {
             exclusiveMode: root.exclusiveMode
             autoHide: root.autoHide
         }
-
     }
 
-    /*
-    Overlay {
-        visible: root.barMode !== 0 && (barMode >= 1)
-        background: root.background
-        _opacity: root.opacity
+    Variants {
+        model: root.verticalMode ? Quickshell.screens : []
+
+        VerticalBar {
+            required property var modelData
+
+            screen: modelData
+            WlrLayershell.namespace: "asura-bar-vertical-" + modelData.name
+            barPosition: root.barPosition
+            mode: root.barMode
+            bgOpacity: root.opacity
+            on_primary: root.on_primary
+            primary: root.primary
+            secondary: root.secondary
+            widthStages: root.widthS
+            exclusiveMode: root.exclusiveMode
+            autoHide: root.autoHide
+        }
     }
-*/
+
     VolumeOSD {
         verticalMode: root.verticalMode
         background: root.background
@@ -122,15 +111,12 @@ ShellRoot {
             on_primary: root.on_primary
             text: root.text
             onNotificationClicked: {
-                bar.controlPanelOpen = true;
+                MenuService.toggleControlPanelRequested(modelData.name);
             }
         }
 
     }
 
-    // ── Pomodoro / Timer state-transition overlay ─────────────────────────────
-    // Listens to TimerService.stateTransitionOccurred and shows a full-screen
-    // popup with blur backdrop for 3 seconds on every phase change.
     TimerTransitionPopup {
         id: timerTransitionPopup
 
@@ -156,19 +142,28 @@ ShellRoot {
         text: root.text
     }
 
-    SettingsWindow {
-        primary: root.primary
-        secondary: root.secondary
-        background: root.background
-        surfaceContainer: root.surfaceContainer
-        on_primary: root.on_primary
-        text: root.text
+    ShortcutsOSD {
+        id: shortcutsOSD
+    }
+
+    Loader {
+        id: settingsWindowLoader
+        active: SettingsService.isOpen
+        sourceComponent: Component {
+            SettingsWindow {
+                primary: root.primary
+                secondary: root.secondary
+                background: root.background
+                surfaceContainer: root.surfaceContainer
+                on_primary: root.on_primary
+                text: root.text
+            }
+        }
     }
 
     Variants {
         model: Quickshell.screens
 
-        // Native Lock Screen
         LockScreen {
             required property var modelData
 
@@ -189,7 +184,39 @@ ShellRoot {
         target: "lock"
     }
 
-    ClipboardPanel{}
-    //PowerMenu {}
+    ClipboardPanel {
+    }
 
+    Variants {
+        model: Quickshell.screens
+
+        CenterLauncher {
+            required property var modelData
+            screen: modelData
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        ZenLauncher {
+            required property var modelData
+            screen: modelData
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        ScreenCorners {
+            required property var modelData
+
+            screen: modelData
+        }
+    }
+
+    Component.onCompleted: {
+        BlurService.applyBlur(Config.cfg.blurEnabled !== false, Config.effectiveBlurStrength);
+    }
 }
+

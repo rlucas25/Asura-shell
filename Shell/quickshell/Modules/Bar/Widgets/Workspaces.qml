@@ -7,18 +7,27 @@ import Quickshell.Wayland
 import qs.Asura
 import qs.Modules.Bar.Widgets
 
-// === HYPRLAND WORKSPACES BAR WIDGET ===
-
-RowLayout {
+GridLayout {
     id: root
 
-    // Theme color properties
+    readonly property bool isVertical: Config.isBarVertical
+    columns: isVertical ? 1 : -1
+    rows: isVertical ? -1 : 1
+    readonly property real scaleFactor: (typeof Config !== "undefined" && Config.barIconScale !== undefined) ? Config.barIconScale : 1.0
+    readonly property real nodeSize: Math.round(15 * scaleFactor)
+
+    columnSpacing: Math.round(4 * scaleFactor)
+    rowSpacing: Math.round(4 * scaleFactor)
+
     property color primary: Colors.cfg.primary
+    property color secondary: Colors.cfg.secondary
     property color surfaceContainer: Colors.cfg.surfaceContainer
 
-    // Compatibility aliases
     property alias color1: root.primary
+    property alias color2: root.secondary
     property alias base: root.surfaceContainer
+
+    property bool isSpecialActive: false
 
     readonly property int defaultWorkspacesCount: (Config.cfg && Config.cfg.workspacesCount !== undefined) ? Math.max(1, Config.cfg.workspacesCount) : 3
     readonly property bool showNumbers: (Config.cfg && Config.cfg.workspacesShowNumbers !== undefined) ? Config.cfg.workspacesShowNumbers : true
@@ -45,9 +54,6 @@ RowLayout {
         return Array.from(ids).sort((a, b) => a - b);
     }
 
-    // === HELPER METHODS ===
-
-    // Converts numeric integer to Roman numeral
     function toRoman(num) {
         if (num <= 0)
             return "";
@@ -77,7 +83,6 @@ RowLayout {
         return root.toRoman(num);
     }
 
-    // Dispatches workspace switch to Hyprland
     function switchToWorkspace(id) {
         try {
             Hyprland.dispatch("workspace", "" + id);
@@ -87,14 +92,58 @@ RowLayout {
         wsProc.running = true;
     }
 
-    // Process helper for Hyprland evaluation
+    function toggleSpecialWorkspace() {
+        try {
+            Hyprland.dispatch("togglespecialworkspace", "special");
+        } catch (e) {}
+        wsProc.command = ["hyprctl", "eval", "hl.dispatch(hl.dsp.workspace.toggle_special('special'))"];
+        wsProc.running = false;
+        wsProc.running = true;
+    }
+
     Process {
         id: wsProc
 
         command: []
     }
 
-    // === WORKSPACE NODES ===
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event) {
+            if (event.name === "activespecial") {
+                let data = String(event.data || "");
+                let parts = data.split(",");
+                let spName = parts[0] ? parts[0].trim() : "";
+                root.isSpecialActive = (spName !== "");
+            }
+        }
+    }
+
+    Process {
+        id: initSpecialProc
+
+        command: ["hyprctl", "monitors", "-j"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let mons = JSON.parse(text);
+                    if (Array.isArray(mons)) {
+                        let isSp = false;
+                        for (let i = 0; i < mons.length; i++) {
+                            let sp = mons[i].specialWorkspace;
+                            if (sp && sp.name && sp.name !== "") {
+                                isSp = true;
+                                break;
+                            }
+                        }
+                        root.isSpecialActive = isSp;
+                    }
+                } catch (e) {}
+            }
+        }
+    }
 
     Repeater {
         model: root.workspaceList
@@ -111,16 +160,31 @@ RowLayout {
             property bool isActive: (Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === wsId)
 
             radius: 100
-            Layout.preferredHeight: 15
-            Layout.preferredWidth: isActive ? (root.showNumbers ? 30 : 24) : (isExpanded ? (root.showNumbers ? 25 : 20) : 15)
+            readonly property real activeLength: root.showNumbers ? Math.round(root.nodeSize * 2.0) : Math.round(root.nodeSize * 1.6)
+            readonly property real expandedLength: root.showNumbers ? Math.round(root.nodeSize * 1.67) : Math.round(root.nodeSize * 1.33)
+            readonly property real currentLength: isActive ? activeLength : (isExpanded ? expandedLength : root.nodeSize)
 
-            color: isActive ? root.color1 : (isExpanded ? Qt.alpha(root.color1, 0.7) : (ws ? Qt.alpha(root.color1, 0.5) : Qt.alpha(Colors.cfg.text, 0.25)))
+            Layout.preferredWidth: root.isVertical ? root.nodeSize : currentLength
+            Layout.preferredHeight: root.isVertical ? currentLength : root.nodeSize
+
+            color: workspaceNode.isActive
+                ? (root.isSpecialActive ? root.secondary : root.color1)
+                : (workspaceNode.isExpanded
+                    ? Qt.alpha(root.color1, 0.7)
+                    : (workspaceNode.ws ? Qt.alpha(root.color1, 0.5) : Qt.alpha(Colors.cfg.text, 0.25)))
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Text {
-                visible: root.showNumbers && (workspaceNode.isActive || workspaceNode.isExpanded)
+                visible: (workspaceNode.isActive && root.isSpecialActive) || (root.showNumbers && (workspaceNode.isActive || workspaceNode.isExpanded))
                 anchors.centerIn: parent
-                text: root.formatWorkspaceLabel(workspaceNode.wsId)
-                font.pixelSize: (workspaceNode.isActive || workspaceNode.isExpanded) ? 12 : 0
+                text: (workspaceNode.isActive && root.isSpecialActive) ? "S" : root.formatWorkspaceLabel(workspaceNode.wsId)
+                font.pixelSize: (workspaceNode.isActive || workspaceNode.isExpanded) ? Math.round(11 * root.scaleFactor) : 0
                 font.family: "GeistMono Nerd Font Propo ExtraBold"
                 color: root.base
             }
@@ -132,18 +196,29 @@ RowLayout {
                 }
             }
 
+            Behavior on Layout.preferredHeight {
+                NumberAnimation {
+                    duration: 400
+                    easing.type: Easing.OutCirc
+                }
+            }
+
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.switchToWorkspace(workspaceNode.wsId)
+                onClicked: {
+                    if (workspaceNode.isActive && root.isSpecialActive) {
+                        root.toggleSpecialWorkspace();
+                    } else {
+                        root.switchToWorkspace(workspaceNode.wsId);
+                    }
+                }
                 onEntered: workspaceNode.isExpanded = true
                 onExited: workspaceNode.isExpanded = false
             }
         }
     }
 
-    Item {
-        Layout.fillWidth: true
-    }
 }
+

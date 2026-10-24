@@ -6,6 +6,7 @@ import Quickshell.Services.Mpris
 import qs.Asura
 import qs.Services
 import qs.Animations
+import qs.Components
 
 Item {
     id: root
@@ -17,11 +18,11 @@ Item {
         startOffsetY: 14
     }
 
-    implicitWidth: 400
-    implicitHeight: PlayerService.playerCount > 1 ? 485 : 440
+    implicitWidth: 410
+    implicitHeight: PlayerService.playerCount > 1 ? 275 : 238
 
     Behavior on implicitHeight {
-        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
     }
 
     property color primary: Colors.cfg.primary
@@ -31,7 +32,6 @@ Item {
     property color on_primary: Colors.cfg.on_primary
     property color text: Colors.cfg.text
 
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias foreground: root.on_primary
@@ -46,8 +46,11 @@ Item {
     function formatTime(seconds) {
         if (!seconds || isNaN(seconds) || seconds < 0)
             return "00:00";
-        var m = Math.floor(seconds / 60);
+        var h = Math.floor(seconds / 3600);
+        var m = Math.floor((seconds % 3600) / 60);
         var s = Math.floor(seconds % 60);
+        if (h > 0)
+            return h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
         return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
     }
 
@@ -64,14 +67,14 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 10
+        anchors.margins: 16
+        spacing: 12
         opacity: playerEntrance.opacity
         transform: Translate {
             y: playerEntrance.offsetY
         }
 
-        // --- Top Bar: App Identity & Close ---
+        // Header
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 28
@@ -80,55 +83,68 @@ Item {
                 width: 26
                 height: 26
                 radius: 13
-                color: Qt.alpha(root.color1, 0.2)
+                color: Qt.alpha(root.primary, 0.16)
 
-                Text {
+                ThemedIcon {
                     anchors.centerIn: parent
-                    text: PlayerService.getAppIcon(player ? player.identity : "")
-                    color: root.color1
-                    font.pixelSize: 14
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    size: 15
+                    source: (player && player.identity) ? PlayerService.getAppIcon(player.identity) : ""
+                    color: root.primary
+                    fallbackGlyph: "music_note"
                 }
             }
 
             Text {
                 text: player ? (player.identity || qsTr("Media Player")) : qsTr("No active player")
-                font.pixelSize: 13
-                font.family: "GeistMono Nerd Font Propo Propo SemiBold"
-                color: Qt.alpha(root.textColor, 0.85)
+                font.pixelSize: 12
+                font.family: "Google Sans Flex, Google Sans, sans-serif"
+                font.weight: Font.DemiBold
+                color: Qt.alpha(root.textColor, 0.88)
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }
 
             Rectangle {
                 visible: root.player !== null
-                implicitWidth: statusText.implicitWidth + 14
+                implicitWidth: statusRow.implicitWidth + 14
                 implicitHeight: 22
                 radius: 11
-                color: root.isPlaying ? Qt.alpha(root.color1, 0.2) : Qt.alpha(root.textColor, 0.1)
+                color: root.isPlaying ? Qt.alpha(root.primary, 0.18) : Qt.alpha(root.textColor, 0.08)
 
-                Text {
-                    id: statusText
+                RowLayout {
+                    id: statusRow
                     anchors.centerIn: parent
-                    text: root.isPlaying ? qsTr("Playing") : qsTr("Paused")
-                    font.pixelSize: 11
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: root.isPlaying ? root.color1 : Qt.alpha(root.textColor, 0.6)
+                    spacing: 4
+
+                    Text {
+                        visible: root.isPlaying
+                        text: "graphic_eq"
+                        font.family: "Material Symbols Rounded"
+                        font.pixelSize: 13
+                        color: root.primary
+                    }
+
+                    Text {
+                        text: root.isPlaying ? qsTr("Playing") : qsTr("Paused")
+                        font.pixelSize: 11
+                        font.family: "Google Sans, sans-serif"
+                        font.weight: Font.Medium
+                        color: root.isPlaying ? root.primary : Qt.alpha(root.textColor, 0.65)
+                    }
                 }
             }
 
-            // Close button
             Rectangle {
                 implicitWidth: 26
                 implicitHeight: 26
                 radius: 13
-                color: closeHover.hovered ? Qt.alpha(root.textColor, 0.15) : "transparent"
+                color: closeHover.hovered ? Qt.alpha(root.textColor, 0.14) : "transparent"
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰅖"
-                    font.pixelSize: 14
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    text: "close"
+                    font.pixelSize: 16
+                    font.family: "Material Symbols Rounded"
                     color: Qt.alpha(root.textColor, 0.7)
                 }
 
@@ -139,15 +155,18 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.hideMenu()
+                    onClicked: {
+                        MenuService.closeAll();
+                        root.hideMenu();
+                    }
                 }
             }
         }
 
-        // --- Multi-Player Selector Tabs ---
+        // Multi-player switcher tabs
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 34
+            Layout.preferredHeight: 30
             visible: PlayerService.playerCount > 1
 
             Flickable {
@@ -168,11 +187,11 @@ Item {
                             required property int index
 
                             readonly property bool isSelected: root.player && root.player.identity === modelData.identity
-                            implicitWidth: Math.max(80, tabContent.implicitWidth + 16)
-                            implicitHeight: 28
-                            radius: 14
-                            color: isSelected ? Qt.alpha(root.color1, 0.25) : (tabHover.hovered ? Qt.alpha(root.textColor, 0.1) : Qt.alpha(root.textColor, 0.05))
-                            border.color: isSelected ? root.color1 : "transparent"
+                            implicitWidth: Math.max(78, tabContent.implicitWidth + 16)
+                            implicitHeight: 26
+                            radius: 13
+                            color: isSelected ? Qt.alpha(root.primary, 0.22) : (tabHover.hovered ? Qt.alpha(root.textColor, 0.1) : Qt.alpha(root.textColor, 0.05))
+                            border.color: isSelected ? Qt.alpha(root.primary, 0.6) : "transparent"
                             border.width: 1
 
                             RowLayout {
@@ -180,21 +199,21 @@ Item {
                                 anchors.centerIn: parent
                                 spacing: 6
 
-                                Text {
-                                    text: PlayerService.getAppIcon(modelData.identity)
-                                    font.pixelSize: 12
-                                    font.family: "GeistMono Nerd Font Propo Propo"
-                                    color: isSelected ? root.color1 : Qt.alpha(root.textColor, 0.7)
+                                ThemedIcon {
+                                    size: 13
+                                    source: PlayerService.getAppIcon(modelData.identity)
+                                    color: isSelected ? root.primary : Qt.alpha(root.textColor, 0.7)
+                                    fallbackGlyph: "music_note"
                                 }
 
                                 Text {
                                     text: modelData.identity || qsTr("Player")
                                     font.pixelSize: 11
-                                    font.family: "GeistMono Nerd Font Propo Propo"
-                                    font.bold: isSelected
-                                    color: isSelected ? root.foreground : root.textColor
+                                    font.family: "Google Sans, sans-serif"
+                                    font.weight: isSelected ? Font.DemiBold : Font.Normal
+                                    color: isSelected ? root.primary : Qt.alpha(root.textColor, 0.8)
                                     elide: Text.ElideRight
-                                    Layout.maximumWidth: 100
+                                    Layout.maximumWidth: 90
                                 }
                             }
 
@@ -202,7 +221,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: PlayerService.selectPlayer(modelData)
+                                onClicked: PlayerService.selectPlayer(modelData.identity)
                             }
                         }
                     }
@@ -210,224 +229,264 @@ Item {
             }
         }
 
-        // --- Rotating Vinyl Disc ---
-        Item {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 160
-            Layout.preferredHeight: 160
-            Layout.topMargin: 4
-            Layout.bottomMargin: 4
+        // Track Information: Album Art on the left + Title/Artist on the right
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 76
+            spacing: 14
 
-            // Vinyl Base Disc
+            // Left: Rounded Square Album Art
             Rectangle {
-                id: vinylDisc
-                anchors.centerIn: parent
-                width: 156
-                height: 156
-                radius: 78
-                color: "#11111b"
-                border.color: Qt.alpha(root.textColor, 0.15)
+                id: albumArtWrapper
+                Layout.preferredWidth: 76
+                Layout.preferredHeight: 76
+                radius: 24
+                color: Qt.alpha(root.primary, 0.12)
+                border.color: Qt.alpha(root.textColor, 0.12)
                 border.width: 1
 
-                // Grooves Effect
-                Repeater {
-                    model: [136, 116, 96, 76]
-                    delegate: Rectangle {
-                        required property int modelData
-                        anchors.centerIn: parent
-                        width: modelData
-                        height: modelData
-                        radius: modelData / 2
-                        color: "transparent"
-                        border.color: Qt.alpha(root.textColor, 0.04)
-                        border.width: 1
-                    }
+                Image {
+                    id: albumArt
+                    anchors.fill: parent
+                    source: (root.player && root.player.trackArtUrl) ? root.player.trackArtUrl : ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    visible: false
                 }
 
-                // Center Album Art
                 Rectangle {
-                    id: albumCoverWrapper
-                    anchors.centerIn: parent
-                    width: 70
-                    height: 70
-                    radius: 35
-                    color: Qt.alpha(root.color1, 0.2)
-                    clip: true
+                    id: albumArtMask
+                    anchors.fill: parent
+                    radius: albumArtWrapper.radius
+                    visible: false
+                }
 
-                    Image {
-                        id: albumArt
-                        anchors.fill: parent
-                        source: (root.player && root.player.trackArtUrl) ? root.player.trackArtUrl : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        visible: status === Image.Ready
-                    }
+                OpacityMask {
+                    anchors.fill: parent
+                    source: albumArt
+                    maskSource: albumArtMask
+                    visible: albumArt.status === Image.Ready
+                }
 
-                    // Fallback Icon
+                Item {
+                    anchors.fill: parent
+                    visible: albumArt.status !== Image.Ready
+
                     Text {
                         anchors.centerIn: parent
-                        visible: albumArt.status !== Image.Ready
-                        text: "󰎆"
-                        font.pixelSize: 28
-                        font.family: "GeistMono Nerd Font Propo Propo"
-                        color: root.color1
+                        text: "music_note"
+                        font.family: "Material Symbols Rounded"
+                        font.pixelSize: 34
+                        color: Qt.alpha(root.primary, 0.75)
                     }
-                }
-
-                // Spindle Hole
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 12
-                    height: 12
-                    radius: 6
-                    color: root.background
-                    border.color: Qt.alpha(root.textColor, 0.3)
-                    border.width: 1
-                }
-
-                // Disc Rotation Animation
-                RotationAnimator {
-                    target: vinylDisc
-                    from: 0
-                    to: 360
-                    duration: 6000
-                    loops: Animation.Infinite
-                    running: root.isPlaying
                 }
             }
 
-            // Stylus / Tone Arm Indicator
-            Rectangle {
-                id: toneArm
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.rightMargin: 8
-                anchors.topMargin: -4
-                width: 4
-                height: 52
-                radius: 2
-                color: Qt.alpha(root.textColor, 0.5)
-                transformOrigin: Item.Top
-                rotation: root.isPlaying ? 24 : 0
+            // Right: Track Title, Artist, and Album
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 3
 
-                Behavior on rotation {
-                    NumberAnimation { duration: 400; easing.type: Easing.OutBack }
+                Text {
+                    text: root.player ? (root.player.trackTitle || qsTr("No title")) : qsTr("No media playing")
+                    font.pixelSize: 15
+                    font.family: "Google Sans Flex, Google Sans, sans-serif"
+                    font.weight: Font.Bold
+                    color: root.textColor
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 8
-                    height: 10
-                    radius: 2
-                    color: root.color1
+                Text {
+                    text: {
+                        if (!root.player) return qsTr("Play a song in your media player");
+                        var artist = root.player.trackArtist || "";
+                        var album = root.player.trackAlbum || "";
+                        if (artist && album && artist !== album)
+                            return artist + " • " + album;
+                        return artist || album || qsTr("Unknown artist");
+                    }
+                    font.pixelSize: 12
+                    font.family: "Google Sans, sans-serif"
+                    color: Qt.alpha(root.textColor, 0.65)
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
             }
         }
 
-        // --- Track Info ---
+        // Horizontal Material Design 3 Wavy Progress Bar
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 2
-            Layout.topMargin: 2
 
-            Text {
-                text: player ? (player.trackTitle || qsTr("No title")) : qsTr("No media playing")
-                font.pixelSize: 16
-                font.family: "GeistMono Nerd Font Propo Propo ExtraBold"
-                color: root.textColor
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-            }
-
-            Text {
-                text: player ? (player.trackArtist || (player.trackAlbum || qsTr("Unknown artist"))) : qsTr("Play a song in your media player")
-                font.pixelSize: 12
-                font.family: "GeistMono Nerd Font Propo Propo"
-                color: Qt.alpha(root.textColor, 0.65)
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-            }
-        }
-
-        // --- Seek Bar & Timestamps ---
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 4
-
-            // Interactive Progress Bar
             Item {
-                id: progressBarContainer
+                id: horizontalProgress
                 Layout.fillWidth: true
-                Layout.preferredHeight: 18
+                Layout.preferredHeight: 20
 
+                readonly property real wavelength: 26
+                readonly property real maxAmp: 3.2
+                property real targetAmp: (root.isPlaying && !isDragging) ? maxAmp : 0.0
+                property real currentAmp: root.isPlaying ? maxAmp : 0.0
+
+                Behavior on currentAmp {
+                    NumberAnimation {
+                        duration: 450
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                readonly property real fraction: {
+                    if (!root.player || !root.player.length || root.player.length <= 0)
+                        return 0;
+                    return Math.max(0, Math.min(1, root.player.position / root.player.length));
+                }
+                property real dragFraction: 0
+                readonly property bool isDragging: progressMouse.pressed
+                readonly property real effectiveFraction: isDragging ? dragFraction : fraction
+                property real wavePhase: 0
+
+                NumberAnimation {
+                    target: horizontalProgress
+                    property: "wavePhase"
+                    running: (root.isPlaying || horizontalProgress.currentAmp > 0.05) && root.visible
+                    loops: Animation.Infinite
+                    from: 0
+                    to: Math.PI * 2
+                    duration: 1400
+                    easing.type: Easing.Linear
+                }
+
+                onWavePhaseChanged: waveCanvas.requestPaint()
+                onCurrentAmpChanged: waveCanvas.requestPaint()
+                onEffectiveFractionChanged: waveCanvas.requestPaint()
+
+                Canvas {
+                    id: waveCanvas
+                    anchors.fill: parent
+
+                    onPaint: {
+                        const ctx = getContext("2d");
+                        ctx.clearRect(0, 0, width, height);
+
+                        const midY = height / 2;
+                        const w = width;
+                        const frac = horizontalProgress.effectiveFraction;
+                        const playedWidth = Math.max(0, Math.min(w, w * frac));
+                        const lineThickness = 4.0;
+                        const halfThick = lineThickness / 2;
+
+                        // 1. Inactive remaining rail (flat line with rounded ends)
+                        const inactiveStart = Math.min(w - halfThick, Math.max(playedWidth + (frac > 0 && frac < 1 ? 5 : 0), halfThick));
+                        const inactiveEnd = w - halfThick;
+
+                        if (inactiveEnd > inactiveStart) {
+                            ctx.lineWidth = lineThickness;
+                            ctx.lineCap = "round";
+                            ctx.strokeStyle = Qt.alpha(root.textColor, 0.14);
+                            ctx.beginPath();
+                            ctx.moveTo(inactiveStart, midY);
+                            ctx.lineTo(inactiveEnd, midY);
+                            ctx.stroke();
+                        }
+
+                        // 2. Active played rail (wavy or flat, with rounded ends and smooth envelope taper)
+                        if (playedWidth > halfThick) {
+                            const startX = halfThick;
+                            const endX = Math.max(startX + 0.1, playedWidth - halfThick);
+                            const activeLength = endX - startX;
+
+                            ctx.lineWidth = lineThickness;
+                            ctx.lineCap = "round";
+                            ctx.lineJoin = "round";
+                            ctx.strokeStyle = root.primary;
+                            ctx.beginPath();
+
+                            const amp = horizontalProgress.currentAmp;
+                            if (amp > 0.05) {
+                                const k = (2 * Math.PI) / horizontalProgress.wavelength;
+                                const phase = horizontalProgress.wavePhase;
+                                // Taper envelope: smoothly ease amplitude at both ends of the wave
+                                const taperDist = Math.min(22, activeLength * 0.45);
+
+                                let first = true;
+                                for (let px = startX; px <= endX; px += 0.8) {
+                                    let env = 1.0;
+                                    if (taperDist > 0.1) {
+                                        if (px - startX < taperDist) {
+                                            const t = (px - startX) / taperDist;
+                                            env = 0.5 * (1 - Math.cos(Math.PI * t));
+                                        } else if (endX - px < taperDist) {
+                                            const t = (endX - px) / taperDist;
+                                            env = 0.5 * (1 - Math.cos(Math.PI * t));
+                                        }
+                                    }
+                                    const py = midY + amp * env * Math.sin((px - startX) * k - phase);
+                                    if (first) {
+                                        ctx.moveTo(px, py);
+                                        first = false;
+                                    } else {
+                                        ctx.lineTo(px, py);
+                                    }
+                                }
+                                ctx.lineTo(endX, midY);
+                            } else {
+                                ctx.moveTo(startX, midY);
+                                ctx.lineTo(endX, midY);
+                            }
+                            ctx.stroke();
+                        }
+                    }
+
+                    onWidthChanged: requestPaint()
+                    onHeightChanged: requestPaint()
+                    Component.onCompleted: requestPaint()
+
+                    Connections {
+                        target: root
+                        function onPrimaryChanged() { waveCanvas.requestPaint(); }
+                    }
+                }
+
+                // Thumb handle
                 Rectangle {
-                    id: progressTrack
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                    id: thumbHandle
+                    x: Math.max(0, Math.min(parent.width - width, parent.width * horizontalProgress.effectiveFraction - width / 2))
                     anchors.verticalCenter: parent.verticalCenter
-                    height: progressMouse.containsMouse || progressMouse.pressed ? 8 : 5
-                    radius: height / 2
-                    color: Qt.alpha(root.textColor, 0.15)
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: root.primary
+                    border.color: root.surfaceContainer
+                    border.width: 2.5
+                    scale: progressMouse.pressed ? 1.3 : (progressMouse.containsMouse ? 1.15 : 1.0)
 
-                    Behavior on height {
-                        NumberAnimation { duration: 150 }
-                    }
-
-                    // Filled Portion
-                    Rectangle {
-                        id: progressFill
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: {
-                            if (!root.player || !root.player.length || root.player.length <= 0)
-                                return 0;
-                            var ratio = Math.max(0, Math.min(1, root.player.position / root.player.length));
-                            return parent.width * ratio;
-                        }
-                        radius: parent.radius
-                        color: root.color1
-
-                        Behavior on width {
-                            enabled: !progressMouse.pressed
-                            NumberAnimation { duration: 250 }
-                        }
-                    }
-
-                    // Thumb / Handle
-                    Rectangle {
-                        id: progressHandle
-                        width: 14
-                        height: 14
-                        radius: 7
-                        color: root.foreground
-                        border.color: root.color1
-                        border.width: 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.horizontalCenter: progressFill.right
-                        visible: progressMouse.containsMouse || progressMouse.pressed
+                    Behavior on scale {
+                        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                     }
                 }
 
                 MouseArea {
                     id: progressMouse
                     anchors.fill: parent
+                    anchors.topMargin: -6
+                    anchors.bottomMargin: -6
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
+                    preventStealing: true
 
-                    function seekTo(mouseX) {
+                    function seekTo(mx) {
                         if (root.player && root.player.length && root.player.length > 0) {
-                            var ratio = Math.max(0, Math.min(1, mouseX / width));
-                            var newPos = ratio * root.player.length;
-                            root.player.position = newPos;
+                            var frac = Math.max(0, Math.min(1, mx / width));
+                            horizontalProgress.dragFraction = frac;
+                            root.player.position = frac * root.player.length;
                             root.player.positionChanged();
                         }
                     }
 
-                    onClicked: mouse => seekTo(mouse.x)
+                    onPressed: mouse => seekTo(mouse.x)
                     onPositionChanged: mouse => {
                         if (pressed)
                             seekTo(mouse.x);
@@ -435,15 +494,20 @@ Item {
                 }
             }
 
-            // Time Labels
+            // Timestamps Row
             RowLayout {
                 Layout.fillWidth: true
 
                 Text {
-                    text: root.formatTime(root.player ? root.player.position : 0)
-                    font.pixelSize: 11
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: Qt.alpha(root.textColor, 0.6)
+                    text: {
+                        if (horizontalProgress.isDragging)
+                            return root.formatTime(horizontalProgress.dragFraction * (root.player ? root.player.length : 0));
+                        return root.formatTime(root.player ? root.player.position : 0);
+                    }
+                    font.pixelSize: 10
+                    font.family: "Google Sans Flex, Google Sans, sans-serif"
+                    font.weight: Font.DemiBold
+                    color: horizontalProgress.isDragging ? root.primary : Qt.alpha(root.textColor, 0.75)
                 }
 
                 Item {
@@ -452,40 +516,45 @@ Item {
 
                 Text {
                     text: root.formatTime(root.player ? root.player.length : 0)
-                    font.pixelSize: 11
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: Qt.alpha(root.textColor, 0.6)
+                    font.pixelSize: 10
+                    font.family: "Google Sans Flex, Google Sans, sans-serif"
+                    font.weight: Font.Medium
+                    color: Qt.alpha(root.textColor, 0.55)
                 }
             }
         }
 
-        // --- Media Controls ---
+        // Centered Playback Controls Row
         RowLayout {
+            Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
-            spacing: 20
-            Layout.topMargin: 2
-            Layout.bottomMargin: 2
+            spacing: 10
 
-            // Previous Player Switch (Visible if multiple players)
+            Item {
+                Layout.fillWidth: true
+            }
+
+            // Previous Player Switcher
             Rectangle {
                 visible: PlayerService.playerCount > 1
                 implicitWidth: 32
                 implicitHeight: 32
-                radius: 16
-                color: prevAppHover.hovered ? Qt.alpha(root.color1, 0.2) : Qt.alpha(root.textColor, 0.06)
+                radius: 10
+                color: prevAppHover.hovered ? Qt.alpha(root.primary, 0.18) : Qt.alpha(root.textColor, 0.05)
+                scale: prevAppHover.hovered ? 1.08 : 1.0
+
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰁍"
-                    font.pixelSize: 14
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: Qt.alpha(root.textColor, 0.7)
+                    text: "skip_previous"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 16
+                    color: Qt.alpha(root.textColor, 0.6)
                 }
 
-                HoverHandler {
-                    id: prevAppHover
-                }
-
+                HoverHandler { id: prevAppHover }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
@@ -493,142 +562,130 @@ Item {
                 }
             }
 
-            // Previous Track Button
+            // Previous Track
             Rectangle {
                 implicitWidth: 42
                 implicitHeight: 42
-                radius: 21
-                color: prevHover.hovered ? Qt.alpha(root.color1, 0.2) : Qt.alpha(root.textColor, 0.08)
-                scale: prevHover.hovered ? 1.1 : 1.0
+                radius: 14
+                color: prevMa.containsPress ? Qt.alpha(root.primary, 0.25) : (prevMa.containsMouse ? Qt.alpha(root.textColor, 0.12) : Qt.alpha(root.textColor, 0.06))
+                border.color: prevMa.containsMouse ? Qt.alpha(root.primary, 0.35) : Qt.alpha(root.textColor, 0.08)
+                border.width: 1
+                scale: prevMa.containsPress ? 0.92 : (prevMa.containsMouse ? 1.08 : 1.0)
 
-                Behavior on scale {
-                    NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-                }
-                Behavior on color {
-                    ColorAnimation { duration: 150 }
-                }
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰒮"
-                    font.pixelSize: 20
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: root.player && root.player.canGoPrevious !== false ? root.color1 : Qt.alpha(root.textColor, 0.3)
-                }
-
-                HoverHandler {
-                    id: prevHover
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (root.player) {
-                            root.player.previous();
-                        }
-                    }
-                }
-            }
-
-            // Play / Pause Main Button
-            Rectangle {
-                implicitWidth: 56
-                implicitHeight: 56
-                radius: 28
-                color: root.color1
-                scale: playHover.hovered ? 1.08 : 1.0
-
-                Behavior on scale {
-                    NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: root.isPlaying ? "" : ""
+                    text: "skip_previous"
+                    font.family: "Material Symbols Rounded"
                     font.pixelSize: 22
-                    font.family: "GeistMono Nerd Font Propo Propo ExtraBold"
-                    color: root.foreground
-                }
-
-                HoverHandler {
-                    id: playHover
+                    color: (root.player && root.player.canGoPrevious !== false) ? root.textColor : Qt.alpha(root.textColor, 0.35)
                 }
 
                 MouseArea {
+                    id: prevMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (root.player) {
-                            root.player.togglePlaying();
-                        }
+                        if (root.player) root.player.previous();
                     }
                 }
             }
 
-            // Next Track Button
+            // Play / Pause Hero Pill
             Rectangle {
-                implicitWidth: 42
-                implicitHeight: 42
-                radius: 21
-                color: nextHover.hovered ? Qt.alpha(root.color1, 0.2) : Qt.alpha(root.textColor, 0.08)
-                scale: nextHover.hovered ? 1.1 : 1.0
+                implicitWidth: 64
+                implicitHeight: 44
+                radius: 18
+                color: root.primary
+                scale: playMa.containsPress ? 0.92 : (playMa.containsMouse ? 1.06 : 1.0)
 
-                Behavior on scale {
-                    NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-                }
-                Behavior on color {
-                    ColorAnimation { duration: 150 }
-                }
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰒭"
-                    font.pixelSize: 20
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: root.player && root.player.canGoNext !== false ? root.color1 : Qt.alpha(root.textColor, 0.3)
-                }
-
-                HoverHandler {
-                    id: nextHover
+                    text: root.isPlaying ? "pause" : "play_arrow"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 28
+                    color: root.on_primary
                 }
 
                 MouseArea {
+                    id: playMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (root.player) {
-                            root.player.next();
-                        }
+                        if (root.player) root.player.togglePlaying();
                     }
                 }
             }
 
-            // Next Player Switch (Visible if multiple players)
+            // Next Track
+            Rectangle {
+                implicitWidth: 42
+                implicitHeight: 42
+                radius: 14
+                color: nextMa.containsPress ? Qt.alpha(root.primary, 0.25) : (nextMa.containsMouse ? Qt.alpha(root.textColor, 0.12) : Qt.alpha(root.textColor, 0.06))
+                border.color: nextMa.containsMouse ? Qt.alpha(root.primary, 0.35) : Qt.alpha(root.textColor, 0.08)
+                border.width: 1
+                scale: nextMa.containsPress ? 0.92 : (nextMa.containsMouse ? 1.08 : 1.0)
+
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 150 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "skip_next"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 22
+                    color: (root.player && root.player.canGoNext !== false) ? root.textColor : Qt.alpha(root.textColor, 0.35)
+                }
+
+                MouseArea {
+                    id: nextMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (root.player) root.player.next();
+                    }
+                }
+            }
+
+            // Next Player Switcher
             Rectangle {
                 visible: PlayerService.playerCount > 1
                 implicitWidth: 32
                 implicitHeight: 32
-                radius: 16
-                color: nextAppHover.hovered ? Qt.alpha(root.color1, 0.2) : Qt.alpha(root.textColor, 0.06)
+                radius: 10
+                color: nextAppHover.hovered ? Qt.alpha(root.primary, 0.18) : Qt.alpha(root.textColor, 0.05)
+                scale: nextAppHover.hovered ? 1.08 : 1.0
+
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰁔"
-                    font.pixelSize: 14
-                    font.family: "GeistMono Nerd Font Propo Propo"
-                    color: Qt.alpha(root.textColor, 0.7)
+                    text: "skip_next"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 16
+                    color: Qt.alpha(root.textColor, 0.6)
                 }
 
-                HoverHandler {
-                    id: nextAppHover
-                }
-
+                HoverHandler { id: nextAppHover }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: PlayerService.cycleNextPlayer()
                 }
+            }
+
+            Item {
+                Layout.fillWidth: true
             }
         }
     }

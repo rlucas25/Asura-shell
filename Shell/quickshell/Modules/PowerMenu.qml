@@ -2,6 +2,7 @@ import Quickshell.Wayland
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Asura
 
 PanelWindow {
     id: panelWindow
@@ -69,7 +70,7 @@ PanelWindow {
                 width: size
 
                 color: "gray"
-                radius: 30
+                radius: Math.round(Config.effectiveMenuRadius * 1.5)
 
                 
 
@@ -84,7 +85,7 @@ PanelWindow {
                 Text {
                     anchors.centerIn: parent
                     font {
-                        family: "GeistMono Nerd Font Propo Propo"
+                        family: "GeistMono Nerd Font Propo"
                         pixelSize: {
                             if (hover1.hovered) {
                                 return 70;
@@ -131,7 +132,7 @@ PanelWindow {
                 height: size
                 width: size
                 color: "gray"
-                radius: 30
+                radius: Math.round(Config.effectiveMenuRadius * 1.5)
 
                 Text {
                     text: "2"
@@ -144,7 +145,7 @@ PanelWindow {
                     anchors.centerIn: parent
 
                     font {
-                        family: "GeistMono Nerd Font Propo Propo"
+                        family: "GeistMono Nerd Font Propo"
                         pixelSize: {
                             if (hover2.hovered) {
                                 return 70;
@@ -191,7 +192,7 @@ PanelWindow {
                 height: size
                 width: size
                 color: "gray"
-                radius: 30
+                radius: Math.round(Config.effectiveMenuRadius * 1.5)
 
                 Text {
                     text: "3"
@@ -204,7 +205,7 @@ PanelWindow {
                     anchors.centerIn: parent
 
                     font {
-                        family: "GeistMono Nerd Font Propo Propo"
+                        family: "GeistMono Nerd Font Propo"
                         pixelSize: {
                             if (hover3.hovered) {
                                 return 70;
@@ -250,7 +251,7 @@ PanelWindow {
                 height: size
                 width: size
                 color: "gray"
-                radius: 30
+                radius: Math.round(Config.effectiveMenuRadius * 1.5)
 
                 Text {
                     text: "4"
@@ -263,7 +264,7 @@ PanelWindow {
                     anchors.centerIn: parent
 
                     font {
-                        family: "GeistMono Nerd Font Propo Propo"
+                        family: "GeistMono Nerd Font Propo"
                         pixelSize: {
                             if (hover4.hovered) {
                                 return 70;

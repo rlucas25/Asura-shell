@@ -3,17 +3,14 @@ import QtQuick
 QtObject {
     id: root
 
-    // Controls whether entrance animation should run
     property bool active: true
 
-    // Animation timing and physics parameters
     property int duration: 420
     property int delay: 0
     property real startOffsetY: 20
     property real startScale: 0.94
     property real overshoot: 1.12
 
-    // Computed animated values
     readonly property real progress: animProgress.value
     readonly property real opacity: Math.max(0.0, Math.min(1.0, progress))
     readonly property real offsetY: startOffsetY * (1.0 - progress)

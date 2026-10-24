@@ -35,7 +35,6 @@ Item {
     property string hiddenSsid: ""
     property string hiddenPassword: ""
 
-    // Pause periodic polling when user is interacting with an input field
     Binding {
         target: WifiService
         property: "paused"
@@ -71,13 +70,11 @@ Item {
             y: wifiEntrance.offsetY
         }
 
-        // 1. HEADER
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
             spacing: 8
 
-            // Wireless Title
             Row {
                 Layout.fillWidth: true
                 spacing: 8
@@ -110,7 +107,6 @@ Item {
                 }
             }
 
-            // Rescan Button
             Rectangle {
                 Layout.preferredWidth: 30
                 Layout.preferredHeight: 30
@@ -147,7 +143,6 @@ Item {
                 }
             }
 
-            // Master Toggle Switch
             Rectangle {
                 id: toggleBg
                 Layout.preferredWidth: 46
@@ -186,7 +181,6 @@ Item {
             }
         }
 
-        // ETHERNET (WIRED) CONNECTION CARD
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: ethCardCol.implicitHeight + 16
@@ -280,7 +274,6 @@ Item {
             }
         }
 
-        // 2. ACTIVE CONNECTION CARD
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: activeCardCol.implicitHeight + 16
@@ -361,7 +354,6 @@ Item {
                         }
                     }
 
-                    // Disconnect Button
                     Rectangle {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
@@ -390,7 +382,6 @@ Item {
             }
         }
 
-        // 3. STATUS / FEEDBACK BANNER
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: WifiService.statusMessage !== "" ? 28 : 0
@@ -429,7 +420,6 @@ Item {
             }
         }
 
-        // 4. AVAILABLE NETWORKS LIST
         RowLayout {
             Layout.fillWidth: true
             visible: WifiService.wifiEnabled
@@ -448,7 +438,6 @@ Item {
             }
         }
 
-        // Wi-Fi Disabled State
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -510,7 +499,6 @@ Item {
             }
         }
 
-        // Networks List
         Flickable {
             id: netFlick
             Layout.fillWidth: true
@@ -528,7 +516,6 @@ Item {
                 width: netFlick.width
                 spacing: 6
 
-                // Empty / Searching state
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 20
@@ -541,7 +528,6 @@ Item {
                     }
                 }
 
-                // Networks Repeater
                 Repeater {
                     model: WifiService.networks
 
@@ -566,7 +552,6 @@ Item {
                             }
                         }
 
-                        // Background mouse area for whole item
                         MouseArea {
                             id: netMouse
                             anchors.fill: parent
@@ -577,12 +562,10 @@ Item {
                                     return;
                                 }
                                 if (modelData.saved || !modelData.secure) {
-                                    // Connect directly
                                     root.expandingSsid = "";
                                     root.currentPassword = "";
                                     WifiService.connect(modelData.ssid, "");
                                 } else {
-                                    // Toggle password expansion
                                     if (root.expandingSsid === modelData.ssid) {
                                         root.expandingSsid = "";
                                         root.currentPassword = "";
@@ -605,12 +588,10 @@ Item {
                             }
                             spacing: 6
 
-                            // Main row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
 
-                                // Signal Icon
                                 Text {
                                     text: WifiService.getSignalIcon(modelData.signal, true)
                                     color: root.getSignalColor(modelData.signal)
@@ -620,7 +601,6 @@ Item {
                                     }
                                 }
 
-                                // SSID & Info
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 1
@@ -681,11 +661,9 @@ Item {
                                     }
                                 }
 
-                                // Right Icons / Badges
                                 RowLayout {
                                     spacing: 6
 
-                                    // Lock Icon
                                     Text {
                                         text: "󰌾"
                                         color: root.primary
@@ -696,7 +674,6 @@ Item {
                                         visible: modelData.secure && !modelData.active
                                     }
 
-                                    // Forget saved network button
                                     Rectangle {
                                         Layout.preferredWidth: 22
                                         Layout.preferredHeight: 22
@@ -725,7 +702,6 @@ Item {
                                 }
                             }
 
-                            // ── Inline Password Entry ─────────────────────────
                             Rectangle {
                                 id: pwdBox
                                 Layout.fillWidth: true
@@ -754,7 +730,6 @@ Item {
                                     }
                                     spacing: 6
 
-                                    // Input row
                                     Rectangle {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: 32
@@ -811,7 +786,6 @@ Item {
                                                 }
                                             }
 
-                                            // Show / Hide Password toggle
                                             Text {
                                                 text: pwdBox.showPass ? "󰈈" : "󰈉"
                                                 color: root.primary
@@ -829,7 +803,6 @@ Item {
                                         }
                                     }
 
-                                    // Buttons: Connect / Cancel
                                     RowLayout {
                                         Layout.fillWidth: true
                                         spacing: 6
@@ -901,7 +874,6 @@ Item {
                     }
                 }
 
-                // 5. HIDDEN NETWORK CONNECTION
                 Rectangle {
                     id: hiddenCard
                     Layout.fillWidth: true
@@ -921,7 +893,6 @@ Item {
                         }
                         spacing: 8
 
-                        // Toggle button row
                         Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 22
@@ -972,13 +943,11 @@ Item {
                             }
                         }
 
-                        // Hidden Network Form
                         ColumnLayout {
                             Layout.fillWidth: true
                             visible: root.showHiddenConnect
                             spacing: 6
 
-                            // SSID Input
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 30
@@ -1013,7 +982,6 @@ Item {
                                 }
                             }
 
-                            // Password Input
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 30
@@ -1049,7 +1017,6 @@ Item {
                                 }
                             }
 
-                            // Connect Button
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 28

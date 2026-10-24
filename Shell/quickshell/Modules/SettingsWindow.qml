@@ -6,11 +6,14 @@ import Quickshell
 import Quickshell.Io
 import qs.Asura
 import qs.Services
+import "Settings/Tabs"
+import "Settings/Components"
 
 FloatingWindow {
     id: root
 
-    // === SEMANTIC THEME PROPERTIES ===
+    readonly property var settingsWindowRoot: root
+
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color background: Colors.cfg.base00
@@ -21,41 +24,528 @@ FloatingWindow {
     property color text: Colors.cfg.base05
     property color textBright: Colors.cfg.base06
     property color on_primary: Colors.cfg.on_primary
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias foreground: root.on_primary
     property alias textColor: root.text
-    // === STATE PROPERTIES & FLAGS ===
+
+    property alias reloadShellProc: reloadShellProc
+    property alias playSoundProc: playSoundProc
+    property alias nwgLookProc: nwgLookProc
+    property alias loadTemplatesProc: loadTemplatesProc
+    property alias applyTemplatesProc: applyTemplatesProc
+    property alias wpListProc: wpListProc
+    property alias importWpProc: importWpProc
+    property alias selectFolderProc: selectFolderProc
+    property alias selectRecordingsFolderProc: selectRecordingsFolderProc
+    property alias focusTimer: focusTimer
+    readonly property bool isClosing: closeSequence.running
     property bool isOpen: false
-    // Animation Properties (GuidePopup inspired)
     property real introBase: 0
     property real introSidebar: 0
     property real introTabs: 0
     property real introContent: 0
-    // Navigation tabs: "general" | "theme" | "notifications" | "gtk"
-    property string currentTab: "theme"
-    // Config file path resolution
-    readonly property string configFilePath: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Asura/config/config.json") : (Quickshell.env("HOME") + "/.config/quickshell/Asura/config/config.json")
-    // Wallpaper Gallery State
+    readonly property var tabOrder: ["general", "theme", "bar", "windows", "defaultapps", "monitors", "presets", "apptheming", "gtk", "launcher", "notifications", "keyboard", "shortcuts", "about"]
+    property string currentTab: "general"
+
+    property string toastMessage: ""
+    property string toastIcon: "check_circle"
+    property bool showToastNotification: false
+
+    Timer {
+        id: toastTimer
+        interval: 3200
+        repeat: false
+        onTriggered: root.showToastNotification = false
+    }
+
+    function showToast(msg, icon) {
+        root.toastMessage = msg;
+        root.toastIcon = icon || "check_circle";
+        root.showToastNotification = true;
+        toastTimer.restart();
+    }
+
+    Connections {
+        target: PresetService
+        function onPresetSaved(id, name) {
+            root.showToast(qsTr("Preset '%1' saved successfully!").arg(name), "style");
+        }
+    }
+
+    readonly property var activeAppsTab: (appsTabLoader && appsTabLoader.item) ? appsTabLoader.item : null
+    readonly property var activeMonitorsTab: (monitorsTabLoader && monitorsTabLoader.item) ? monitorsTabLoader.item : null
+
+    property string settingsSearchQuery: ""
+    property string selectedTabCategory: "all" // "all" | "appearance" | "desktop" | "system"
+
+    readonly property var allSettingsTabs: [
+        { "id": "general", "category": "appearance", "name": qsTr("General"), "desc": qsTr("Interface, blur & paths"), "icon": "settings", "keywords": "general blur opacity wallpaper background interface paths clock interval transition geometry radius curvature arredondamento papel de parede plano de fundo transparencia pasta diretorio interface cantos desfoque timer slideshow tempo" },
+        { "id": "theme", "category": "appearance", "name": qsTr("Theme"), "desc": qsTr("Colors & themes"), "icon": "palette", "keywords": "theme colors dark light mode material you dynamic palette auto theme accents cores tema escuro claro paleta esquema base16 cor primaria secundaria matugen" },
+        { "id": "bar", "category": "desktop", "name": qsTr("Bar"), "desc": qsTr("Layout, widgets & melt"), "icon": "dock", "keywords": "bar widgets layout autohide position cava visualizer capsules spacing melt thickness espessura tamanho size hover text labels tooltip barra esconder ocultar posicao ilha island audio visualizador widgets painel flutuante borda margem" },
+        { "id": "windows", "category": "desktop", "name": qsTr("Windows"), "desc": qsTr("Gaps, borders & styling"), "icon": "space_dashboard", "keywords": "windows gaps borders rounding shadow opacity single window layout hyprland janelas bordas sombras arredondamento espacamento divisao master dwindle scrolling paperwm gapsin gapsout inteligente smart split" },
+        { "id": "defaultapps", "category": "system", "name": qsTr("Apps"), "desc": qsTr("Defaults & hidden apps"), "icon": "apps", "keywords": "apps default applications browser terminal file manager hidden launcher aplicativos padrao navegador terminal gerenciador arquivos ocultos programas padroes esconder" },
+        { "id": "monitors", "category": "system", "name": qsTr("Monitors"), "desc": qsTr("Displays, scale & layout"), "icon": "desktop_windows", "keywords": "monitors displays resolution scale refresh rate vrr position canvas monitor tela telas resolucao taxa atualizacao escala hz freesync gsync rotacao transform espelho" },
+        { "id": "presets", "category": "appearance", "name": qsTr("Presets"), "desc": qsTr("Saved appearance rices"), "icon": "style", "keywords": "presets rices appearances backup restore save load predefinicoes aparencias temas salvos exportar importar backup restaurar rice configuracoes prontas customizacoes" },
+        { "id": "apptheming", "category": "appearance", "name": qsTr("App Theming"), "desc": qsTr("Template color themes"), "icon": "format_paint", "keywords": "templates app theming kitty terminal vscode btop neovim starship discord sincronizacao editores cores aplicacoes temas programas sincronizar" },
+        { "id": "gtk", "category": "appearance", "name": qsTr("GTK Style"), "desc": qsTr("Theme & font config"), "icon": "auto_fix_high", "keywords": "gtk font cursor icons style nwg-look fonte cursor icones tema ponteiro tamanho fonte interface aparencia estilo" },
+        { "id": "launcher", "category": "desktop", "name": qsTr("App Launcher"), "desc": qsTr("Position, apps & commands"), "icon": "rocket_launch", "keywords": "launcher apps search compact zen calculator prefix commands inicializador busca pesquisa calculadora prefixos comandos web atalhos busca aplicativos terminal web google" },
+        { "id": "notifications", "category": "desktop", "name": qsTr("Notifications"), "desc": qsTr("Sound & toasts"), "icon": "notifications", "keywords": "notifications toasts sound alerts timeout do not disturb dnd som audio volume notificacoes notificacao alertas campainha silencioso aviso toques efeitos sonoros chime bell" },
+        { "id": "keyboard", "category": "system", "name": qsTr("Mouse & Keyboard"), "desc": qsTr("Pointers, layouts & typing"), "icon": "keyboard", "keywords": "keyboard mouse touchpad layouts cursor speed acceleration typing mouse teclado sensibilidade pointer touch aceleracao rolagem layout abnt2 idiomas repeticao atraso taxa toque trackpad" },
+        { "id": "shortcuts", "category": "system", "name": qsTr("Shortcuts"), "desc": qsTr("Hotkeys & custom keybinds"), "icon": "keyboard_command_key", "keywords": "shortcuts keybinds keys hotkeys hyprland super chords atalhos binds teclas teclado atalho comando binds combinacoes teclas de atalho super mod rebind custom" },
+        { "id": "about", "category": "system", "name": qsTr("About"), "desc": qsTr("System, specs & shell info"), "icon": "info", "keywords": "about system specs hardware cpu gpu memory disk kernel distro uptime quickshell asura version sobre sistema informacoes memoria processador placa video versao especificacoes maquina info informacao" }
+    ]
+
+    function normalizeSearchText(str) {
+        if (!str) return "";
+        return String(str)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    readonly property var searchSynonyms: ({
+        "som": ["sound", "audio", "chime", "bell", "alert", "volume"],
+        "audio": ["sound", "audio", "cava", "music", "volume"],
+        "volume": ["sound", "audio", "volume"],
+        "espessura": ["thickness", "width", "size"],
+        "tamanho": ["size", "scale", "thickness"],
+        "arredondamento": ["radius", "rounding", "curvature", "geometry"],
+        "raio": ["radius", "rounding"],
+        "desfoque": ["blur"],
+        "transparencia": ["opacity", "transparent"],
+        "opacidade": ["opacity"],
+        "papel": ["wallpaper"],
+        "fundo": ["background", "wallpaper"],
+        "barra": ["bar"],
+        "esconder": ["autohide", "hide"],
+        "ocultar": ["autohide", "hide", "hidden"],
+        "janela": ["window", "windows"],
+        "janelas": ["window", "windows"],
+        "borda": ["border", "borders"],
+        "bordas": ["border", "borders"],
+        "sombra": ["shadow", "shadows"],
+        "sombras": ["shadow", "shadows"],
+        "espacamento": ["gaps", "spacing", "padding"],
+        "gaps": ["gaps", "spacing"],
+        "atalho": ["shortcut", "keybind", "hotkey"],
+        "atalhos": ["shortcuts", "keybinds", "hotkeys"],
+        "teclado": ["keyboard"],
+        "tecla": ["key", "keyboard"],
+        "cursor": ["cursor", "pointer"],
+        "ponteiro": ["pointer", "cursor"],
+        "rolagem": ["scroll", "scrolling"],
+        "tela": ["display", "monitor", "screen"],
+        "telas": ["displays", "monitors", "screens"],
+        "resolucao": ["resolution"],
+        "cor": ["color", "palette", "theme"],
+        "cores": ["colors", "palette", "theme"],
+        "tema": ["theme"],
+        "claro": ["light"],
+        "escuro": ["dark"],
+        "aplicativo": ["app", "apps", "application"],
+        "aplicativos": ["apps", "applications"],
+        "navegador": ["browser"],
+        "pasta": ["path", "directory", "folder"],
+        "pastas": ["paths", "directories", "folders"],
+        "reiniciar": ["restart", "reload", "sync"]
+    })
+
+    function getSearchTerms(query) {
+        var qNorm = root.normalizeSearchText(query.trim());
+        if (qNorm === "") return [];
+        var terms = [qNorm];
+        if (root.searchSynonyms[qNorm]) {
+            var syns = root.searchSynonyms[qNorm];
+            for (var s = 0; s < syns.length; s++) {
+                terms.push(syns[s]);
+            }
+        }
+        return terms;
+    }
+
+    readonly property var visibleSettingsTabs: {
+        var q = root.normalizeSearchText(root.settingsSearchQuery.trim());
+        var cat = root.selectedTabCategory;
+        return root.allSettingsTabs.filter(function(tab) {
+            if (q !== "") {
+                var tabName = root.normalizeSearchText(tab.name || "");
+                var tabDesc = root.normalizeSearchText(tab.desc || "");
+                var tabKw = root.normalizeSearchText(tab.keywords || "");
+                var terms = root.getSearchTerms(q);
+                for (var t = 0; t < terms.length; t++) {
+                    var term = terms[t];
+                    if (tabName.indexOf(term) !== -1 || tabDesc.indexOf(term) !== -1 || tabKw.indexOf(term) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (cat !== "all" && tab.category !== cat) {
+                return false;
+            }
+            return true;
+        });
+    }
+    readonly property string configDirPath: Quickshell.env("HOME") + "/.config/asura"
+    readonly property string configFilePath: configDirPath
     property bool wallpaperListExpanded: false
     property int wallpaperGalleryHeight: 320
     property var availableWallpapers: []
-    // Palette Search & Filtering State
     property string selectedCategory: "all"
     property string paletteSearchQuery: ""
     property bool showAddWidgetModal: false
     property string selectedAddZone: "left"
-    // === REACTIVE BASE16 PALETTES COMPUTATION ===
+    property bool showWidgetConfigModal: false
+    property var activeConfigWidget: null
+    property string activeConfigZone: ""
+    property bool showWallpaperPickerModal: false
+
+    function openWidgetConfigModal(widgetData, zoneName) {
+        root.activeConfigWidget = widgetData;
+        root.activeConfigZone = zoneName;
+        root.showWidgetConfigModal = true;
+    }
+
+    function closeWidgetConfigModal() {
+        root.showWidgetConfigModal = false;
+        root.activeConfigWidget = null;
+        root.activeConfigZone = "";
+    }
+
+    function openWallpaperPicker() {
+        root.refreshWallpapers();
+        root.showWallpaperPickerModal = true;
+    }
+
+    function closeWallpaperPicker() {
+        root.showWallpaperPickerModal = false;
+    }
+
+    function openKeyRecorder(item) {
+        keyRecorderModal.targetItem = item;
+        keyRecorderModal.active = true;
+    }
+
+    property real firstMatchedCardY: -1
+    property bool tabHasNoMatches: false
+
+    onSettingsSearchQueryChanged: {
+        var q = root.settingsSearchQuery.trim();
+        if (q !== "") {
+            var isCurrentVisible = false;
+            for (var i = 0; i < root.visibleSettingsTabs.length; i++) {
+                if (root.visibleSettingsTabs[i].id === root.currentTab) {
+                    isCurrentVisible = true;
+                    break;
+                }
+            }
+            if (!isCurrentVisible && root.visibleSettingsTabs.length > 0) {
+                root.currentTab = root.visibleSettingsTabs[0].id;
+            }
+        }
+        flashTabTimer.restart();
+    }
+
+    Timer {
+        id: flashTabTimer
+        interval: 100
+        repeat: false
+        onTriggered: root.applySearchFilter()
+    }
+
+    function flashActiveTabHeaders() {
+        root.applySearchFilter();
+    }
+
+    function itemMatchesSearch(item, terms, depth) {
+        if (!item) return false;
+        var d = depth || 0;
+        if (d > 8) return false;
+
+        var textProps = ["title", "description", "desc", "hint", "text", "label", "name", "caption", "subtitle", "keywords", "customValueText"];
+        for (var p = 0; p < textProps.length; p++) {
+            var propName = textProps[p];
+            if (item[propName] !== undefined && typeof item[propName] === "string" && item[propName].trim() !== "") {
+                var normText = root.normalizeSearchText(item[propName]);
+                for (var t = 0; t < terms.length; t++) {
+                    if (normText.indexOf(terms[t]) !== -1) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (item.model !== undefined && item.model) {
+            if (Array.isArray(item.model)) {
+                for (var m = 0; m < item.model.length; m++) {
+                    var entry = item.model[m];
+                    if (typeof entry === "string") {
+                        var normEntry = root.normalizeSearchText(entry);
+                        for (var t1 = 0; t1 < terms.length; t1++) {
+                            if (normEntry.indexOf(terms[t1]) !== -1) return true;
+                        }
+                    } else if (entry && typeof entry === "object") {
+                        var modelProps = ["label", "name", "title", "desc", "hint", "id"];
+                        for (var mp = 0; mp < modelProps.length; mp++) {
+                            var k = modelProps[mp];
+                            if (entry[k] !== undefined && typeof entry[k] === "string") {
+                                var normVal = root.normalizeSearchText(entry[k]);
+                                for (var t2 = 0; t2 < terms.length; t2++) {
+                                    if (normVal.indexOf(terms[t2]) !== -1) return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (item.children && item.children.length > 0) {
+            for (var c = 0; c < item.children.length; c++) {
+                if (root.itemMatchesSearch(item.children[c], terms, d + 1)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    function restoreTabItems(tabItem) {
+        if (!tabItem) return;
+        root.tabHasNoMatches = false;
+        if (tabItem.searchQuery !== undefined) {
+            tabItem.searchQuery = "";
+        }
+    }
+
+    function applySearchFilter() {
+        var activeLoader = root.getActiveTabLoader();
+        if (!activeLoader) return;
+        if (activeLoader.status === Loader.Loading) {
+            flashTabTimer.restart();
+            return;
+        }
+        if (!activeLoader.item) return;
+
+        var tabItem = activeLoader.item;
+        var rawQ = root.settingsSearchQuery.trim();
+        if (rawQ === "") {
+            root.restoreTabItems(tabItem);
+            return;
+        }
+
+        var terms = root.getSearchTerms(rawQ);
+        if (terms.length === 0) {
+            root.restoreTabItems(tabItem);
+            return;
+        }
+
+        if (tabItem.searchQuery !== undefined) {
+            tabItem.searchQuery = rawQ;
+        }
+
+        var totalMatches = 0;
+        root.firstMatchedCardY = -1;
+
+        var children = tabItem.children || [];
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            if (!child || child.width === undefined) continue;
+
+            var matches = root.itemMatchesSearch(child, terms);
+            if (matches) {
+                totalMatches++;
+                if (typeof child.flash === "function") {
+                    child.flash();
+                }
+                if (typeof child.collapsible !== "undefined" && child.collapsible && child.collapsed) {
+                    child.collapsed = false;
+                }
+                if (root.firstMatchedCardY < 0 && typeof contentCol !== "undefined" && contentCol) {
+                    try {
+                        var mapCoord = child.mapToItem(contentCol, 0, 0);
+                        if (mapCoord) root.firstMatchedCardY = mapCoord.y;
+                    } catch(e) {}
+                }
+            }
+        }
+
+        root.tabHasNoMatches = (totalMatches === 0);
+
+        if (root.firstMatchedCardY >= 0 && typeof contentFlickable !== "undefined" && contentFlickable) {
+            var targetY = Math.max(0, Math.min(contentFlickable.contentHeight - contentFlickable.height, root.firstMatchedCardY - 20));
+            contentFlickable.contentY = targetY;
+        }
+    }
+
+    function getActiveTabLoader() {
+        switch (root.currentTab) {
+            case "general": return generalTabLoader;
+            case "theme": return themeTabLoader;
+            case "bar": return barTabLoader;
+            case "windows": return windowsTabLoader;
+            case "defaultapps": return appsTabLoader;
+            case "monitors": return monitorsTabLoader;
+            case "presets": return presetsTabLoader;
+            case "apptheming": return appthemingTabLoader;
+            case "gtk": return gtkTabLoader;
+            case "launcher": return launcherTabLoader;
+            case "notifications": return notificationsTabLoader;
+            case "keyboard": return keyboardTabLoader;
+            case "shortcuts": return shortcutsTabLoader;
+            case "about": return aboutTabLoader;
+            default: return null;
+        }
+    }
+
+    property int paletteDisplayLimit: 36
+    onPaletteSearchQueryChanged: paletteDisplayLimit = 36
+    onSelectedCategoryChanged: paletteDisplayLimit = 36
+    property string launcherAppSearchQuery: ""
+    property string launcherAppFilter: "all"
+
+    property string templateSearchQuery: ""
+    property string templateCategoryFilter: "all"
+    property var loadedTemplatesData: []
+    readonly property string templatesJsonPath: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("templates/templates.json") : (Quickshell.env("HOME") + "/.config/quickshell/templates/templates.json")
+
+    readonly property var defaultTemplatesCatalog: [
+        { "name": "Asura", "title": "Quickshell (Asura)", "desc": qsTr("Dynamic colors for shell bar, windows, and widgets"), "category": "desktop", "icon": "desktop_windows", "input": "quickshell/qs.json", "output": "~/.config/asura/colors.json" },
+        { "name": "hyprland", "title": "Hyprland", "desc": qsTr("Color scheme and active/inactive borders for compositor"), "category": "desktop", "icon": "grid_view", "input": "hyprland/hyprland-colors.lua", "output": "~/.config/hypr/scheme/current.lua", "post_hook": "hyprctl reload" },
+        { "name": "kitty", "title": "Kitty Terminal", "desc": qsTr("Color theme for Kitty terminal emulator"), "category": "terminal", "icon": "terminal", "input": "kitty/kitty-colors.conf", "output": "~/.config/kitty/themes/Asura.conf", "post_hook": "kitty +kitten themes --reload-in=all Asura" },
+        { "name": "btop", "title": "Btop", "desc": qsTr("Resource and process system monitor"), "category": "terminal", "icon": "monitoring", "input": "btop/btop.theme", "output": "~/.config/btop/themes/Asura.theme", "post_hook": "pkill -USR2 btop || true" },
+        { "name": "micro", "title": "Micro Editor", "desc": qsTr("Color scheme for Micro terminal text editor"), "category": "editor", "icon": "edit_note", "input": "micro/micro.micro", "output": "~/.config/micro/colorschemes/Asura.micro" },
+        { "name": "starship", "title": "Starship Prompt", "desc": qsTr("Color scheme for Starship prompt"), "category": "terminal", "icon": "rocket_launch", "input": "starship/starship-colors.toml", "output": "~/.config/starship.toml" },
+        { "name": "fish", "title": "Fish Shell", "desc": qsTr("Syntax and autocomplete colors for Fish shell"), "category": "terminal", "icon": "terminal", "input": "fish/fish-colors.fish", "output": "~/.config/fish/conf.d/material-colors.fish" },
+        { "name": "fastfetch", "title": "Fastfetch", "desc": qsTr("Visual configuration for system overview"), "category": "terminal", "icon": "info", "input": "fastfetch/fastfetch.jsonc", "output": "~/.config/fastfetch/config.jsonc" },
+        { "name": "flameshot", "title": "Flameshot", "desc": qsTr("Interface colors for screenshot capture tool"), "category": "apps", "icon": "photo_camera", "input": "flameshot/flameshot.ini", "output": "~/.config/flameshot/flameshot.ini" },
+        { "name": "gtk3", "title": "GTK 3 (CSS)", "desc": qsTr("Global CSS styling for GTK 3 applications"), "category": "desktop", "icon": "palette", "input": "gtk/gtk-colors.css", "output": "~/.config/gtk-3.0/gtk.css", "post_hook": "gsettings set org.gnome.desktop.interface gtk-theme \"\"; gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-{{mode}}" },
+        { "name": "gtk4", "title": "GTK 4 / Libadwaita", "desc": qsTr("Global CSS styling for GTK 4 / Libadwaita applications"), "category": "desktop", "icon": "palette", "input": "gtk/gtk-colors.css", "output": "~/.config/gtk-4.0/gtk.css", "post_hook": "{{script_dir}}/gtk-themes-reload.sh" },
+        { "name": "vivaldi", "title": "Vivaldi Browser", "desc": qsTr("UI colors and CSS mods for Vivaldi browser"), "category": "apps", "icon": "language", "input": "vivaldi/vivaldi.css", "output": "~/.config/asura/vivaldi/vivaldi.css" },
+        { "name": "vivaldi-compat", "title": "Vivaldi (Compat)", "desc": qsTr("Compatibility theme copy for Material extensions"), "category": "apps", "icon": "language", "input": "vivaldi/vivaldi.css", "output": "~/.config/matugen/vivaldi/vivaldi.css" },
+        { "name": "vscode-raw", "title": "VS Code (Tokens)", "desc": qsTr("Raw color definitions for Visual Studio Code"), "category": "editor", "icon": "code", "input": "vscode/vscode-colors", "output": "~/.local/state/quickshell/user/generated/vscode-colors" },
+        { "name": "vscode-json", "title": "VS Code (JSON)", "desc": qsTr("JSON theme scheme generated for Visual Studio Code"), "category": "editor", "icon": "code", "input": "vscode/vscode-colors.json", "output": "~/.local/state/quickshell/user/generated/vscode-colors.json" },
+        { "name": "vscode-raw-compat", "title": "VS Code Raw (Cache)", "desc": qsTr("Compatibility tokens for Material extensions"), "category": "editor", "icon": "code", "input": "vscode/vscode-colors", "output": "~/.cache/matugen/vscode-colors" },
+        { "name": "vscode-json-compat", "title": "VS Code JSON (Cache)", "desc": qsTr("Compatibility JSON scheme for Material extensions"), "category": "editor", "icon": "code", "input": "vscode/vscode-colors.json", "output": "~/.cache/matugen/vscode-colors.json" },
+        { "name": "cava", "title": "Cava Audio", "desc": qsTr("Gradient colors for Cava audio visualizer"), "category": "apps", "icon": "graphic_eq", "input": "cava/cava-colors.ini", "output": "~/.config/cava/config", "post_hook": "pkill -USR2 cava || true" },
+        { "name": "nvim", "title": "Neovim", "desc": qsTr("Vimscript/Lua colorscheme for Neovim editor"), "category": "editor", "icon": "code_blocks", "input": "nvim/nvim-colors.vim", "output": "~/.config/nvim/colors/asura.vim" }
+    ]
+
+    readonly property var allTemplatesList: {
+        if (root.loadedTemplatesData && root.loadedTemplatesData.length > 0)
+            return root.loadedTemplatesData;
+        return root.defaultTemplatesCatalog;
+    }
+
+    readonly property var filteredTemplates: {
+        var q = root.templateSearchQuery.trim().toLowerCase();
+        var cat = root.templateCategoryFilter;
+        return root.allTemplatesList.filter(function(tpl) {
+            var disabled = root.isTemplateDisabled(tpl.name);
+            var active = root.isTemplateActive(tpl.name);
+
+            if (cat === "active" && !active) return false;
+            if (cat === "disabled" && !disabled) return false;
+            if (cat !== "all" && cat !== "active" && cat !== "disabled") {
+                if ((tpl.category || "other") !== cat) return false;
+            }
+
+            if (q === "") return true;
+            if (tpl.name && tpl.name.toLowerCase().indexOf(q) !== -1) return true;
+            if (tpl.title && tpl.title.toLowerCase().indexOf(q) !== -1) return true;
+            if (tpl.desc && tpl.desc.toLowerCase().indexOf(q) !== -1) return true;
+            if (tpl.output && tpl.output.toLowerCase().indexOf(q) !== -1) return true;
+            if (tpl.input && tpl.input.toLowerCase().indexOf(q) !== -1) return true;
+            return false;
+        });
+    }
+
+    readonly property int totalTemplatesCount: root.allTemplatesList.length
+    readonly property int activeTemplatesCount: {
+        var count = 0;
+        for (var i = 0; i < root.allTemplatesList.length; i++) {
+            if (root.isTemplateActive(root.allTemplatesList[i].name))
+                count++;
+        }
+        return count;
+    }
+    readonly property int disabledTemplatesCount: totalTemplatesCount - activeTemplatesCount
+
+    property var windowRootItem: windowContentWrapper
+    property var widgetDragData: null
+    property string widgetDragHoverZone: ""
+    property int widgetDragHoverIndex: -1
+    property real widgetDragX: 0
+    property real widgetDragY: 0
+    readonly property bool isDraggingWidget: widgetDragData !== null
+    property var registeredZones: ({})
+
+    function registerZoneCol(name, col) {
+        var r = Object.assign({}, registeredZones);
+        r[name] = col;
+        registeredZones = r;
+    }
+
+    function startWidgetDrag(zone, index, id, name, icon, hasBackground, startX, startY) {
+        widgetDragData = {
+            "zone": zone,
+            "index": index,
+            "id": id,
+            "name": name,
+            "icon": icon,
+            "hasBackground": hasBackground
+        };
+        widgetDragHoverZone = zone;
+        widgetDragHoverIndex = index;
+        widgetDragX = startX;
+        widgetDragY = startY;
+    }
+
+    function updateWidgetDrag(posX, posY, targetZone, targetIndex) {
+        if (!isDraggingWidget) return;
+        widgetDragX = posX;
+        widgetDragY = posY;
+        if (targetZone !== undefined && targetZone !== "") {
+            widgetDragHoverZone = targetZone;
+        }
+        if (targetIndex !== undefined && targetIndex >= 0) {
+            widgetDragHoverIndex = targetIndex;
+        }
+    }
+
+    function finishWidgetDrag() {
+        if (isDraggingWidget && widgetDragHoverZone !== "" && widgetDragHoverIndex >= 0) {
+            BarWidgetService.dropMove(
+                widgetDragData.zone,
+                widgetDragData.index,
+                widgetDragData.id,
+                widgetDragHoverZone,
+                widgetDragHoverIndex
+            );
+        }
+        widgetDragData = null;
+        widgetDragHoverZone = "";
+        widgetDragHoverIndex = -1;
+    }
+
+    function cancelWidgetDrag() {
+        widgetDragData = null;
+        widgetDragHoverZone = "";
+        widgetDragHoverIndex = -1;
+    }
+
     readonly property var displayedPalettes: {
         var base = (Colors.categories && Colors.categories[root.selectedCategory]) ? Colors.categories[root.selectedCategory] : Colors.availablePalettes;
         if (!base || !Array.isArray(base))
             return [];
 
         var query = root.paletteSearchQuery.trim().toLowerCase();
+        var active = [];
         var pinned = [];
         var unpinned = [];
-        // Reference pinnedPalettes to ensure reactivity
+        var curTheme = (Config.cfg && Config.cfg.theme) ? Config.cfg.theme : "";
         var pinnedList = Colors.pinnedPalettes || [];
         for (var i = 0; i < base.length; i++) {
             var item = base[i];
@@ -67,15 +557,18 @@ FloatingWindow {
                 var idMatch = item.id && item.id.toLowerCase().indexOf(query) !== -1;
                 if (!nameMatch && !idMatch)
                     continue;
-
             }
-            if (Colors.isPinned(item.id))
+            if (item.id === curTheme)
+                active.push(item);
+            else if (Colors.isPinned(item.id))
                 pinned.push(item);
             else
                 unpinned.push(item);
         }
-        return pinned.concat(unpinned);
+        return active.concat(pinned).concat(unpinned);
     }
+
+    readonly property var visiblePalettes: displayedPalettes.slice(0, paletteDisplayLimit)
 
     function getTabProgress(idx) {
         if (introTabs >= 1)
@@ -121,18 +614,48 @@ FloatingWindow {
         if (closeSequence.running)
             closeSequence.stop();
 
+        // If isOpen got out of sync (e.g. killed externally via compositor WIN+Q),
+        // reset the state so visibility and intro animations fire cleanly.
+        if (root.isOpen && !root.visible) {
+            root.isOpen = false;
+        }
+
+        root.visible = true;
         root.isOpen = true;
         focusTimer.restart();
         resetAndPlayIntro();
     }
 
     function closeWindow() {
+        if (root.activeMonitorsTab && root.activeMonitorsTab.confirmationActive)
+            root.activeMonitorsTab.revertToPreviousConfig();
+
         if (root.isOpen && !closeSequence.running)
             closeSequence.restart();
 
     }
 
-    // === HELPER METHODS ===
+    function openTab(tabName) {
+        if (tabName && typeof tabName === "string" && tabName.length > 0) {
+            root.currentTab = tabName;
+        }
+        openWindow();
+    }
+
+    function scrollTo(y) {
+        if (typeof contentFlickable !== "undefined" && contentFlickable) {
+            contentFlickable.contentY = y;
+            contentFlickable.scrollTargetY = y;
+        }
+    }
+
+    function setSearchQuery(q) {
+        root.settingsSearchQuery = q || "";
+        if (typeof settingsSearchInput !== "undefined" && settingsSearchInput) {
+            settingsSearchInput.text = q || "";
+        }
+    }
+
     function openNwgLook() {
         nwgLookProc.running = false;
         nwgLookProc.running = true;
@@ -152,10 +675,246 @@ FloatingWindow {
         playSoundProc.running = true;
     }
 
+    property int launcherHiddenRevision: 0
+    property int launcherAppsRevision: 0
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() {
+            root.launcherAppsRevision++;
+        }
+    }
+
+    function normalizeAppId(appId) {
+        if (!appId)
+            return "";
+        return String(appId).trim().replace(/\.desktop$/i, "");
+    }
+
+    function isAppHidden(appId) {
+        var _rev = root.launcherHiddenRevision;
+        if (!appId)
+            return false;
+        var norm = root.normalizeAppId(appId);
+        var list = (Config.cfg && Config.cfg.launcherHiddenApps && Array.isArray(Config.cfg.launcherHiddenApps))
+            ? Config.cfg.launcherHiddenApps
+            : [];
+        for (var i = 0; i < list.length; i++) {
+            if (root.normalizeAppId(list[i]) === norm)
+                return true;
+        }
+        return false;
+    }
+
+    function toggleAppHidden(appId) {
+        if (!appId)
+            return;
+        var norm = root.normalizeAppId(appId);
+        var list = (Config.cfg && Config.cfg.launcherHiddenApps && Array.isArray(Config.cfg.launcherHiddenApps))
+            ? Config.cfg.launcherHiddenApps.slice()
+            : [];
+        var exists = false;
+        var newList = [];
+        for (var i = 0; i < list.length; i++) {
+            if (root.normalizeAppId(list[i]) === norm) {
+                exists = true;
+            } else {
+                newList.push(list[i]);
+            }
+        }
+        if (!exists) {
+            newList.push(norm);
+        }
+        Config.cfg.launcherHiddenApps = newList;
+        Config.save();
+        root.launcherHiddenRevision++;
+    }
+
+    function unhideAllApps() {
+        if (Config.cfg) {
+            Config.cfg.launcherHiddenApps = [];
+            Config.save();
+            root.launcherHiddenRevision++;
+        }
+    }
+
+    function getAppInfo(appId) {
+        if (!appId)
+            return { id: "", name: "", icon: "", genericName: "" };
+
+        var norm = root.normalizeAppId(appId);
+
+        if (typeof DesktopEntries !== "undefined" && DesktopEntries.byId) {
+            var e1 = DesktopEntries.byId(appId);
+            if (e1 && e1.name)
+                return e1;
+            var e1Norm = DesktopEntries.byId(norm);
+            if (e1Norm && e1Norm.name)
+                return e1Norm;
+            var e1Desk = DesktopEntries.byId(norm + ".desktop");
+            if (e1Desk && e1Desk.name)
+                return e1Desk;
+        }
+
+        var all = root.launcherAllApps;
+        if (all && all.length) {
+            for (var i = 0; i < all.length; i++) {
+                if (all[i].id === appId || root.normalizeAppId(all[i].id) === norm)
+                    return all[i];
+            }
+        }
+
+        if (typeof DesktopEntries !== "undefined" && DesktopEntries.heuristicLookup) {
+            var e2 = DesktopEntries.heuristicLookup(appId) || DesktopEntries.heuristicLookup(norm);
+            if (e2 && e2.name)
+                return e2;
+        }
+
+        var niceName = norm.replace(/[-_.]/g, " ");
+        niceName = niceName.charAt(0).toUpperCase() + niceName.slice(1);
+        return {
+            id: norm,
+            name: niceName,
+            icon: norm,
+            genericName: norm
+        };
+    }
+
+    readonly property var launcherAllApps: {
+        var _rev = root.launcherAppsRevision;
+        var raw = (DesktopEntries.applications && DesktopEntries.applications.values) ? DesktopEntries.applications.values : [];
+        var arr = Array.from(raw);
+        return arr.sort(function(a, b) {
+            return (a.name || "").localeCompare(b.name || "");
+        });
+    }
+
+    readonly property var launcherHiddenAppsList: {
+        var _rev = root.launcherHiddenRevision;
+        var _appsRev = root.launcherAppsRevision;
+        var hiddenIds = (Config.cfg && Config.cfg.launcherHiddenApps && Array.isArray(Config.cfg.launcherHiddenApps))
+            ? Config.cfg.launcherHiddenApps
+            : [];
+        var result = [];
+        var seen = {};
+        for (var i = 0; i < hiddenIds.length; i++) {
+            var rawId = hiddenIds[i];
+            var norm = root.normalizeAppId(rawId);
+            if (!norm || seen[norm])
+                continue;
+            seen[norm] = true;
+            var info = root.getAppInfo(rawId);
+            result.push({
+                id: norm,
+                rawId: rawId,
+                name: (info && info.name) ? info.name : norm,
+                icon: (info && info.icon) ? info.icon : "",
+                genericName: (info && info.genericName) ? info.genericName : ""
+            });
+        }
+        result.sort(function(a, b) {
+            return (a.name || "").localeCompare(b.name || "");
+        });
+        return result;
+    }
+
+    readonly property var launcherFilteredApps: {
+        var _rev = root.launcherHiddenRevision;
+        var _appsRev = root.launcherAppsRevision;
+        var q = root.launcherAppSearchQuery.trim().toLowerCase();
+
+        if (root.launcherAppFilter === "hidden") {
+            return root.launcherHiddenAppsList.filter(function(app) {
+                if (q === "")
+                    return true;
+                if ((app.name || "").toLowerCase().indexOf(q) !== -1)
+                    return true;
+                if (app.genericName && app.genericName.toLowerCase().indexOf(q) !== -1)
+                    return true;
+                if (app.id && app.id.toLowerCase().indexOf(q) !== -1)
+                    return true;
+                return false;
+            });
+        }
+
+        return root.launcherAllApps.filter(function(app) {
+            var isHidden = root.isAppHidden(app.id);
+            if (root.launcherAppFilter === "visible" && isHidden)
+                return false;
+            if (q === "")
+                return true;
+            if ((app.name || "").toLowerCase().indexOf(q) !== -1)
+                return true;
+            if (app.genericName && app.genericName.toLowerCase().indexOf(q) !== -1)
+                return true;
+            if (app.id && app.id.toLowerCase().indexOf(q) !== -1)
+                return true;
+            return false;
+        });
+    }
+
+    function isTemplateDisabled(tplName) {
+        var list = (Config.cfg && Config.cfg.disabledTemplates && Array.isArray(Config.cfg.disabledTemplates))
+            ? Config.cfg.disabledTemplates
+            : [];
+        return list.indexOf(tplName) !== -1;
+    }
+
+    function isTemplateActive(tplName) {
+        if (!Config.cfg || Config.cfg.appThemingEnabled === false)
+            return false;
+        return !isTemplateDisabled(tplName);
+    }
+
+    function toggleTemplate(tplName) {
+        var list = (Config.cfg && Config.cfg.disabledTemplates && Array.isArray(Config.cfg.disabledTemplates))
+            ? Config.cfg.disabledTemplates.slice()
+            : [];
+        var idx = list.indexOf(tplName);
+        if (idx !== -1) {
+            list.splice(idx, 1);
+        } else {
+            list.push(tplName);
+        }
+        Config.cfg.disabledTemplates = list;
+        Config.save();
+    }
+
+    function enableAllTemplates() {
+        Config.cfg.disabledTemplates = [];
+        Config.cfg.appThemingEnabled = true;
+        Config.save();
+    }
+
+    function disableAllTemplates() {
+        var all = [];
+        for (var i = 0; i < root.allTemplatesList.length; i++) {
+            all.push(root.allTemplatesList[i].name);
+        }
+        Config.cfg.disabledTemplates = all;
+        Config.save();
+    }
+
+    function resetTemplatesDefault() {
+        Config.cfg.disabledTemplates = [];
+        Config.cfg.appThemingEnabled = true;
+        Config.save();
+    }
+
+    function applyTemplatesNow() {
+        applyTemplatesProc.running = false;
+        applyTemplatesProc.running = true;
+        if (Config.cfg && Config.cfg.theme) {
+            Colors.loadPalette(Config.cfg.theme);
+        }
+    }
+
     function resetDefaults() {
         Config.cfg.theme = "primer-dark-dimmed";
         Config.cfg.colorsAutoGenerate = true;
         Config.cfg.isDarkMode = true;
+        Config.cfg.appThemingEnabled = true;
+        Config.cfg.disabledTemplates = [];
         Config.cfg.barMode = 0;
         Config.cfg.exclusiveMode = true;
         Config.cfg.autoHide = false;
@@ -168,18 +927,75 @@ FloatingWindow {
         Config.cfg.workspacesCount = 3;
         Config.cfg.workspacesShowNumbers = true;
         Config.cfg.workspacesNumberStyle = "roman";
+        Config.cfg.barEdgeSpacing = 10;
+        Config.cfg.barCapsulePadding = 6;
+        Config.cfg.barWidgetSpacing = 4;
+        Config.cfg.barCapsuleWidgetSpacing = 2;
         Config.cfg.recordingsFolder = "~/Videos/Recordings";
         Config.save();
         Colors.loadPalette("primer-dark-dimmed");
     }
 
-    // === OBJECT GEOMETRY & WINDOW SETUP ===
     title: "Shell Settings"
     implicitWidth: 1200
     implicitHeight: 700
     color: Colors.cfg.base00
     visible: isOpen
+
+    onClosed: {
+        root.isOpen = false;
+        root.visible = false;
+        SettingsService.forceClose();
+    }
+
+    onVisibleChanged: {
+        if (!visible && root.isOpen) {
+            root.isOpen = false;
+            SettingsService.forceClose();
+        }
+    }
+
+    Component.onCompleted: {
+        root.isOpen = true;
+        root.visible = true;
+        SettingsService.activeWindow = root;
+        if (SettingsService.currentTab) {
+            root.currentTab = SettingsService.currentTab;
+        }
+        if (SettingsService.pendingKeyRecorder) {
+            SettingsService.pendingKeyRecorder = false;
+            root.openKeyRecorder({
+                id: "new",
+                label: "Custom Hotkey",
+                chord: "SUPER + ALT + K",
+                action: "exec",
+                value: "kitty",
+                isCustom: true
+            });
+        }
+        refreshWallpapers();
+        loadTemplatesProc.running = true;
+        focusTimer.restart();
+        resetAndPlayIntro();
+    }
+
+    Component.onDestruction: {
+        if (SettingsService.activeWindow === root) {
+            SettingsService.activeWindow = null;
+        }
+        SettingsService.forceClose();
+        wpListProc.running = false;
+        reloadShellProc.running = false;
+        nwgLookProc.running = false;
+        importWpProc.running = false;
+        selectFolderProc.running = false;
+        selectRecordingsFolderProc.running = false;
+        loadTemplatesProc.running = false;
+        applyTemplatesProc.running = false;
+    }
+
     onIsOpenChanged: {
+        root.visible = root.isOpen;
         if (isOpen) {
             focusTimer.restart();
             resetAndPlayIntro();
@@ -202,17 +1018,24 @@ FloatingWindow {
         if (typeof tabSlideAnim !== "undefined" && tabSlideAnim)
             tabSlideAnim.restart();
 
-    }
-    Component.onCompleted: {
-        refreshWallpapers();
-    }
-    Component.onDestruction: {
-        wpListProc.running = false;
-        reloadShellProc.running = false;
-        nwgLookProc.running = false;
-        importWpProc.running = false;
-        selectFolderProc.running = false;
-        selectRecordingsFolderProc.running = false;
+        if (typeof navRailFlickable !== "undefined" && navRailFlickable && typeof activeHighlight !== "undefined" && activeHighlight && activeHighlight.activeIndex >= 0) {
+            var targetItemY = activeHighlight.activeIndex * (52 + tabsCol.spacing);
+            if (targetItemY < navRailFlickable.contentY) {
+                navRailFlickable.contentY = targetItemY;
+            } else if (targetItemY + 52 > navRailFlickable.contentY + navRailFlickable.height) {
+                navRailFlickable.contentY = Math.max(0, targetItemY + 52 - navRailFlickable.height);
+            }
+        }
+
+        if (root.settingsSearchQuery.trim() !== "") {
+            flashTabTimer.restart();
+        } else {
+            root.tabHasNoMatches = false;
+            var activeL = root.getActiveTabLoader();
+            if (activeL && activeL.item && activeL.item.searchQuery !== undefined) {
+                activeL.item.searchQuery = "";
+            }
+        }
     }
 
     Timer {
@@ -334,40 +1157,24 @@ FloatingWindow {
         ScriptAction {
             script: {
                 root.isOpen = false;
+                root.visible = false;
+                SettingsService.forceClose();
             }
         }
 
-    }
-
-    // === IPC & SERVICES ===
-    IpcHandler {
-        function toggle() {
-            if (root.isOpen)
-                root.closeWindow();
-            else
-                root.openWindow();
-        }
-
-        function open() {
-            root.openWindow();
-        }
-
-        function close() {
-            root.closeWindow();
-        }
-
-        target: "settings"
     }
 
     WallpaperService {
         id: wallpaperService
     }
 
-    // External process launchers
     Process {
         id: reloadShellProc
 
-        command: ["sh", "-c", "quickshell kill && quickshell -d"]
+        command: ["quickshell", "ipc", "call", "settings", "reload"]
+        onExited: (exitCode) => {
+            root.showToast(qsTr("Quickshell reloaded"), "refresh");
+        }
     }
 
     Process {
@@ -382,7 +1189,48 @@ FloatingWindow {
         command: ["nwg-look"]
     }
 
-    // Wallpaper list scanner process
+    Process {
+        id: loadTemplatesProc
+
+        command: ["cat", root.templatesJsonPath]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!text || text.trim() === "")
+                    return;
+                try {
+                    var data = JSON.parse(text.trim());
+                    if (data && Array.isArray(data.templates))
+                        root.loadedTemplatesData = data.templates;
+                } catch (e) {
+                    console.warn("SettingsWindow: Error parsing templates.json:", e);
+                }
+            }
+        }
+    }
+
+    Process {
+        id: applyTemplatesProc
+
+        property bool feedbackActive: false
+        command: ["/usr/bin/bash", (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("scripts/colors/switchwall.sh") : (Quickshell.env("HOME") + "/.config/quickshell/scripts/colors/switchwall.sh")]
+        running: false
+
+        onExited: (code) => {
+            applyTemplatesProc.feedbackActive = true;
+            applyFeedbackTimer.restart();
+        }
+    }
+
+    Timer {
+        id: applyFeedbackTimer
+
+        interval: 2500
+        repeat: false
+        onTriggered: applyTemplatesProc.feedbackActive = false
+    }
+
     Process {
         id: wpListProc
 
@@ -406,7 +1254,6 @@ FloatingWindow {
 
     }
 
-    // Manual wallpaper file picker process (zenity)
     Process {
         id: importWpProc
 
@@ -421,7 +1268,7 @@ FloatingWindow {
                 Config.cfg.wallpaper = chosenPath;
                 Config.save();
                 if (Config.cfg.colorsAutoGenerate)
-                    Colors.generateMatugenColors(chosenPath, Config.cfg.isDarkMode, Config.cfg.scheme);
+                    Colors.generateDynamicColors(chosenPath, Config.cfg.isDarkMode, Config.cfg.scheme);
 
                 root.refreshWallpapers();
             }
@@ -429,7 +1276,6 @@ FloatingWindow {
 
     }
 
-    // Wallpaper folder picker process (zenity)
     Process {
         id: selectFolderProc
 
@@ -475,7 +1321,6 @@ FloatingWindow {
 
     }
 
-    // === VISUAL CONTAINER & LAYOUT ===
     Item {
         id: windowContentWrapper
 
@@ -484,22 +1329,54 @@ FloatingWindow {
         opacity: root.introBase
         scale: 0.95 + (0.05 * root.introBase)
         Keys.onEscapePressed: (event) => {
+            if (root.activeMonitorsTab && root.activeMonitorsTab.confirmationActive) {
+                root.activeMonitorsTab.revertToPreviousConfig();
+                event.accepted = true;
+                return;
+            }
+            if (root.showWidgetConfigModal) {
+                root.closeWidgetConfigModal();
+                event.accepted = true;
+                return;
+            }
+            if (root.showWallpaperPickerModal) {
+                root.closeWallpaperPicker();
+                event.accepted = true;
+                return;
+            }
+            if (root.activeAppsTab && root.activeAppsTab.activePickerCategory !== null) {
+                root.activeAppsTab.closeAppPicker();
+                event.accepted = true;
+                return;
+            }
             root.closeWindow();
             event.accepted = true;
         }
-        // Keyboard navigation across tabs matching @REF behavior
         Keys.onPressed: (event) => {
+            if (root.activeMonitorsTab && root.activeMonitorsTab.confirmationActive) {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    root.activeMonitorsTab.confirmChanges();
+                    event.accepted = true;
+                    return;
+                }
+            }
             if (event.modifiers === Qt.ControlModifier) {
-                var tabOrder = ["theme", "general", "notifications", "gtk"];
-                var currIdx = tabOrder.indexOf(root.currentTab);
+                if (event.key === Qt.Key_F) {
+                    settingsSearchInput.forceActiveFocus();
+                    settingsSearchInput.selectAll();
+                    event.accepted = true;
+                    return;
+                }
+
+                var currIdx = root.tabOrder.indexOf(root.currentTab);
                 if (currIdx === -1)
                     currIdx = 0;
 
                 if (event.key === Qt.Key_PageDown || event.key === Qt.Key_Tab) {
-                    root.currentTab = tabOrder[(currIdx + 1) % tabOrder.length];
+                    root.currentTab = root.tabOrder[(currIdx + 1) % root.tabOrder.length];
                     event.accepted = true;
                 } else if (event.key === Qt.Key_PageUp || event.key === Qt.Key_Backtab) {
-                    root.currentTab = tabOrder[(currIdx - 1 + tabOrder.length) % tabOrder.length];
+                    root.currentTab = root.tabOrder[(currIdx - 1 + root.tabOrder.length) % root.tabOrder.length];
                     event.accepted = true;
                 }
             }
@@ -514,7 +1391,6 @@ FloatingWindow {
                 anchors.margins: 12
                 spacing: 10
 
-                // Top floating titlebar (inspired by @REF/ii/settings.qml)
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 44
@@ -525,10 +1401,9 @@ FloatingWindow {
                         anchors.rightMargin: 6
                         spacing: 12
 
-                        // Window app badge icon
                         Rectangle {
-                            implicitWidth: 32
-                            implicitHeight: 32
+                            implicitWidth: 36
+                            implicitHeight: 36
                             radius: 10
                             color: Qt.alpha(root.color1, 0.15)
                             border.color: Qt.alpha(root.color1, 0.35)
@@ -536,60 +1411,65 @@ FloatingWindow {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰒓"
-                                font.pixelSize: 16
-                                font.family: "GeistMono Nerd Font Propo Propo"
+                                text: "settings"
+                                font.pixelSize: 22
+                                font.family: "Material Symbols Rounded"
                                 color: root.color1
                             }
-
                         }
 
-                        // Window title & subtitle hierarchy
                         ColumnLayout {
                             spacing: 1
 
                             Text {
                                 text: qsTr("Settings")
-                                font.pixelSize: 14
+                                font.pixelSize: 16
                                 font.bold: true
+                                font.family: "Google Sans"
                                 color: root.textBright
                             }
 
                             Text {
                                 text: qsTr("Asura Shell Configuration")
-                                font.pixelSize: 10
+                                font.pixelSize: 12
+                                font.family: "Google Sans"
                                 color: root.textMuted
                             }
-
                         }
 
                         Item {
                             Layout.fillWidth: true
                         }
 
-                        // Circular window close button
                         Rectangle {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            radius: 16
+                            implicitWidth: 36
+                            implicitHeight: 36
+                            radius: 18
                             color: winCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.22) : (winCloseMa.pressed ? Qt.alpha(root.textColor, 0.12) : Qt.alpha(root.textColor, 0.06))
                             border.color: winCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.4) : Qt.alpha(root.borderCol, 0.3)
                             border.width: 1
-                            scale: winCloseMa.pressed ? 0.92 : 1
+                            scale: winCloseMa.pressed ? 0.90 : (winCloseH.hovered ? 1.08 : 1)
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰅖"
-                                font.pixelSize: 14
+                                text: "close"
+                                font.family: "Material Symbols Rounded"
+                                font.pixelSize: 18
                                 color: winCloseH.hovered ? Colors.cfg.warning : root.textBright
+                                rotation: winCloseH.hovered ? 90 : 0
 
                                 Behavior on color {
                                     ColorAnimation {
                                         duration: 150
                                     }
-
                                 }
 
+                                Behavior on rotation {
+                                    NumberAnimation {
+                                        duration: 240
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                             }
 
                             HoverHandler {
@@ -608,35 +1488,36 @@ FloatingWindow {
                                 ColorAnimation {
                                     duration: 150
                                 }
+                            }
 
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 150
+                                }
                             }
 
                             Behavior on scale {
                                 NumberAnimation {
                                     duration: 150
-                                    easing.type: Easing.OutQuint
+                                    easing.type: Easing.OutCubic
                                 }
-
                             }
-
                         }
 
                     }
 
                 }
 
-                // Main body: Navigation Rail and elevated Content Pane
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 10
 
-                    // === NAVIGATION RAIL (inspired by @REF/ii/settings.qml) ===
                     Rectangle {
                         id: navRailCard
 
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 230
+                        Layout.preferredWidth: 240
                         radius: 18
                         color: root.surface
                         border.color: Qt.alpha(root.borderCol, 0.35)
@@ -649,19 +1530,18 @@ FloatingWindow {
                             anchors.margins: 10
                             spacing: 8
 
-                            // M3 Floating Action Button (FAB) config shortcut from @REF
                             Rectangle {
                                 id: fabConfig
 
                                 property bool justCopied: false
 
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 52
+                                Layout.preferredHeight: 56
                                 radius: 14
                                 color: fabH.hovered ? Qt.alpha(root.color1, 0.18) : Qt.alpha(root.color1, 0.1)
-                                border.color: Qt.alpha(root.color1, fabH.hovered ? 0.4 : 0.22)
+                                border.color: fabConfig.justCopied ? Colors.cfg.success : Qt.alpha(root.color1, fabH.hovered ? 0.4 : 0.22)
                                 border.width: 1
-                                scale: fabMa.pressed ? 0.98 : 1
+                                scale: fabMa.pressed ? 0.96 : (fabH.hovered ? 1.02 : 1.0)
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -670,19 +1550,26 @@ FloatingWindow {
                                     spacing: 10
 
                                     Rectangle {
-                                        implicitWidth: 32
-                                        implicitHeight: 32
+                                        implicitWidth: 36
+                                        implicitHeight: 36
                                         radius: 10
                                         color: root.color1
+                                        scale: fabH.hovered ? 1.08 : 1.0
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 180
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: fabConfig.justCopied ? "󰄬" : "󰏫"
-                                            font.pixelSize: 15
-                                            font.family: "GeistMono Nerd Font Propo Propo"
+                                            text: fabConfig.justCopied ? "check" : "folder"
+                                            font.pixelSize: 20
+                                            font.family: "Material Symbols Rounded"
                                             color: root.foreground
                                         }
-
                                     }
 
                                     ColumnLayout {
@@ -690,22 +1577,22 @@ FloatingWindow {
                                         spacing: 1
 
                                         Text {
-                                            text: fabConfig.justCopied ? qsTr("Path Copied!") : qsTr("Config file")
-                                            font.pixelSize: 12
+                                            text: fabConfig.justCopied ? qsTr("Path Copied!") : qsTr("Config files")
+                                            font.pixelSize: 13
                                             font.bold: true
+                                            font.family: "Google Sans"
                                             color: root.textBright
                                         }
 
                                         Text {
                                             text: fabConfig.justCopied ? qsTr("Path in clipboard") : qsTr("Left: open | Right: copy")
-                                            font.pixelSize: 9
+                                            font.pixelSize: 11
+                                            font.family: "Google Sans"
                                             color: root.textMuted
                                             elide: Text.ElideRight
                                             Layout.fillWidth: true
                                         }
-
                                     }
-
                                 }
 
                                 Timer {
@@ -727,11 +1614,11 @@ FloatingWindow {
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: (mouse) => {
                                         if (mouse.button === Qt.RightButton) {
-                                            Quickshell.clipboardText = root.configFilePath;
+                                            Quickshell.clipboardText = root.configDirPath;
                                             fabConfig.justCopied = true;
                                             revertFabTimer.restart();
                                         } else {
-                                            Qt.openUrlExternally("file://" + root.configFilePath);
+                                            Qt.openUrlExternally("file://" + root.configDirPath);
                                         }
                                     }
                                 }
@@ -743,301 +1630,386 @@ FloatingWindow {
 
                                 }
 
+                                Behavior on border.color {
+                                    ColorAnimation {
+                                        duration: 150
+                                    }
+
+                                }
+
                                 Behavior on scale {
                                     NumberAnimation {
                                         duration: 150
-                                        easing.type: Easing.OutQuint
+                                        easing.type: Easing.OutCubic
                                     }
 
                                 }
 
                             }
 
-                            // Subtle divider line
+                            SettingDivider {}
+
                             Rectangle {
+                                id: searchBoxRect
                                 Layout.fillWidth: true
-                                implicitHeight: 1
-                                color: Qt.alpha(root.borderCol, 0.25)
+                                implicitHeight: 38
+                                radius: 10
+                                color: root.surfaceContainer
+                                border.color: settingsSearchInput.activeFocus ? root.color1 : Qt.alpha(root.borderCol, 0.3)
+                                border.width: 1
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    Text {
+                                        text: "search"
+                                        font.pixelSize: 18
+                                        font.family: "Material Symbols Rounded"
+                                        color: settingsSearchInput.activeFocus ? root.color1 : root.textMuted
+                                    }
+
+                                    TextInput {
+                                        id: settingsSearchInput
+                                        Layout.fillWidth: true
+                                        font.pixelSize: 13
+                                        font.family: "Google Sans"
+                                        color: root.textColor
+                                        clip: true
+                                        selectByMouse: true
+                                        text: root.settingsSearchQuery
+                                        onTextChanged: root.settingsSearchQuery = text
+                                        onAccepted: {
+                                            if (root.visibleSettingsTabs.length > 0) {
+                                                root.currentTab = root.visibleSettingsTabs[0].id;
+                                                flashTabTimer.restart();
+                                            }
+                                        }
+
+                                        Text {
+                                            text: qsTr("Search settings (Ctrl+F)...")
+                                            font.pixelSize: 13
+                                            font.family: "Google Sans"
+                                            color: Qt.alpha(root.textMuted, 0.65)
+                                            visible: parent.text === "" && !parent.activeFocus
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        visible: root.settingsSearchQuery !== ""
+                                        implicitWidth: 18
+                                        implicitHeight: 18
+                                        radius: 9
+                                        color: searchClearMa.containsMouse ? Qt.alpha(root.textColor, 0.22) : Qt.alpha(root.textColor, 0.12)
+                                        scale: searchClearMa.pressed ? 0.88 : (searchClearMa.containsMouse ? 1.1 : 1.0)
+
+                                        Behavior on color {
+                                            ColorAnimation {
+                                                duration: 150
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 150
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "close"
+                                            font.family: "Material Symbols Rounded"
+                                            font.pixelSize: 12
+                                            color: searchClearMa.containsMouse ? root.textBright : root.textMuted
+                                        }
+
+                                        MouseArea {
+                                            id: searchClearMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.settingsSearchQuery = "";
+                                                settingsSearchInput.text = "";
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
-                            // Navigation tabs with animated indicator pill
-                            Item {
+                            RowLayout {
                                 Layout.fillWidth: true
-                                implicitHeight: tabsCol.implicitHeight
+                                spacing: 4
 
-                                // Animated selection pill
-                                Rectangle {
-                                    id: activeHighlight
+                                Repeater {
+                                    model: [
+                                        { "id": "all", "label": qsTr("All") },
+                                        { "id": "appearance", "label": qsTr("Look") },
+                                        { "id": "desktop", "label": qsTr("Desk") },
+                                        { "id": "system", "label": qsTr("Sys") }
+                                    ]
 
-                                    readonly property int activeIndex: {
-                                        if (root.currentTab === "theme")
-                                            return 0;
+                                    Rectangle {
+                                        id: catChip
+                                        required property var modelData
+                                        readonly property bool isSelected: root.selectedTabCategory === modelData.id
+                                        Layout.fillWidth: true
+                                        implicitHeight: 28
+                                        radius: 9
+                                        color: isSelected ? Qt.alpha(root.color1, catChipMa.containsMouse ? 0.30 : 0.22) : (catChipMa.containsMouse ? Qt.alpha(root.textColor, 0.10) : root.surfaceContainer)
+                                        border.color: isSelected ? root.color1 : (catChipMa.containsMouse ? Qt.alpha(root.borderCol, 0.5) : Qt.alpha(root.borderCol, 0.25))
+                                        border.width: 1
+                                        scale: catChipMa.pressed ? 0.94 : (catChipMa.containsMouse ? 1.04 : 1.0)
 
-                                        if (root.currentTab === "general")
-                                            return 1;
-
-                                        if (root.currentTab === "notifications")
-                                            return 2;
-
-                                        if (root.currentTab === "gtk")
-                                            return 3;
-
-                                        return 0;
-                                    }
-
-                                    z: 0
-                                    radius: 14
-                                    color: root.color1
-                                    width: parent.width
-                                    height: 48
-                                    y: activeIndex * (48 + tabsCol.spacing)
-                                    opacity: root.introTabs > 0.05 ? 1 : 0
-
-                                    transform: Translate {
-                                        x: -24 * (1 - root.getTabProgress(activeHighlight.activeIndex))
-                                    }
-
-                                    Behavior on y {
-                                        NumberAnimation {
-                                            duration: 280
-                                            easing.type: Easing.OutCubic
+                                        Behavior on color {
+                                            ColorAnimation {
+                                                duration: 160
+                                            }
                                         }
 
-                                    }
-
-                                    Behavior on opacity {
-                                        NumberAnimation {
-                                            duration: 180
+                                        Behavior on border.color {
+                                            ColorAnimation {
+                                                duration: 160
+                                            }
                                         }
 
-                                    }
-
-                                }
-
-                                ColumnLayout {
-                                    id: tabsCol
-
-                                    anchors.fill: parent
-                                    spacing: 8
-                                    z: 1
-
-                                    Repeater {
-                                        model: [{
-                                            "id": "theme",
-                                            "name": qsTr("Theme & Wall"),
-                                            "desc": qsTr("Colors & wallpapers"),
-                                            "icon": "󰏘"
-                                        }, {
-                                            "id": "general",
-                                            "name": qsTr("Bar & Desktop"),
-                                            "desc": qsTr("Layout & widgets"),
-                                            "icon": "󱔓"
-                                        }, {
-                                            "id": "notifications",
-                                            "name": qsTr("Notifications"),
-                                            "desc": qsTr("Sound & toasts"),
-                                            "icon": "󰂚"
-                                        }, {
-                                            "id": "gtk",
-                                            "name": qsTr("GTK Style"),
-                                            "desc": qsTr("Theme & font config"),
-                                            "icon": "󰉼"
-                                        }]
-
-                                        Rectangle {
-                                            id: tabItemDelegate
-
-                                            required property var modelData
-                                            required property int index
-                                            readonly property bool isActive: root.currentTab === modelData.id
-
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 48
-                                            radius: 14
-                                            opacity: root.getTabOpacity(index)
-                                            color: tabMaItem.containsMouse && !isActive ? Qt.alpha(root.textColor, 0.06) : "transparent"
-                                            scale: tabMaItem.pressed ? 0.98 : 1
-
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                anchors.leftMargin: 12
-                                                anchors.rightMargin: 12
-                                                spacing: 12
-
-                                                Rectangle {
-                                                    implicitWidth: 30
-                                                    implicitHeight: 30
-                                                    radius: 8
-                                                    color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.18) : (tabMaItem.containsMouse ? Qt.alpha(root.color1, 0.15) : Qt.alpha(root.textColor, 0.06))
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: tabItemDelegate.modelData.icon
-                                                        font.pixelSize: 16
-                                                        font.family: "GeistMono Nerd Font Propo Propo"
-                                                        color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.color1 : root.textBright)
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    Behavior on color {
-                                                        ColorAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 1
-
-                                                    Text {
-                                                        text: tabItemDelegate.modelData.name
-                                                        font.pixelSize: 12
-                                                        font.bold: tabItemDelegate.isActive
-                                                        color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.textBright : root.textColor)
-                                                        Layout.fillWidth: true
-                                                        elide: Text.ElideRight
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    Text {
-                                                        text: tabItemDelegate.modelData.desc
-                                                        font.pixelSize: 9
-                                                        color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.75) : root.textMuted
-                                                        Layout.fillWidth: true
-                                                        elide: Text.ElideRight
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 150
+                                                easing.type: Easing.OutCubic
                                             }
+                                        }
 
-                                            MouseArea {
-                                                id: tabMaItem
-
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: root.currentTab = tabItemDelegate.modelData.id
-                                            }
-
-                                            transform: Translate {
-                                                x: -24 * (1 - root.getTabProgress(tabItemDelegate.index))
-                                            }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: catChip.modelData.label
+                                            font.pixelSize: 11
+                                            font.bold: catChip.isSelected
+                                            font.family: "Google Sans"
+                                            color: catChip.isSelected ? root.color1 : (catChipMa.containsMouse ? root.textBright : root.textMuted)
 
                                             Behavior on color {
                                                 ColorAnimation {
-                                                    duration: 150
+                                                    duration: 160
                                                 }
-
                                             }
-
-                                            Behavior on scale {
-                                                NumberAnimation {
-                                                    duration: 200
-                                                    easing.type: Easing.OutQuint
-                                                }
-
-                                            }
-
                                         }
 
+                                        MouseArea {
+                                            id: catChipMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.selectedTabCategory = catChip.modelData.id;
+                                            }
+                                        }
                                     }
-
                                 }
-
                             }
 
-                            Item {
-                                Layout.fillHeight: true
-                            }
-
-                            // Quick reload shell button
-                            Rectangle {
-                                id: reloadShellBtn
-
+                            Flickable {
+                                id: navRailFlickable
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 40
-                                radius: 12
-                                color: relMa.containsMouse ? Qt.alpha(root.color1, 0.12) : Qt.alpha(root.textColor, 0.05)
-                                border.color: relMa.containsMouse ? Qt.alpha(root.color1, 0.3) : Qt.alpha(root.borderCol, 0.25)
-                                border.width: 1
-                                opacity: root.getTabOpacity(4)
-                                scale: relMa.pressed ? 0.98 : 1
+                                Layout.fillHeight: true
+                                contentHeight: tabsColContainer.implicitHeight
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                maximumFlickVelocity: 4000
+                                flickDeceleration: 1500
 
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: 8
+                                property real scrollTargetY: contentY
 
-                                    Text {
-                                        text: "󰑐"
-                                        font.pixelSize: 15
-                                        font.family: "GeistMono Nerd Font Propo Propo"
-                                        color: root.color1
-                                    }
-
-                                    Text {
-                                        text: qsTr("Reload Shell")
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: relMa.containsMouse ? root.textBright : root.textColor
-                                    }
-
-                                }
-
-                                MouseArea {
-                                    id: relMa
-
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: reloadShellProc.running = true
-                                }
-
-                                transform: Translate {
-                                    x: -24 * (1 - root.getTabProgress(4))
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: 150
-                                    }
-
-                                }
-
-                                Behavior on scale {
+                                Behavior on contentY {
                                     NumberAnimation {
-                                        duration: 200
+                                        id: navScrollAnim
+                                        duration: 180
+                                        easing.type: Easing.OutQuad
                                     }
-
                                 }
 
-                            }
+                                WheelHandler {
+                                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                    onWheel: (event) => {
+                                        var delta = event.angleDelta.y;
+                                        if (delta === 0)
+                                            return;
+                                        var step = (delta / 120) * 100;
+                                        var maxY = Math.max(0, navRailFlickable.contentHeight - navRailFlickable.height);
+                                        var base = navScrollAnim.running ? navRailFlickable.scrollTargetY : navRailFlickable.contentY;
+                                        var target = Math.max(0, Math.min(maxY, base - step));
+                                        navRailFlickable.scrollTargetY = target;
+                                        navRailFlickable.contentY = target;
+                                    }
+                                }
 
+                                onContentYChanged: {
+                                    if (!navScrollAnim.running)
+                                        scrollTargetY = contentY;
+                                }
+
+                                Item {
+                                    id: tabsColContainer
+                                    width: navRailFlickable.width
+                                    implicitHeight: tabsCol.implicitHeight
+
+                                    Rectangle {
+                                        id: activeHighlight
+
+                                        readonly property int activeIndex: {
+                                            for (var i = 0; i < root.visibleSettingsTabs.length; ++i) {
+                                                if (root.visibleSettingsTabs[i].id === root.currentTab)
+                                                    return i;
+                                            }
+                                            return -1;
+                                        }
+
+                                        z: 0
+                                        radius: 14
+                                        color: root.color1
+                                        width: parent.width
+                                        height: 52
+                                        y: activeIndex >= 0 ? activeIndex * (52 + tabsCol.spacing) : -100
+                                        visible: activeIndex >= 0
+                                        opacity: (root.introTabs > 0.05 && activeIndex >= 0) ? 1 : 0
+
+                                        transform: Translate {
+                                            x: -24 * (1 - root.getTabProgress(activeHighlight.activeIndex >= 0 ? activeHighlight.activeIndex : 0))
+                                        }
+
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: 280
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: 180
+                                            }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        id: tabsCol
+
+                                        anchors.fill: parent
+                                        spacing: 8
+                                        z: 1
+
+                                        Repeater {
+                                            model: root.visibleSettingsTabs
+
+                                            Rectangle {
+                                                id: tabItemDelegate
+
+                                                required property var modelData
+                                                required property int index
+                                                readonly property bool isActive: root.currentTab === modelData.id
+
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 52
+                                                radius: 14
+                                                opacity: root.getTabOpacity(index)
+                                                color: tabMaItem.containsMouse && !isActive ? Qt.alpha(root.textColor, 0.06) : "transparent"
+                                                scale: tabMaItem.pressed ? 0.96 : (tabMaItem.containsMouse && !isActive ? 1.01 : 1)
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 12
+                                                    anchors.rightMargin: 12
+                                                    spacing: 12
+
+                                                    Rectangle {
+                                                        implicitWidth: 34
+                                                        implicitHeight: 34
+                                                        radius: 10
+                                                        color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.18) : (tabMaItem.containsMouse ? Qt.alpha(root.color1, 0.15) : Qt.alpha(root.textColor, 0.06))
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: tabItemDelegate.modelData.icon
+                                                            font.pixelSize: 20
+                                                            font.family: "Material Symbols Rounded"
+                                                            color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.color1 : root.textBright)
+
+                                                            Behavior on color {
+                                                                ColorAnimation { duration: 150 }
+                                                            }
+                                                        }
+
+                                                        Behavior on color {
+                                                            ColorAnimation { duration: 150 }
+                                                        }
+                                                    }
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 1
+
+                                                        Text {
+                                                            text: tabItemDelegate.modelData.name
+                                                            font.pixelSize: 14
+                                                            font.bold: true
+                                                            font.family: "Google Sans"
+                                                            color: tabItemDelegate.isActive ? root.foreground : (tabMaItem.containsMouse ? root.textBright : root.textColor)
+
+                                                            Behavior on color {
+                                                                ColorAnimation { duration: 150 }
+                                                            }
+                                                        }
+
+                                                        Text {
+                                                            text: tabItemDelegate.modelData.desc
+                                                            font.pixelSize: 11
+                                                            font.family: "Google Sans"
+                                                            color: tabItemDelegate.isActive ? Qt.alpha(root.foreground, 0.75) : root.textMuted
+                                                            Layout.fillWidth: true
+                                                            elide: Text.ElideRight
+
+                                                            Behavior on color {
+                                                                ColorAnimation { duration: 150 }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                MouseArea {
+                                                    id: tabMaItem
+
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        root.currentTab = tabItemDelegate.modelData.id;
+                                                        if (root.settingsSearchQuery.trim() !== "") {
+                                                            flashTabTimer.restart();
+                                                        }
+                                                    }
+                                                }
+
+                                                transform: Translate {
+                                                    x: -24 * (1 - root.getTabProgress(tabItemDelegate.index))
+                                                }
+
+                                                Behavior on color {
+                                                    ColorAnimation { duration: 150 }
+                                                }
+
+                                                Behavior on scale {
+                                                    NumberAnimation { duration: 200; easing.type: Easing.OutQuint }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         transform: Translate {
@@ -1046,7 +2018,6 @@ FloatingWindow {
 
                     }
 
-                    // === ELEVATED CONTENT CONTAINER PANE (inspired by @REF/ii/settings.qml) ===
                     Rectangle {
                         id: contentContainerCard
 
@@ -1068,12 +2039,45 @@ FloatingWindow {
                             contentHeight: contentCol.implicitHeight
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
+                            maximumFlickVelocity: 4000
+                            flickDeceleration: 1500
+
+                            property real scrollTargetY: contentY
+
+                            Behavior on contentY {
+                                NumberAnimation {
+                                    id: scrollAnim
+                                    duration: 180
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            WheelHandler {
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                onWheel: (event) => {
+                                    var delta = event.angleDelta.y;
+                                    if (delta === 0)
+                                        return;
+                                    var step = (delta / 120) * 120;
+                                    var maxY = Math.max(0, contentFlickable.contentHeight - contentFlickable.height);
+                                    var base = scrollAnim.running ? contentFlickable.scrollTargetY : contentFlickable.contentY;
+                                    var target = Math.max(0, Math.min(maxY, base - step));
+                                    contentFlickable.scrollTargetY = target;
+                                    contentFlickable.contentY = target;
+                                }
+                            }
+
+                            onContentYChanged: {
+                                if (!scrollAnim.running)
+                                    scrollTargetY = contentY;
+                                if (root.currentTab === "theme" && contentY + height >= contentHeight - 400) {
+                                    if (root.paletteDisplayLimit < root.displayedPalettes.length) {
+                                        root.paletteDisplayLimit += 36;
+                                    }
+                                }
+                            }
 
                             ColumnLayout {
-                                // === TAB 1: THEME ===
-                                // === TAB 2: GENERAL & BAR ===
-                                // === TAB 3: NOTIFICATIONS & SOUND ===
-                                // === TAB 4: GTK SETTINGS ===
 
                                 id: contentCol
 
@@ -1103,4492 +2107,308 @@ FloatingWindow {
                                     easing.type: Easing.OutCubic
                                 }
 
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 16
-                                    visible: root.currentTab === "theme"
+                                Component { id: generalTabComp; GeneralTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: themeTabComp; ThemeTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: barTabComp; BarTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: windowsTabComp; WindowsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: appsTabComp; AppsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: monitorsTabComp; MonitorsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: presetsTabComp; PresetsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: appthemingTabComp; AppThemingTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: gtkTabComp; GtkTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: launcherTabComp; LauncherTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: notificationsTabComp; NotificationsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: keyboardTabComp; KeyboardTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: shortcutsTabComp; ShortcutsTab { settingsRoot: settingsWindowRoot } }
+                                Component { id: aboutTabComp; AboutTab { settingsRoot: settingsWindowRoot } }
 
-                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
-                                    RowLayout {
-                                        Layout.fillWidth: true
+                                Loader {
+                                    id: generalTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "general" || loadedOnce
+                                    property bool loadedOnce: root.currentTab === "general"
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "general"
+                                    sourceComponent: (active ? generalTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: themeTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "theme" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "theme"
+                                    sourceComponent: (active ? themeTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: barTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "bar" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "bar"
+                                    sourceComponent: (active ? barTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: windowsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "windows" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "windows"
+                                    sourceComponent: (active ? windowsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: appsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "defaultapps" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "defaultapps"
+                                    sourceComponent: (active ? appsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: monitorsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "monitors" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "monitors"
+                                    sourceComponent: (active ? monitorsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: presetsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "presets" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "presets"
+                                    sourceComponent: (active ? presetsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: appthemingTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "apptheming" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "apptheming"
+                                    sourceComponent: (active ? appthemingTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: gtkTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "gtk" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "gtk"
+                                    sourceComponent: (active ? gtkTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: launcherTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "launcher" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "launcher"
+                                    sourceComponent: (active ? launcherTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: notificationsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "notifications" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "notifications"
+                                    sourceComponent: (active ? notificationsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: keyboardTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "keyboard" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "keyboard"
+                                    sourceComponent: (active ? keyboardTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: shortcutsTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "shortcuts" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "shortcuts"
+                                    sourceComponent: (active ? shortcutsTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Loader {
+                                    id: aboutTabLoader
+                                    Layout.fillWidth: true
+                                    active: root.currentTab === "about" || loadedOnce
+                                    property bool loadedOnce: false
+                                    onActiveChanged: if (active) loadedOnce = true
+                                    visible: root.currentTab === "about"
+                                    sourceComponent: (active ? aboutTabComp : null)
+                                    onLoaded: {
+                                        if (visible && root.settingsSearchQuery.trim() !== "") {
+                                            flashTabTimer.restart();
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    id: noResultsPlaceholder
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 260
+                                    visible: root.settingsSearchQuery.trim() !== "" && root.tabHasNoMatches
+
+                                    ColumnLayout {
+                                        anchors.centerIn: parent
                                         spacing: 12
 
                                         Rectangle {
-                                            implicitWidth: 36
-                                            implicitHeight: 36
-                                            radius: 10
-                                            color: Qt.alpha(root.color1, 0.15)
-                                            border.color: Qt.alpha(root.color1, 0.3)
-                                            border.width: 1
+                                            Layout.alignment: Qt.AlignHCenter
+                                            implicitWidth: 56
+                                            implicitHeight: 56
+                                            radius: 28
+                                            color: Qt.alpha(Colors.cfg.base03, 0.4)
 
                                             Text {
                                                 anchors.centerIn: parent
-                                                text: "󰏘"
-                                                font.pixelSize: 18
-                                                font.family: "GeistMono Nerd Font Propo Propo"
-                                                color: root.color1
+                                                text: "search_off"
+                                                font.family: "Material Symbols Rounded"
+                                                font.pixelSize: 28
+                                                color: Colors.cfg.base04
                                             }
-
                                         }
 
-                                        ColumnLayout {
-                                            spacing: 2
-
-                                            Text {
-                                                text: qsTr("Theme & Wallpaper Appearance")
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                color: root.textBright
-                                            }
-
-                                            Text {
-                                                text: qsTr("Personalize color schemes, generate palettes from wallpaper, and manage base16 presets")
-                                                font.pixelSize: 11
-                                                color: root.textMuted
-                                            }
-
+                                        Text {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            text: qsTr("No matching settings found in this tab")
+                                            font.family: "Google Sans"
+                                            font.pixelSize: 15
+                                            font.bold: true
+                                            color: Colors.cfg.base06
                                         }
 
-                                    }
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 12
-
-                                        // Current wallpaper preview thumbnail
-                                        Item {
-                                            Layout.preferredWidth: parent.width * (2 / 3)
-                                            Layout.preferredHeight: Layout.preferredWidth * (9 / 16)
-                                            Layout.alignment: Qt.AlignLeft
-
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                radius: 20
-                                                color: root.surfaceContainer
-                                            }
-
-                                            Image {
-                                                id: wallpaperThumbnail
-
-                                                anchors.fill: parent
-                                                source: Config.cfg.wallpaper ? ("file://" + Config.cfg.wallpaper) : ""
-                                                fillMode: Image.PreserveAspectCrop
-                                                asynchronous: true
-                                                visible: false
-                                            }
-
-                                            OpacityMask {
-                                                anchors.fill: wallpaperThumbnail
-                                                source: wallpaperThumbnail
-
-                                                maskSource: Rectangle {
-                                                    width: wallpaperThumbnail.width
-                                                    height: wallpaperThumbnail.height
-                                                    radius: 20
-                                                }
-
-                                            }
-
+                                        Text {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            text: qsTr("Try searching other suggested tabs on the left or clear the search query")
+                                            font.family: "Google Sans"
+                                            font.pixelSize: 12
+                                            color: Colors.cfg.base04
                                         }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            Layout.fillHeight: true
-                                            Layout.alignment: Qt.AlignTop
-                                            spacing: 8
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 80
-                                                spacing: 8
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    Layout.fillHeight: true
-                                                    radius: 16
-                                                    color: !Config.cfg.isDarkMode ? root.primary : root.surface
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            if (Config.cfg.isDarkMode) {
-                                                                Config.cfg.isDarkMode = false;
-                                                                Config.save();
-                                                                if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
-                                                                    Colors.generateMatugenColors(Config.cfg.wallpaper, false, Config.cfg.scheme);
-
-                                                            }
-                                                        }
-                                                    }
-
-                                                    ColumnLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: ""
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                            color: !Config.cfg.isDarkMode ? root.surfaceContainer : root.textColor
-                                                        }
-
-                                                        Text {
-                                                            text: "Light"
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                            color: !Config.cfg.isDarkMode ? root.surfaceContainer : root.textColor
-                                                            font.pixelSize: 12
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    Layout.fillHeight: true
-                                                    radius: 16
-                                                    color: Config.cfg.isDarkMode ? root.primary : root.surfaceContainer
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            if (!Config.cfg.isDarkMode) {
-                                                                Config.cfg.isDarkMode = true;
-                                                                Config.save();
-                                                                if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
-                                                                    Colors.generateMatugenColors(Config.cfg.wallpaper, true, Config.cfg.scheme);
-
-                                                            }
-                                                        }
-                                                    }
-
-                                                    ColumnLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: ""
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                            color: Config.cfg.isDarkMode ? root.surfaceContainer : root.textColor
-                                                        }
-
-                                                        Text {
-                                                            text: "Dark"
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                            color: Config.cfg.isDarkMode ? root.surfaceContainer : root.textColor
-                                                            font.pixelSize: 12
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Item {
-                                                Layout.fillHeight: true
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // === WALLPAPER SELECTOR (ACCORDION) ===
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        radius: 14
-                                        color: root.surface
-                                        border.color: root.wallpaperListExpanded ? root.color1 : Qt.alpha(root.textColor, 0.08)
-                                        border.width: root.wallpaperListExpanded ? 2 : 1
-                                        clip: true
-                                        implicitHeight: wpSelectorCol.implicitHeight
-
-                                        ColumnLayout {
-                                            id: wpSelectorCol
-
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            anchors.top: parent.top
-                                            spacing: 0
-
-                                            // Header Row (Clickable Accordion Trigger)
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 74
-                                                color: "transparent"
-
-                                                RowLayout {
-                                                    anchors.fill: parent
-                                                    anchors.margins: 12
-                                                    spacing: 12
-
-                                                    ColumnLayout {
-                                                        Layout.fillWidth: true
-                                                        spacing: 2
-
-                                                        RowLayout {
-                                                            spacing: 6
-
-                                                            Text {
-                                                                text: qsTr("Wallpaper Selector")
-                                                                font.pixelSize: 12
-                                                                font.bold: true
-                                                                color: root.textColor
-                                                            }
-
-                                                            Rectangle {
-                                                                implicitWidth: wpCountBadge.implicitWidth + 8
-                                                                implicitHeight: 16
-                                                                radius: 8
-                                                                color: Qt.alpha(root.color1, 0.2)
-
-                                                                Text {
-                                                                    id: wpCountBadge
-
-                                                                    anchors.centerIn: parent
-                                                                    text: root.availableWallpapers.length + " files"
-                                                                    font.pixelSize: 9
-                                                                    color: root.color1
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        Text {
-                                                            text: Config.cfg.wallpaper ? Config.cfg.wallpaper.split('/').pop() : qsTr("No wallpaper selected")
-                                                            font.pixelSize: 10
-                                                            color: root.textMuted
-                                                            elide: Text.ElideMiddle
-                                                        }
-
-                                                    }
-
-                                                    // Import Wallpaper manually button (direct shortcut in header)
-                                                    Rectangle {
-                                                        implicitWidth: 140
-                                                        implicitHeight: 30
-                                                        radius: 8
-                                                        color: wpImportH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                        RowLayout {
-                                                            anchors.centerIn: parent
-                                                            spacing: 6
-
-                                                            Text {
-                                                                text: "󰋩"
-                                                                font.pixelSize: 12
-                                                                color: root.color1
-                                                            }
-
-                                                            Text {
-                                                                text: qsTr("Import Manually")
-                                                                font.pixelSize: 10
-                                                                font.bold: true
-                                                                color: root.textColor
-                                                            }
-
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: wpImportH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: importWpProc.running = true
-                                                        }
-
-                                                    }
-
-                                                    // Expand / Collapse Chevron Indicator
-                                                    Rectangle {
-                                                        implicitWidth: 32
-                                                        implicitHeight: 32
-                                                        radius: 16
-                                                        color: expandChevH.hovered ? root.surfaceContainer : "transparent"
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: root.wallpaperListExpanded ? "󰅃" : "󰅀"
-                                                            font.pixelSize: 16
-                                                            color: root.wallpaperListExpanded ? root.color1 : root.textColor
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: expandChevH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: root.wallpaperListExpanded = !root.wallpaperListExpanded
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Clickable background to expand/collapse
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    z: -1
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.wallpaperListExpanded = !root.wallpaperListExpanded
-                                                }
-
-                                            }
-
-                                            // Expandable Wallpapers Gallery Body
-                                            Item {
-                                                Layout.fillWidth: true
-                                                visible: root.wallpaperListExpanded
-                                                implicitHeight: root.wallpaperListExpanded ? (root.height / 2) : 0
-                                                clip: true
-
-                                                ColumnLayout {
-                                                    anchors.fill: parent
-                                                    anchors.margins: 12
-                                                    spacing: 10
-
-                                                    // Gallery Controls Bar
-                                                    RowLayout {
-                                                        Layout.fillWidth: true
-                                                        spacing: 8
-
-                                                        Text {
-                                                            text: qsTr("Wallpapers List:")
-                                                            font.pixelSize: 11
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        // Refresh list button
-                                                        Rectangle {
-                                                            implicitWidth: 80
-                                                            implicitHeight: 26
-                                                            radius: 6
-                                                            color: wpRefH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                            RowLayout {
-                                                                anchors.centerIn: parent
-                                                                spacing: 4
-
-                                                                Text {
-                                                                    text: "󰑐"
-                                                                    font.pixelSize: 10
-                                                                    color: root.color1
-                                                                }
-
-                                                                Text {
-                                                                    text: qsTr("Refresh")
-                                                                    font.pixelSize: 10
-                                                                    font.bold: true
-                                                                    color: root.textColor
-                                                                }
-
-                                                            }
-
-                                                            HoverHandler {
-                                                                id: wpRefH
-                                                            }
-
-                                                            MouseArea {
-                                                                anchors.fill: parent
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: root.refreshWallpapers()
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    // Scrollable Grid of Wallpapers
-                                                    Flickable {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 460
-                                                        contentHeight: wpGrid.implicitHeight
-                                                        clip: true
-                                                        boundsBehavior: Flickable.StopAtBounds
-
-                                                        GridLayout {
-                                                            id: wpGrid
-
-                                                            property int minItemWidth: 200
-                                                            property int maxColumns: 6
-
-                                                            width: parent.width
-                                                            columns: Math.min(maxColumns, Math.max(1, Math.floor((width + columnSpacing) / (minItemWidth + columnSpacing))))
-                                                            columnSpacing: 10
-                                                            rowSpacing: 10
-
-                                                            Repeater {
-                                                                model: root.availableWallpapers
-
-                                                                delegate: Rectangle {
-                                                                    id: wpItemCard
-
-                                                                    required property var modelData
-
-                                                                    Layout.fillWidth: true
-                                                                    Layout.preferredHeight: width / 1.8
-                                                                    radius: 10
-                                                                    color: root.surfaceContainer
-                                                                    clip: true
-
-                                                                    Image {
-                                                                        anchors.fill: parent
-                                                                        source: "file://" + wpItemCard.modelData.path
-                                                                        fillMode: Image.PreserveAspectCrop
-                                                                        sourceSize: Qt.size(240, 140)
-                                                                        asynchronous: true
-                                                                    }
-
-                                                                    // Selection badge
-                                                                    Rectangle {
-                                                                        visible: Config.cfg.wallpaper === modelData.path
-                                                                        anchors.top: parent.top
-                                                                        anchors.right: parent.right
-                                                                        anchors.margins: 6
-                                                                        implicitWidth: 20
-                                                                        implicitHeight: 20
-                                                                        radius: 10
-                                                                        color: root.color1
-
-                                                                        Text {
-                                                                            anchors.centerIn: parent
-                                                                            text: "✓"
-                                                                            font.pixelSize: 11
-                                                                            font.bold: true
-                                                                            color: root.foreground
-                                                                        }
-
-                                                                    }
-
-                                                                    // Caption overlay
-                                                                    Rectangle {
-                                                                        anchors.left: parent.left
-                                                                        anchors.right: parent.right
-                                                                        anchors.bottom: parent.bottom
-                                                                        height: 24
-                                                                        color: Qt.alpha("#000000", 0.72)
-
-                                                                        Text {
-                                                                            anchors.fill: parent
-                                                                            anchors.leftMargin: 6
-                                                                            anchors.rightMargin: 6
-                                                                            text: wpItemCard.modelData.name
-                                                                            font.pixelSize: 9
-                                                                            font.bold: true
-                                                                            color: "#ffffff"
-                                                                            elide: Text.ElideRight
-                                                                            verticalAlignment: Text.AlignVCenter
-                                                                        }
-
-                                                                    }
-
-                                                                    HoverHandler {
-                                                                        id: wpCardH
-                                                                    }
-
-                                                                    MouseArea {
-                                                                        anchors.fill: parent
-                                                                        cursorShape: Qt.PointingHandCursor
-                                                                        onClicked: {
-                                                                            Config.cfg.wallpaper = wpItemCard.modelData.path;
-                                                                            Config.save();
-                                                                            if (Config.cfg.colorsAutoGenerate)
-                                                                                Colors.generateMatugenColors(wpItemCard.modelData.path, Config.cfg.isDarkMode, Config.cfg.scheme);
-
-                                                                        }
-                                                                    }
-
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Wallpaper Folder Configuration
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 70
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Wallpaper Folder")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: Quickshell.env("HOME") + (Config.cfg.wallpaperFolder || "/Pictures/Wallpapers")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                    elide: Text.ElideMiddle
-                                                }
-
-                                            }
-
-                                            // Browse folder button
-                                            Rectangle {
-                                                implicitWidth: 90
-                                                implicitHeight: 30
-                                                radius: 8
-                                                color: browseFolH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-
-                                                    Text {
-                                                        text: "󰉋"
-                                                        font.pixelSize: 12
-                                                        color: root.color1
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Browse")
-                                                        font.pixelSize: 10
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                }
-
-                                                HoverHandler {
-                                                    id: browseFolH
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: selectFolderProc.running = true
-                                                }
-
-                                            }
-
-                                            // Reset folder button
-                                            Rectangle {
-                                                implicitWidth: 80
-                                                implicitHeight: 30
-                                                radius: 8
-                                                color: resFolH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-
-                                                    Text {
-                                                        text: "󰑐"
-                                                        font.pixelSize: 10
-                                                        color: root.color1
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Default")
-                                                        font.pixelSize: 10
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                }
-
-                                                HoverHandler {
-                                                    id: resFolH
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.wallpaperFolder = "/Pictures/Wallpapers";
-                                                        Config.save();
-                                                        root.refreshWallpapers();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Wallpaper Transition Animation
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        radius: 14
-                                        color: root.surface
-                                        Layout.preferredHeight: animCol.implicitHeight + 28
-
-                                        ColumnLayout {
-                                            id: animCol
-
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 10
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-
-                                                Text {
-                                                    text: qsTr("Wallpaper Transition")
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Text {
-                                                    text: (Config.cfg.wallpaperAnimation || "wave").toUpperCase()
-                                                    font.pixelSize: 10
-                                                    font.bold: true
-                                                    color: root.color1
-                                                }
-
-                                            }
-
-                                            Flow {
-                                                Layout.fillWidth: true
-                                                spacing: 6
-
-                                                Repeater {
-                                                    model: ["fade", "wipe", "wave", "grow", "center", "outer", "left", "right", "top", "bottom", "simple", "random"]
-
-                                                    delegate: Rectangle {
-                                                        id: animPill
-
-                                                        required property string modelData
-                                                        readonly property bool isSelected: (Config.cfg.wallpaperAnimation || "wave") === modelData
-
-                                                        implicitHeight: 28
-                                                        implicitWidth: animLabel.implicitWidth + 20
-                                                        radius: 14
-                                                        color: isSelected ? root.color1 : (animMa.containsMouse ? root.surfaceContainer : root.surface)
-                                                        border.color: isSelected ? root.color1 : Qt.alpha(root.textColor, 0.1)
-                                                        border.width: 1
-                                                        scale: animMa.pressed ? 0.95 : 1
-
-                                                        Text {
-                                                            id: animLabel
-
-                                                            anchors.centerIn: parent
-                                                            text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
-                                                            font.pixelSize: 10
-                                                            font.bold: animPill.isSelected
-                                                            color: animPill.isSelected ? root.foreground : (animMa.containsMouse ? root.textBright : root.textColor)
-
-                                                            Behavior on color {
-                                                                ColorAnimation {
-                                                                    duration: 150
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        MouseArea {
-                                                            id: animMa
-
-                                                            anchors.fill: parent
-                                                            hoverEnabled: true
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.wallpaperAnimation = modelData;
-                                                                Config.save();
-                                                            }
-                                                        }
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Wallpaper Auto-Theme & Theme Mode
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 12
-
-                                        // Wallpaper Auto-Theme
-                                        Rectangle {
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 74
-                                            radius: 14
-                                            color: root.surface
-
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                anchors.margins: 14
-                                                spacing: 12
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Wallpaper Auto-Theme")
-                                                        font.pixelSize: 12
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Dynamic Material colors generated from wallpaper")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    id: autoThemeSwitch
-
-                                                    implicitWidth: 52
-                                                    implicitHeight: 28
-                                                    radius: 14
-                                                    color: Config.cfg.colorsAutoGenerate ? root.color1 : root.surfaceContainer
-                                                    border.width: 1
-                                                    border.color: Config.cfg.colorsAutoGenerate ? Qt.alpha(root.color1, 0.8) : Qt.alpha(root.textColor, 0.12)
-
-                                                    Rectangle {
-                                                        id: autoThemeThumb
-
-                                                        width: 22
-                                                        height: 22
-                                                        radius: 11
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        x: Config.cfg.colorsAutoGenerate ? parent.width - width - 3 : 3
-                                                        color: Config.cfg.colorsAutoGenerate ? root.foreground : root.textColor
-
-                                                        Behavior on x {
-                                                            NumberAnimation {
-                                                                duration: 180
-                                                                easing.type: Easing.OutCubic
-                                                            }
-
-                                                        }
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.colorsAutoGenerate = !Config.cfg.colorsAutoGenerate;
-                                                            Config.save();
-                                                            if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
-                                                                Colors.generateMatugenColors(Config.cfg.wallpaper, Config.cfg.isDarkMode, Config.cfg.scheme || "tonal-spot");
-                                                            else if (!Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
-                                                                Colors.suggestPaletteFromWallpaper(Config.cfg.wallpaper, Config.cfg.isDarkMode);
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                        // Color Scheme
-                                        Rectangle {
-                                            id: schemeCard
-
-                                            Layout.fillWidth: true
-                                            radius: 14
-                                            color: root.surface
-                                            visible: Config.cfg.colorsAutoGenerate
-                                            Layout.preferredHeight: schemeColumn.implicitHeight + 28
-
-                                            ColumnLayout {
-                                                id: schemeColumn
-
-                                                anchors.fill: parent
-                                                anchors.margins: 14
-                                                spacing: 10
-
-                                                RowLayout {
-                                                    Layout.fillWidth: true
-
-                                                    Text {
-                                                        text: qsTr("Color Scheme")
-                                                        font.pixelSize: 12
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                        Layout.fillWidth: true
-                                                    }
-
-                                                    Rectangle {
-                                                        implicitHeight: 22
-                                                        implicitWidth: schemeCurrentText.implicitWidth + 18
-                                                        radius: 11
-                                                        color: Qt.alpha(root.color1, 0.16)
-                                                        border.width: 1
-                                                        border.color: Qt.alpha(root.color1, 0.35)
-
-                                                        Text {
-                                                            id: schemeCurrentText
-
-                                                            anchors.centerIn: parent
-                                                            text: (Config.cfg.scheme || "tonal-spot")
-                                                            font.pixelSize: 9
-                                                            font.bold: true
-                                                            color: root.color1
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                Flow {
-                                                    id: schemeFlow
-
-                                                    Layout.fillWidth: true
-                                                    spacing: 6
-
-                                                    Repeater {
-                                                        model: ["tonal-spot", "neutral", "monochrome", "vibrant", "expressive", "fidelity", "content", "rainbow", "fruit-salad"]
-
-                                                        delegate: Rectangle {
-                                                            id: schemePill
-
-                                                            required property string modelData
-                                                            readonly property bool isSelected: (Config.cfg.scheme || "tonal-spot") === modelData
-
-                                                            implicitHeight: 30
-                                                            implicitWidth: schemeLabel.implicitWidth + 22
-                                                            radius: 15
-                                                            color: isSelected ? root.color1 : (schemeMouse.containsMouse ? root.surfaceContainer : root.surface)
-                                                            border.color: isSelected ? root.color1 : Qt.alpha(root.textColor, 0.1)
-                                                            border.width: isSelected ? 0 : 1
-                                                            scale: schemeMouse.pressed ? 0.95 : 1
-
-                                                            Text {
-                                                                id: schemeLabel
-
-                                                                anchors.centerIn: parent
-                                                                text: {
-                                                                    switch (modelData) {
-                                                                    case "tonal-spot":
-                                                                        return "Tonal Spot";
-                                                                    case "fruit-salad":
-                                                                        return "Fruit Salad";
-                                                                    default:
-                                                                        return modelData.charAt(0).toUpperCase() + modelData.slice(1);
-                                                                    }
-                                                                }
-                                                                font.pixelSize: 10
-                                                                font.bold: schemePill.isSelected
-                                                                color: schemePill.isSelected ? root.foreground : (schemeMouse.containsMouse ? root.textBright : root.textColor)
-
-                                                                Behavior on color {
-                                                                    ColorAnimation {
-                                                                        duration: 150
-                                                                    }
-
-                                                                }
-
-                                                            }
-
-                                                            MouseArea {
-                                                                id: schemeMouse
-
-                                                                anchors.fill: parent
-                                                                hoverEnabled: true
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: {
-                                                                    Config.cfg.scheme = schemePill.modelData;
-                                                                    Config.save();
-                                                                    if (Config.cfg.colorsAutoGenerate && Config.cfg.wallpaper)
-                                                                        Colors.generateMatugenColors(Config.cfg.wallpaper, Config.cfg.isDarkMode, schemePill.modelData);
-
-                                                                }
-                                                            }
-
-                                                            Behavior on color {
-                                                                ColorAnimation {
-                                                                    duration: 150
-                                                                }
-
-                                                            }
-
-                                                            Behavior on scale {
-                                                                NumberAnimation {
-                                                                    duration: 100
-                                                                    easing.type: Easing.OutQuint
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Primary Accent Color (Base16 Palette Variations)
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 92
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 12
-                                            spacing: 8
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-
-                                                Text {
-                                                    text: qsTr("Primary Accent Color:")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Text {
-                                                    text: (Colors.primarySlot || "base0D").toUpperCase()
-                                                    font.pixelSize: 10
-                                                    font.bold: true
-                                                    color: root.color1
-                                                }
-
-                                                // Reset Accent Color Button
-                                                Rectangle {
-                                                    implicitWidth: 80
-                                                    implicitHeight: 22
-                                                    radius: 5
-                                                    color: resAccH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: "󰑐"
-                                                            font.pixelSize: 9
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Default")
-                                                            font.pixelSize: 9
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: resAccH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: Colors.setPrimarySlot("base0D")
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 12
-
-                                                Repeater {
-                                                    model: ["base0D", "base0E", "base0C", "base0B", "base0A", "base09", "base08", "base0F"]
-
-                                                    delegate: Rectangle {
-                                                        id: slotItem
-
-                                                        required property string modelData
-
-                                                        implicitWidth: 32
-                                                        implicitHeight: 32
-                                                        radius: 16
-                                                        color: (Colors.cfg && Colors.cfg[modelData]) ? Colors.cfg[modelData] : "#89b4fa"
-                                                        border.color: (Colors.primarySlot === modelData) ? "#ffffff" : (slotH.hovered ? Qt.alpha("#ffffff", 0.5) : "transparent")
-                                                        border.width: (Colors.primarySlot === modelData) ? 3 : 1
-                                                        scale: slotH.hovered ? 1.15 : 1
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            visible: Colors.primarySlot === slotItem.modelData
-                                                            text: "✓"
-                                                            font.pixelSize: 12
-                                                            font.bold: true
-                                                            color: "#ffffff"
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: slotH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: Colors.setPrimarySlot(slotItem.modelData)
-                                                        }
-
-                                                        Behavior on scale {
-                                                            NumberAnimation {
-                                                                duration: 100
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Palletes Container
-                                    ColumnLayout {
-                                        property bool isExpanded: true
-
-                                        Layout.fillWidth: true
-                                        spacing: 12
 
                                         Rectangle {
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 44
-                                            radius: 12
-                                            color: headerMa.containsMouse ? root.surfaceContainer : "transparent"
-                                            border.color: Qt.alpha(root.textColor, 0.05)
+                                            Layout.alignment: Qt.AlignHCenter
+                                            Layout.topMargin: 8
+                                            implicitWidth: clearSearchBtnText.implicitWidth + 24
+                                            implicitHeight: 32
+                                            radius: 16
+                                            color: clearSearchBtnMa.containsMouse ? Qt.alpha(Colors.cfg.primary, 0.25) : Qt.alpha(Colors.cfg.base03, 0.5)
+                                            border.color: Qt.alpha(Colors.cfg.primary, 0.4)
                                             border.width: 1
 
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                anchors.margins: 12
-                                                spacing: 8
-
-                                                Text {
-                                                    text: "󰏘"
-                                                    font.pixelSize: 16
-                                                    color: root.color1
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Base16 Palettes")
-                                                    font.pixelSize: 13
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Text {
-                                                    text: parent.parent.parent.isExpanded ? "󰅀" : "󰅂"
-                                                    font.pixelSize: 18
-                                                    color: root.textMuted
-                                                }
-
+                                            Text {
+                                                id: clearSearchBtnText
+                                                anchors.centerIn: parent
+                                                text: qsTr("Clear Search")
+                                                font.family: "Google Sans"
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                                color: Colors.cfg.primary
                                             }
 
                                             MouseArea {
-                                                id: headerMa
-
+                                                id: clearSearchBtnMa
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
-                                                onClicked: parent.parent.isExpanded = !parent.parent.isExpanded
+                                                onClicked: {
+                                                    root.settingsSearchQuery = "";
+                                                    if (typeof settingsSearchInput !== "undefined" && settingsSearchInput) {
+                                                        settingsSearchInput.text = "";
+                                                    }
+                                                }
                                             }
-
                                         }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 12
-                                            visible: parent.isExpanded
-
-                                            // Base16 Palettes Search Bar
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 44
-                                                radius: 12
-                                                color: root.surface
-
-                                                RowLayout {
-                                                    anchors.fill: parent
-                                                    anchors.margins: 10
-                                                    spacing: 8
-
-                                                    Text {
-                                                        text: "󰍉"
-                                                        font.pixelSize: 14
-                                                        color: root.color1
-                                                    }
-
-                                                    TextInput {
-                                                        id: searchField
-
-                                                        Layout.fillWidth: true
-                                                        font.pixelSize: 11
-                                                        color: root.textColor
-                                                        clip: true
-                                                        onTextChanged: root.paletteSearchQuery = text
-
-                                                        Text {
-                                                            text: qsTr("Search Base16 palettes")
-                                                            font.pixelSize: 11
-                                                            color: root.textMuted
-                                                            visible: searchField.text === ""
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        implicitWidth: 20
-                                                        implicitHeight: 20
-                                                        radius: 10
-                                                        color: clearSearchH.hovered ? root.surfaceContainer : "transparent"
-                                                        visible: root.paletteSearchQuery !== ""
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: "󰅖"
-                                                            font.pixelSize: 11
-                                                            color: root.textMuted
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: clearSearchH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                searchField.text = "";
-                                                                root.paletteSearchQuery = "";
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Category Filter Tabs
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 6
-
-                                                Repeater {
-                                                    model: Colors.availableCategories
-
-                                                    delegate: Rectangle {
-                                                        id: catPill
-
-                                                        required property string modelData
-                                                        readonly property bool isSelected: root.selectedCategory === modelData
-
-                                                        implicitHeight: 28
-                                                        implicitWidth: catLabel.implicitWidth + 20
-                                                        radius: 14
-                                                        color: isSelected ? root.color1 : (catMa.containsMouse ? root.surfaceContainer : root.surface)
-                                                        border.color: isSelected ? root.color1 : Qt.alpha(root.textColor, 0.1)
-                                                        border.width: 1
-                                                        scale: catMa.pressed ? 0.95 : 1
-
-                                                        Text {
-                                                            id: catLabel
-
-                                                            anchors.centerIn: parent
-                                                            text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
-                                                            font.pixelSize: 10
-                                                            font.bold: catPill.isSelected
-                                                            color: catPill.isSelected ? root.foreground : (catMa.containsMouse ? root.textBright : root.textColor)
-
-                                                            Behavior on color {
-                                                                ColorAnimation {
-                                                                    duration: 150
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        MouseArea {
-                                                            id: catMa
-
-                                                            anchors.fill: parent
-                                                            hoverEnabled: true
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: root.selectedCategory = modelData
-                                                        }
-
-                                                        Behavior on color {
-                                                            ColorAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                        Behavior on scale {
-                                                            NumberAnimation {
-                                                                duration: 150
-                                                                easing.type: Easing.OutQuint
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Empty State Feedback
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 80
-                                                radius: 12
-                                                color: root.surface
-                                                visible: root.displayedPalettes.length === 0
-
-                                                ColumnLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-
-                                                    Text {
-                                                        text: "󰍉"
-                                                        font.pixelSize: 18
-                                                        color: root.textMuted
-                                                        Layout.alignment: Qt.AlignHCenter
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("No palettes found matching your search.")
-                                                        font.pixelSize: 11
-                                                        color: root.textMuted
-                                                        Layout.alignment: Qt.AlignHCenter
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Palettes Grid
-                                            GridView {
-                                                id: paletteGrid
-
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: contentHeight
-                                                interactive: false
-                                                flickableDirection: Flickable.VerticalFlick
-                                                clip: true
-                                                cellWidth: Math.floor(width / 3)
-                                                cellHeight: 74
-                                                visible: root.displayedPalettes.length > 0
-                                                model: {
-                                                    var currentTheme = Config.cfg.theme;
-                                                    var arr = [];
-                                                    for (var i = 0; i < root.displayedPalettes.length; i++) {
-                                                        arr.push(root.displayedPalettes[i]);
-                                                    }
-                                                    arr.sort(function(a, b) {
-                                                        var aActive = (a.id === currentTheme);
-                                                        var bActive = (b.id === currentTheme);
-                                                        if (aActive && !bActive)
-                                                            return -1;
-
-                                                        if (!aActive && bActive)
-                                                            return 1;
-
-                                                        var aPinned = Colors.isPinned(a.id);
-                                                        var bPinned = Colors.isPinned(b.id);
-                                                        if (aPinned && !bPinned)
-                                                            return -1;
-
-                                                        if (!aPinned && bPinned)
-                                                            return 1;
-
-                                                        return 0;
-                                                    });
-                                                    return arr;
-                                                }
-
-                                                ScrollBar.vertical: ScrollBar {
-                                                    active: true
-                                                    policy: ScrollBar.AsNeeded
-                                                }
-
-                                                delegate: Rectangle {
-                                                    id: palCard
-
-                                                    required property var modelData
-                                                    readonly property bool isCardPinned: Colors.isPinned(modelData.id)
-
-                                                    width: paletteGrid.cellWidth - 10
-                                                    height: 64
-                                                    radius: 12
-                                                    color: Config.cfg.theme === modelData.id ? Qt.alpha(modelData.color, 0.18) : root.surface
-                                                    border.color: Config.cfg.theme === modelData.id ? modelData.color : (palCardH.hovered ? Qt.alpha(modelData.color, 0.5) : Qt.alpha(root.textColor, 0.08))
-                                                    border.width: Config.cfg.theme === modelData.id ? 2 : 1
-
-                                                    RowLayout {
-                                                        anchors.fill: parent
-                                                        anchors.margins: 10
-                                                        spacing: 8
-
-                                                        Rectangle {
-                                                            implicitWidth: 32
-                                                            implicitHeight: 32
-                                                            radius: 16
-                                                            color: modelData.bg || "#1e1e2e"
-                                                            border.color: modelData.color || "#89b4fa"
-                                                            border.width: 2
-
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: "󰏘"
-                                                                font.pixelSize: 14
-                                                                color: modelData.color || "#89b4fa"
-                                                            }
-
-                                                        }
-
-                                                        ColumnLayout {
-                                                            Layout.fillWidth: true
-                                                            spacing: 2
-
-                                                            Text {
-                                                                Layout.fillWidth: true
-                                                                text: modelData.name || modelData.id
-                                                                font.pixelSize: 11
-                                                                font.bold: true
-                                                                color: root.textColor
-                                                                elide: Text.ElideRight
-                                                            }
-
-                                                            RowLayout {
-                                                                spacing: 4
-
-                                                                Rectangle {
-                                                                    implicitWidth: badgeText.implicitWidth + 8
-                                                                    implicitHeight: 14
-                                                                    radius: 7
-                                                                    color: modelData.type === "dark" ? Qt.alpha("#000000", 0.4) : Qt.alpha("#ffffff", 0.3)
-
-                                                                    Text {
-                                                                        id: badgeText
-
-                                                                        anchors.centerIn: parent
-                                                                        text: modelData.type === "dark" ? qsTr("Dark") : qsTr("Light")
-                                                                        font.pixelSize: 8
-                                                                        font.bold: true
-                                                                        color: root.textMuted
-                                                                    }
-
-                                                                }
-
-                                                                Text {
-                                                                    text: "• Base16"
-                                                                    font.pixelSize: 9
-                                                                    color: root.textMuted
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        // Pin Button
-                                                        Rectangle {
-                                                            implicitWidth: 26
-                                                            implicitHeight: 26
-                                                            radius: 13
-                                                            color: palCard.isCardPinned ? Qt.alpha(root.color1, 0.2) : (pinH.hovered ? root.surfaceContainer : "transparent")
-                                                            border.color: palCard.isCardPinned ? Qt.alpha(root.color1, 0.5) : "transparent"
-                                                            border.width: 1
-
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: palCard.isCardPinned ? "󰐃" : "󰤱"
-                                                                font.pixelSize: 12
-                                                                color: palCard.isCardPinned ? root.color1 : (pinH.hovered ? root.textColor : root.textMuted)
-                                                            }
-
-                                                            HoverHandler {
-                                                                id: pinH
-                                                            }
-
-                                                            MouseArea {
-                                                                anchors.fill: parent
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: Colors.togglePin(palCard.modelData.id)
-                                                            }
-
-                                                        }
-
-                                                        // Active Checkmark
-                                                        Text {
-                                                            visible: Config.cfg.theme === modelData.id
-                                                            text: "✓"
-                                                            font.pixelSize: 14
-                                                            font.bold: true
-                                                            color: modelData.color || root.color1
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: palCardH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        z: -1
-                                                        onClicked: {
-                                                            Config.cfg.theme = palCard.modelData.id;
-                                                            Config.save();
-                                                            Colors.loadPalette(palCard.modelData.id);
-                                                            if (!Config.cfg.colorsAutoGenerate)
-                                                                Colors.updateWallpaperMapping(Config.cfg.wallpaper, palCard.modelData.id, Config.cfg.isDarkMode);
-
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
                                     }
-
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 16
-                                    visible: root.currentTab === "general"
-
-                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 12
-
-                                        Rectangle {
-                                            implicitWidth: 36
-                                            implicitHeight: 36
-                                            radius: 10
-                                            color: Qt.alpha(root.color1, 0.15)
-                                            border.color: Qt.alpha(root.color1, 0.3)
-                                            border.width: 1
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "󱔓"
-                                                font.pixelSize: 18
-                                                font.family: "GeistMono Nerd Font Propo Propo"
-                                                color: root.color1
-                                            }
-
-                                        }
-
-                                        ColumnLayout {
-                                            spacing: 2
-
-                                            Text {
-                                                text: qsTr("General & Bar Configuration")
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                color: root.textBright
-                                            }
-
-                                            Text {
-                                                text: qsTr("Configure bar modes, display geometry, margins, and active panel widgets")
-                                                font.pixelSize: 11
-                                                color: root.textMuted
-                                            }
-
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 110
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 10
-
-                                            Text {
-                                                text: qsTr("Bar Mode:")
-                                                font.pixelSize: 11
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 10
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredHeight: 48
-                                                    radius: 10
-                                                    color: Config.cfg.barMode === 0 ? root.color1 : root.surfaceContainer
-
-                                                    ColumnLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 1
-
-                                                        Text {
-                                                            text: qsTr("Floating")
-                                                            font.pixelSize: 11
-                                                            font.bold: true
-                                                            color: Config.cfg.barMode === 0 ? root.foreground : root.textColor
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Bar with custom width")
-                                                            font.pixelSize: 9
-                                                            color: Config.cfg.barMode === 0 ? root.foreground : root.textMuted
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.barMode = 0;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredHeight: 48
-                                                    radius: 10
-                                                    color: Config.cfg.barMode === 1 ? root.color1 : root.surfaceContainer
-
-                                                    ColumnLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 1
-
-                                                        Text {
-                                                            text: qsTr("Full Screen (Default)")
-                                                            font.pixelSize: 11
-                                                            font.bold: true
-                                                            color: Config.cfg.barMode === 1 ? root.foreground : root.textColor
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Continuous Bar 100%")
-                                                            font.pixelSize: 9
-                                                            color: Config.cfg.barMode === 1 ? root.foreground : root.textMuted
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.barMode = 1;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredHeight: 48
-                                                    radius: 10
-                                                    color: Config.cfg.barMode === 2 ? root.color1 : root.surfaceContainer
-
-                                                    ColumnLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 1
-
-                                                        Text {
-                                                            text: qsTr("Capsule")
-                                                            font.pixelSize: 11
-                                                            font.bold: true
-                                                            color: Config.cfg.barMode === 2 ? root.foreground : root.textColor
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("3 Separate Capsules")
-                                                            font.pixelSize: 9
-                                                            color: Config.cfg.barMode === 2 ? root.foreground : root.textMuted
-                                                            Layout.alignment: Qt.AlignHCenter
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.barMode = 2;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Exclusive Mode
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 68
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Exclusive Mode")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Reserves a 30px margin at the top of the screen so windows do not overlap the bar")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 48
-                                                implicitHeight: 26
-                                                radius: 13
-                                                color: Config.cfg.exclusiveMode ? root.color1 : root.surfaceContainer
-
-                                                Rectangle {
-                                                    width: 20
-                                                    height: 20
-                                                    radius: 10
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    x: Config.cfg.exclusiveMode ? parent.width - width - 3 : 3
-                                                    color: Config.cfg.exclusiveMode ? root.foreground : root.textColor
-
-                                                    Behavior on x {
-                                                        NumberAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.exclusiveMode = !Config.cfg.exclusiveMode;
-                                                        Config.save();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Auto-Hide Mode
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 68
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Auto-Hide Bar")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Automatically hides the bar and reveals it when moving cursor to the top edge")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 48
-                                                implicitHeight: 26
-                                                radius: 13
-                                                color: Config.cfg.autoHide ? root.color1 : root.surfaceContainer
-
-                                                Rectangle {
-                                                    width: 20
-                                                    height: 20
-                                                    radius: 10
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    x: Config.cfg.autoHide ? parent.width - width - 3 : 3
-                                                    color: Config.cfg.autoHide ? root.foreground : root.textColor
-
-                                                    Behavior on x {
-                                                        NumberAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.autoHide = !Config.cfg.autoHide;
-                                                        Config.save();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Bar Width (Floating bar mode) (default 85%)
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 82
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 8
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                Text {
-                                                    text: qsTr("Bar Width (Floating bar mode):")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Text {
-                                                    text: Math.round(Config.cfg.widthS * 100) + "%"
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.color1
-                                                }
-
-                                                // Quick Reset to Default (85%) Button
-                                                Rectangle {
-                                                    implicitWidth: 92
-                                                    implicitHeight: 24
-                                                    radius: 6
-                                                    color: resetWidthH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: "󰑐"
-                                                            font.pixelSize: 10
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Reset (85%)")
-                                                            font.pixelSize: 9
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: resetWidthH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.widthS = 0.85;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Interactive Width Slider
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 16
-                                                radius: 8
-                                                color: root.surfaceContainer
-                                                clip: true
-
-                                                Rectangle {
-                                                    anchors.left: parent.left
-                                                    anchors.top: parent.top
-                                                    anchors.bottom: parent.bottom
-                                                    width: parent.width * Math.max(0.4, Math.min(1, Config.cfg.widthS))
-                                                    radius: 8
-                                                    color: root.color1
-                                                }
-
-                                                MouseArea {
-                                                    function updateWidth(mx) {
-                                                        var v = Math.max(0.4, Math.min(1, mx / width));
-                                                        Config.cfg.widthS = Math.round(v * 100) / 100;
-                                                        Config.save();
-                                                    }
-
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: (mouse) => {
-                                                        return updateWidth(mouse.x);
-                                                    }
-                                                    onPositionChanged: (mouse) => {
-                                                        if (pressed)
-                                                            updateWidth(mouse.x);
-
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Bar Background Opacity
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 82
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 8
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                Text {
-                                                    text: qsTr("Bar Background Opacity:")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Text {
-                                                    text: Math.round(Config.cfg.opacity * 100) + "%"
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.color1
-                                                }
-
-                                                // Quick Reset to Default (100%) Button
-                                                Rectangle {
-                                                    implicitWidth: 92
-                                                    implicitHeight: 24
-                                                    radius: 6
-                                                    color: resetOpH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: "󰑐"
-                                                            font.pixelSize: 10
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Reset (100%)")
-                                                            font.pixelSize: 9
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: resetOpH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.opacity = 1;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Interactive Opacity Slider
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 16
-                                                radius: 8
-                                                color: root.surfaceContainer
-                                                clip: true
-
-                                                Rectangle {
-                                                    anchors.left: parent.left
-                                                    anchors.top: parent.top
-                                                    anchors.bottom: parent.bottom
-                                                    width: parent.width * Math.max(0, Math.min(1, Config.cfg.opacity))
-                                                    radius: 8
-                                                    color: root.color1
-                                                }
-
-                                                MouseArea {
-                                                    function updateOp(mx) {
-                                                        var v = Math.max(0, Math.min(1, mx / width));
-                                                        Config.cfg.opacity = Math.round(v * 100) / 100;
-                                                        Config.save();
-                                                    }
-
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: (mouse) => {
-                                                        return updateOp(mouse.x);
-                                                    }
-                                                    onPositionChanged: (mouse) => {
-                                                        if (pressed)
-                                                            updateOp(mouse.x);
-
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Bar Background Audio Visualizer Settings Card (inspired by @REF/iNiR)
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        radius: 14
-                                        color: root.surface
-                                        border.color: root.borderCol
-                                        border.width: 1
-                                        implicitHeight: visualizerConfigCol.implicitHeight + 28
-
-                                        ColumnLayout {
-                                            id: visualizerConfigCol
-
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            // Header with master enable toggle
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 12
-
-                                                Rectangle {
-                                                    implicitWidth: 32
-                                                    implicitHeight: 32
-                                                    radius: 8
-                                                    color: Qt.alpha(root.color1, 0.15)
-                                                    border.color: Qt.alpha(root.color1, 0.3)
-                                                    border.width: 1
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: "󰎈"
-                                                        font.pixelSize: 16
-                                                        font.family: "GeistMono Nerd Font Propo Propo"
-                                                        color: root.color1
-                                                    }
-
-                                                }
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Bar Audio Visualizer (in test)")
-                                                        font.pixelSize: 12
-                                                        font.bold: true
-                                                        color: root.textBright
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Paints real-time audio spectrum across the bar background when music plays")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                // Switch toggle pill
-                                                Rectangle {
-                                                    implicitWidth: 46
-                                                    implicitHeight: 24
-                                                    radius: 12
-                                                    color: Config.cfg.barVisualizerEnabled ? root.color1 : root.surfaceContainer
-                                                    scale: vizToggleMa.pressed ? 0.94 : 1
-
-                                                    Rectangle {
-                                                        width: 18
-                                                        height: 18
-                                                        radius: 9
-                                                        x: Config.cfg.barVisualizerEnabled ? parent.width - width - 3 : 3
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        color: Config.cfg.barVisualizerEnabled ? root.foreground : root.textBright
-
-                                                        Behavior on x {
-                                                            NumberAnimation {
-                                                                duration: 180
-                                                                easing.type: Easing.OutCubic
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        id: vizToggleMa
-
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.barVisualizerEnabled = !Config.cfg.barVisualizerEnabled;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                    Behavior on color {
-                                                        ColorAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                    Behavior on scale {
-                                                        NumberAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Expandable options panel when enabled
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 10
-                                                visible: Config.cfg.barVisualizerEnabled
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    implicitHeight: 1
-                                                    color: Qt.alpha(root.borderCol, 0.3)
-                                                }
-
-                                                // Style selection: Bars vs Wave (Smooth)
-                                                Text {
-                                                    text: qsTr("Visualizer Style:")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                RowLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 10
-
-                                                    // Option: Bars
-                                                    Rectangle {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 46
-                                                        radius: 10
-                                                        color: Config.cfg.barVisualizerType === "bars" ? root.color1 : root.surfaceContainer
-                                                        scale: styleBarsMa.pressed ? 0.98 : 1
-
-                                                        RowLayout {
-                                                            anchors.centerIn: parent
-                                                            spacing: 8
-
-                                                            Text {
-                                                                text: "bar_chart"
-                                                                font.family: "Material Symbols Rounded"
-                                                                font.pixelSize: 14
-                                                                color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.color1
-                                                            }
-
-                                                            ColumnLayout {
-                                                                spacing: 1
-
-                                                                Text {
-                                                                    text: qsTr("Bars")
-                                                                    font.pixelSize: 11
-                                                                    font.bold: true
-                                                                    color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.textColor
-                                                                }
-
-                                                                Text {
-                                                                    text: qsTr("Dynamic equalizer bands")
-                                                                    font.pixelSize: 9
-                                                                    color: Config.cfg.barVisualizerType === "bars" ? root.foreground : root.textMuted
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        MouseArea {
-                                                            id: styleBarsMa
-
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.barVisualizerType = "bars";
-                                                                Config.save();
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                    // Option: Wave (Smooth)
-                                                    Rectangle {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 46
-                                                        radius: 10
-                                                        color: Config.cfg.barVisualizerType === "wave" ? root.color1 : root.surfaceContainer
-                                                        scale: styleWaveMa.pressed ? 0.98 : 1
-
-                                                        RowLayout {
-                                                            anchors.centerIn: parent
-                                                            spacing: 8
-
-                                                            Text {
-                                                                text: "airwave"
-                                                                font.family: "Material Symbols Rounded"
-                                                                font.pixelSize: 14
-                                                                color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.color1
-                                                            }
-
-                                                            ColumnLayout {
-                                                                spacing: 1
-
-                                                                Text {
-                                                                    text: qsTr("Wave")
-                                                                    font.pixelSize: 11
-                                                                    font.bold: true
-                                                                    color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.textColor
-                                                                }
-
-                                                                Text {
-                                                                    text: qsTr("Fluid continuous spline wave")
-                                                                    font.pixelSize: 9
-                                                                    color: Config.cfg.barVisualizerType === "wave" ? root.foreground : root.textMuted
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                        MouseArea {
-                                                            id: styleWaveMa
-
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.barVisualizerType = "wave";
-                                                                Config.save();
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Spectrum Flow Origin
-                                                Text {
-                                                    text: qsTr("Spectrum Origin & Alignment:")
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                RowLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 8
-
-                                                    Repeater {
-                                                        model: [{
-                                                            "id": "bottom",
-                                                            "name": qsTr("Bottom")
-                                                        }, {
-                                                            "id": "center",
-                                                            "name": qsTr("Center")
-                                                        }, {
-                                                            "id": "mirror",
-                                                            "name": qsTr("Mirrored")
-                                                        }, {
-                                                            "id": "top",
-                                                            "name": qsTr("Top")
-                                                        }]
-
-                                                        Rectangle {
-                                                            required property var modelData
-
-                                                            Layout.fillWidth: true
-                                                            Layout.preferredHeight: 32
-                                                            radius: 8
-                                                            color: Config.cfg.barVisualizerBarsOrigin === modelData.id ? root.color1 : root.surfaceContainer
-                                                            scale: origMa.pressed ? 0.97 : 1
-
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: modelData.name
-                                                                font.pixelSize: 10
-                                                                font.bold: Config.cfg.barVisualizerBarsOrigin === modelData.id
-                                                                color: Config.cfg.barVisualizerBarsOrigin === modelData.id ? root.foreground : root.textColor
-                                                            }
-
-                                                            MouseArea {
-                                                                id: origMa
-
-                                                                anchors.fill: parent
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: {
-                                                                    Config.cfg.barVisualizerBarsOrigin = modelData.id;
-                                                                    Config.save();
-                                                                }
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Sliders: Height, Opacity, Density
-                                                // Slider 1: Visualizer Height
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 4
-
-                                                    RowLayout {
-                                                        Layout.fillWidth: true
-
-                                                        Text {
-                                                            text: qsTr("Visualizer Height:")
-                                                            font.pixelSize: 10
-                                                            color: root.textColor
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        Text {
-                                                            text: Math.round(Config.cfg.barVisualizerHeight * 100) + "%"
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.color1
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 14
-                                                        radius: 7
-                                                        color: root.surfaceContainer
-                                                        clip: true
-
-                                                        Rectangle {
-                                                            anchors.left: parent.left
-                                                            anchors.top: parent.top
-                                                            anchors.bottom: parent.bottom
-                                                            width: parent.width * Math.max(0.1, Math.min(1, Config.cfg.barVisualizerHeight))
-                                                            radius: 7
-                                                            color: root.color1
-                                                        }
-
-                                                        MouseArea {
-                                                            function updateHeight(mx) {
-                                                                var val = Math.max(0.1, Math.min(1, mx / width));
-                                                                Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
-                                                                Config.save();
-                                                            }
-
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: (mouse) => {
-                                                                return updateHeight(mouse.x);
-                                                            }
-                                                            onPositionChanged: (mouse) => {
-                                                                if (pressed)
-                                                                    updateHeight(mouse.x);
-
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Slider 2: Visualizer Opacity
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 4
-
-                                                    RowLayout {
-                                                        Layout.fillWidth: true
-
-                                                        Text {
-                                                            text: qsTr("Visualizer Opacity:")
-                                                            font.pixelSize: 10
-                                                            color: root.textColor
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        Text {
-                                                            text: Math.round(Config.cfg.barVisualizerOpacity * 100) + "%"
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.color1
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 14
-                                                        radius: 7
-                                                        color: root.surfaceContainer
-                                                        clip: true
-
-                                                        Rectangle {
-                                                            anchors.left: parent.left
-                                                            anchors.top: parent.top
-                                                            anchors.bottom: parent.bottom
-                                                            width: parent.width * Math.max(0.05, Math.min(1, Config.cfg.barVisualizerOpacity))
-                                                            radius: 7
-                                                            color: root.color1
-                                                        }
-
-                                                        MouseArea {
-                                                            function updateOp(mx) {
-                                                                var val = Math.max(0.05, Math.min(1, mx / width));
-                                                                Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
-                                                                Config.save();
-                                                            }
-
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: (mouse) => {
-                                                                return updateOp(mouse.x);
-                                                            }
-                                                            onPositionChanged: (mouse) => {
-                                                                if (pressed)
-                                                                    updateOp(mouse.x);
-
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Slider 3: Band Density / Pitch
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 4
-
-                                                    RowLayout {
-                                                        Layout.fillWidth: true
-
-                                                        Text {
-                                                            text: qsTr("Band Density / Step:")
-                                                            font.pixelSize: 10
-                                                            color: root.textColor
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        Text {
-                                                            text: Config.cfg.barVisualizerDensity + " px"
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.color1
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 14
-                                                        radius: 7
-                                                        color: root.surfaceContainer
-                                                        clip: true
-
-                                                        Rectangle {
-                                                            anchors.left: parent.left
-                                                            anchors.top: parent.top
-                                                            anchors.bottom: parent.bottom
-                                                            width: parent.width * Math.max(0, Math.min(1, (Config.cfg.barVisualizerDensity - 4) / 24))
-                                                            radius: 7
-                                                            color: root.color1
-                                                        }
-
-                                                        MouseArea {
-                                                            function updateDensity(mx) {
-                                                                var frac = Math.max(0, Math.min(1, mx / width));
-                                                                Config.cfg.barVisualizerDensity = Math.round(4 + frac * 24);
-                                                                Config.save();
-                                                            }
-
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: (mouse) => {
-                                                                return updateDensity(mouse.x);
-                                                            }
-                                                            onPositionChanged: (mouse) => {
-                                                                if (pressed)
-                                                                    updateDensity(mouse.x);
-
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Widgets Manager
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        radius: 14
-                                        color: root.surface
-                                        border.color: root.borderCol
-                                        border.width: 1
-                                        implicitHeight: widgetManagerCol.implicitHeight + 28
-
-                                        ColumnLayout {
-                                            id: widgetManagerCol
-
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 10
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Bar Widgets Management")
-                                                        font.pixelSize: 13
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Add, reorder, move between capsules, and customize icon visibility")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    implicitWidth: 140
-                                                    implicitHeight: 28
-                                                    radius: 8
-                                                    color: resetWidgetsH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-                                                    border.color: root.borderCol
-                                                    border.width: 1
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 6
-
-                                                        Text {
-                                                            text: "󰑐"
-                                                            font.pixelSize: 11
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Reset Defaults")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: resetWidgetsH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            BarWidgetService.resetToDefaults();
-                                                        }
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    implicitWidth: 120
-                                                    implicitHeight: 28
-                                                    radius: 8
-                                                    color: root.showAddWidgetModal ? root.color2 : root.color1
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 6
-
-                                                        Text {
-                                                            text: root.showAddWidgetModal ? "󰅖" : "󰐕"
-                                                            font.pixelSize: 12
-                                                            color: root.foreground
-                                                        }
-
-                                                        Text {
-                                                            text: root.showAddWidgetModal ? qsTr("Close") : qsTr("Add Widget")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.foreground
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            root.showAddWidgetModal = !root.showAddWidgetModal;
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                visible: root.showAddWidgetModal
-                                                Layout.fillWidth: true
-                                                radius: 12
-                                                color: root.surfaceContainer
-                                                border.color: Qt.alpha(root.color1, 0.5)
-                                                border.width: 1
-                                                implicitHeight: addPanelContent.implicitHeight + 24
-
-                                                ColumnLayout {
-                                                    id: addPanelContent
-
-                                                    anchors.fill: parent
-                                                    anchors.margins: 12
-                                                    spacing: 12
-
-                                                    RowLayout {
-                                                        Layout.fillWidth: true
-                                                        spacing: 10
-
-                                                        Text {
-                                                            text: qsTr("Select Widget to Add")
-                                                            font.pixelSize: 11
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                        Item {
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Target Zone:")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.textMuted
-                                                        }
-
-                                                        RowLayout {
-                                                            spacing: 6
-
-                                                            Rectangle {
-                                                                implicitWidth: 70
-                                                                implicitHeight: 24
-                                                                radius: 6
-                                                                color: root.selectedAddZone === "left" ? root.color1 : root.surface
-                                                                border.color: root.selectedAddZone === "left" ? root.color1 : root.borderCol
-                                                                border.width: 1
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: qsTr("󰁍 Left")
-                                                                    font.pixelSize: 9
-                                                                    font.bold: true
-                                                                    color: root.selectedAddZone === "left" ? root.foreground : root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: root.selectedAddZone = "left"
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                implicitWidth: 80
-                                                                implicitHeight: 24
-                                                                radius: 6
-                                                                color: root.selectedAddZone === "center" ? root.color1 : root.surface
-                                                                border.color: root.selectedAddZone === "center" ? root.color1 : root.borderCol
-                                                                border.width: 1
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: qsTr("󰘔 Center")
-                                                                    font.pixelSize: 9
-                                                                    font.bold: true
-                                                                    color: root.selectedAddZone === "center" ? root.foreground : root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: root.selectedAddZone = "center"
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                implicitWidth: 74
-                                                                implicitHeight: 24
-                                                                radius: 6
-                                                                color: root.selectedAddZone === "right" ? root.color1 : root.surface
-                                                                border.color: root.selectedAddZone === "right" ? root.color1 : root.borderCol
-                                                                border.width: 1
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: qsTr("󰁔 Right")
-                                                                    font.pixelSize: 9
-                                                                    font.bold: true
-                                                                    color: root.selectedAddZone === "right" ? root.foreground : root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: root.selectedAddZone = "right"
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    ColumnLayout {
-                                                        Layout.fillWidth: true
-                                                        spacing: 6
-
-                                                        RowLayout {
-                                                            spacing: 6
-
-                                                            Text {
-                                                                text: "󱊖"
-                                                                font.pixelSize: 11
-                                                                color: root.color1
-                                                            }
-
-                                                            Text {
-                                                                text: qsTr("Status Capsule Widgets")
-                                                                font.pixelSize: 10
-                                                                font.bold: true
-                                                                color: root.textColor
-                                                            }
-
-                                                            Text {
-                                                                text: qsTr("(Groupable into pill capsules)")
-                                                                font.pixelSize: 9
-                                                                color: root.textMuted
-                                                            }
-
-                                                        }
-
-                                                        Flow {
-                                                            Layout.fillWidth: true
-                                                            spacing: 8
-
-                                                            Repeater {
-                                                                model: BarWidgetService.availableWidgets.filter((w) => {
-                                                                    return w.category === "status_capsule";
-                                                                })
-
-                                                                delegate: Rectangle {
-                                                                    implicitWidth: 155
-                                                                    implicitHeight: 38
-                                                                    radius: 8
-                                                                    color: addStatusH.hovered ? Qt.alpha(root.color1, 0.2) : root.surface
-                                                                    border.color: addStatusH.hovered ? root.color1 : root.borderCol
-                                                                    border.width: 1
-
-                                                                    HoverHandler {
-                                                                        id: addStatusH
-                                                                    }
-
-                                                                    RowLayout {
-                                                                        anchors.fill: parent
-                                                                        anchors.margins: 6
-                                                                        spacing: 8
-
-                                                                        Rectangle {
-                                                                            implicitWidth: 26
-                                                                            implicitHeight: 26
-                                                                            radius: 6
-                                                                            color: Qt.alpha(root.color1, 0.15)
-
-                                                                            Text {
-                                                                                anchors.centerIn: parent
-                                                                                text: modelData.icon
-                                                                                font.pixelSize: 12
-                                                                                color: root.color1
-                                                                            }
-
-                                                                        }
-
-                                                                        ColumnLayout {
-                                                                            Layout.fillWidth: true
-                                                                            spacing: 1
-
-                                                                            Text {
-                                                                                text: modelData.name
-                                                                                font.pixelSize: 10
-                                                                                font.bold: true
-                                                                                color: root.textColor
-                                                                            }
-
-                                                                            Text {
-                                                                                text: qsTr("+ Add Instance")
-                                                                                font.pixelSize: 8
-                                                                                color: root.textMuted
-                                                                            }
-
-                                                                        }
-
-                                                                    }
-
-                                                                    MouseArea {
-                                                                        anchors.fill: parent
-                                                                        cursorShape: Qt.PointingHandCursor
-                                                                        onClicked: {
-                                                                            BarWidgetService.addWidget(root.selectedAddZone, modelData.type, "status_capsule");
-                                                                        }
-                                                                    }
-
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    ColumnLayout {
-                                                        Layout.fillWidth: true
-                                                        spacing: 6
-
-                                                        RowLayout {
-                                                            spacing: 6
-
-                                                            Text {
-                                                                text: "󰘔"
-                                                                font.pixelSize: 11
-                                                                color: root.color2
-                                                            }
-
-                                                            Text {
-                                                                text: qsTr("General Icons")
-                                                                font.pixelSize: 10
-                                                                font.bold: true
-                                                                color: root.textColor
-                                                            }
-
-                                                            Text {
-                                                                text: qsTr("(Standard bar controls)")
-                                                                font.pixelSize: 9
-                                                                color: root.textMuted
-                                                            }
-
-                                                        }
-
-                                                        Flow {
-                                                            Layout.fillWidth: true
-                                                            spacing: 8
-
-                                                            Repeater {
-                                                                model: BarWidgetService.availableWidgets.filter((w) => {
-                                                                    return w.category === "general_icons";
-                                                                })
-
-                                                                delegate: Rectangle {
-                                                                    implicitWidth: 155
-                                                                    implicitHeight: 38
-                                                                    radius: 8
-                                                                    color: addGenH.hovered ? Qt.alpha(root.color2, 0.2) : root.surface
-                                                                    border.color: addGenH.hovered ? root.color2 : root.borderCol
-                                                                    border.width: 1
-
-                                                                    HoverHandler {
-                                                                        id: addGenH
-                                                                    }
-
-                                                                    RowLayout {
-                                                                        anchors.fill: parent
-                                                                        anchors.margins: 6
-                                                                        spacing: 8
-
-                                                                        Rectangle {
-                                                                            implicitWidth: 26
-                                                                            implicitHeight: 26
-                                                                            radius: 6
-                                                                            color: Qt.alpha(root.color2, 0.15)
-
-                                                                            Text {
-                                                                                anchors.centerIn: parent
-                                                                                text: modelData.icon
-                                                                                font.pixelSize: 12
-                                                                                color: root.color2
-                                                                            }
-
-                                                                        }
-
-                                                                        ColumnLayout {
-                                                                            Layout.fillWidth: true
-                                                                            spacing: 1
-
-                                                                            Text {
-                                                                                text: modelData.name
-                                                                                font.pixelSize: 10
-                                                                                font.bold: true
-                                                                                color: root.textColor
-                                                                            }
-
-                                                                            Text {
-                                                                                text: qsTr("+ Add Instance")
-                                                                                font.pixelSize: 8
-                                                                                color: root.textMuted
-                                                                            }
-
-                                                                        }
-
-                                                                    }
-
-                                                                    MouseArea {
-                                                                        anchors.fill: parent
-                                                                        cursorShape: Qt.PointingHandCursor
-                                                                        onClicked: {
-                                                                            BarWidgetService.addWidget(root.selectedAddZone, modelData.type, "general_icons");
-                                                                        }
-                                                                    }
-
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 12
-
-                                                ZoneWidgetsColumn {
-                                                    zoneName: "left"
-                                                    zoneTitle: qsTr("Left Capsule")
-                                                    zoneIcon: "󰁍"
-                                                    widgetsList: BarWidgetService.leftWidgets
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredWidth: 1
-                                                    Layout.alignment: Qt.AlignTop
-                                                }
-
-                                                ZoneWidgetsColumn {
-                                                    zoneName: "center"
-                                                    zoneTitle: qsTr("Center Capsule")
-                                                    zoneIcon: "󰘔"
-                                                    widgetsList: BarWidgetService.centerWidgets
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredWidth: 1
-                                                    Layout.alignment: Qt.AlignTop
-                                                }
-
-                                                ZoneWidgetsColumn {
-                                                    zoneName: "right"
-                                                    zoneTitle: qsTr("Right Capsule")
-                                                    zoneIcon: "󰁔"
-                                                    widgetsList: BarWidgetService.rightWidgets
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredWidth: 1
-                                                    Layout.alignment: Qt.AlignTop
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: wsCol.implicitHeight + 28
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            id: wsCol
-
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 14
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                Text {
-                                                    text: "󰮯"
-                                                    font.pixelSize: 15
-                                                    color: root.color1
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Workspaces")
-                                                    font.pixelSize: 13
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Item {
-                                                    Layout.fillWidth: true
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Default Workspaces Count")
-                                                        font.pixelSize: 11
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Number of default visible workspaces on the bar")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                RowLayout {
-                                                    spacing: 6
-
-                                                    Rectangle {
-                                                        implicitWidth: 28
-                                                        implicitHeight: 28
-                                                        radius: 6
-                                                        color: decWsH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: "−"
-                                                            font.pixelSize: 14
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: decWsH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                var current = (Config.cfg && Config.cfg.workspacesCount !== undefined) ? Config.cfg.workspacesCount : 3;
-                                                                if (current > 1) {
-                                                                    Config.cfg.workspacesCount = current - 1;
-                                                                    Config.save();
-                                                                }
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        implicitWidth: 36
-                                                        implicitHeight: 28
-                                                        radius: 6
-                                                        color: root.surfaceContainer
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: ((Config.cfg && Config.cfg.workspacesCount !== undefined) ? Config.cfg.workspacesCount : 3).toString()
-                                                            font.pixelSize: 12
-                                                            font.bold: true
-                                                            color: root.color1
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        implicitWidth: 28
-                                                        implicitHeight: 28
-                                                        radius: 6
-                                                        color: incWsH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: "+"
-                                                            font.pixelSize: 14
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: incWsH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                var current = (Config.cfg && Config.cfg.workspacesCount !== undefined) ? Config.cfg.workspacesCount : 3;
-                                                                if (current < 10) {
-                                                                    Config.cfg.workspacesCount = current + 1;
-                                                                    Config.save();
-                                                                }
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Workspace Numbering")
-                                                        font.pixelSize: 11
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Display numbers inside the active and hovered workspace nodes")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                Rectangle {
-                                                    implicitWidth: 48
-                                                    implicitHeight: 26
-                                                    radius: 13
-                                                    color: (Config.cfg && Config.cfg.workspacesShowNumbers) ? root.color1 : root.surfaceContainer
-
-                                                    Rectangle {
-                                                        width: 20
-                                                        height: 20
-                                                        radius: 10
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        x: (Config.cfg && Config.cfg.workspacesShowNumbers) ? parent.width - width - 3 : 3
-                                                        color: (Config.cfg && Config.cfg.workspacesShowNumbers) ? root.foreground : root.textColor
-
-                                                        Behavior on x {
-                                                            NumberAnimation {
-                                                                duration: 150
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.workspacesShowNumbers = !Config.cfg.workspacesShowNumbers;
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-                                                visible: Config.cfg && Config.cfg.workspacesShowNumbers
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Numbering Format")
-                                                        font.pixelSize: 11
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Choose Roman numerals (I, II, III) or Common numbers (1, 2, 3)")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                RowLayout {
-                                                    spacing: 6
-
-                                                    Rectangle {
-                                                        implicitWidth: 88
-                                                        implicitHeight: 28
-                                                        radius: 6
-                                                        color: (Config.cfg && Config.cfg.workspacesNumberStyle === "roman") ? root.color1 : root.surfaceContainer
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: qsTr("Roman (I, II)")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: (Config.cfg && Config.cfg.workspacesNumberStyle === "roman") ? root.foreground : root.textColor
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.workspacesNumberStyle = "roman";
-                                                                Config.save();
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                    Rectangle {
-                                                        implicitWidth: 92
-                                                        implicitHeight: 28
-                                                        radius: 6
-                                                        color: (Config.cfg && Config.cfg.workspacesNumberStyle === "common") ? root.color1 : root.surfaceContainer
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: qsTr("Common (1, 2)")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: (Config.cfg && Config.cfg.workspacesNumberStyle === "common") ? root.foreground : root.textColor
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.workspacesNumberStyle = "common";
-                                                                Config.save();
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 74
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            Text {
-                                                text: ""
-                                                font.pixelSize: 18
-                                                font.family: "GeistMono Nerd Font Propo Propo"
-                                                color: root.color1
-                                            }
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Screen Recordings Folder")
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: (Config.cfg && Config.cfg.recordingsFolder) ? Config.cfg.recordingsFolder : "~/Videos/Recordings"
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                    elide: Text.ElideMiddle
-                                                    Layout.fillWidth: true
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 90
-                                                implicitHeight: 30
-                                                radius: 8
-                                                color: browseRecFolH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-
-                                                    Text {
-                                                        text: "󰉋"
-                                                        font.pixelSize: 12
-                                                        color: root.color1
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Browse")
-                                                        font.pixelSize: 10
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                }
-
-                                                HoverHandler {
-                                                    id: browseRecFolH
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: selectRecordingsFolderProc.running = true
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 80
-                                                implicitHeight: 30
-                                                radius: 8
-                                                color: resRecFolH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-
-                                                    Text {
-                                                        text: "󰑐"
-                                                        font.pixelSize: 10
-                                                        color: root.color1
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Default")
-                                                        font.pixelSize: 10
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                }
-
-                                                HoverHandler {
-                                                    id: resRecFolH
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.recordingsFolder = "~/Videos/Recordings";
-                                                        Config.save();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    component ZoneWidgetsColumn: Rectangle {
-                                        id: zwc
-
-                                        required property string zoneName
-                                        required property string zoneTitle
-                                        required property string zoneIcon
-                                        required property var widgetsList
-
-                                        radius: 12
-                                        color: root.surfaceContainer
-                                        border.color: root.borderCol
-                                        border.width: 1
-                                        implicitHeight: columnLayout.implicitHeight + 24
-
-                                        ColumnLayout {
-                                            id: columnLayout
-
-                                            anchors.fill: parent
-                                            anchors.margins: 12
-                                            spacing: 8
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                Text {
-                                                    text: zwc.zoneIcon
-                                                    font.pixelSize: 13
-                                                    color: root.color1
-                                                }
-
-                                                Text {
-                                                    text: zwc.zoneTitle
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Rectangle {
-                                                    implicitWidth: countBadge.implicitWidth + 8
-                                                    implicitHeight: 18
-                                                    radius: 9
-                                                    color: Qt.alpha(root.color1, 0.2)
-
-                                                    Text {
-                                                        id: countBadge
-
-                                                        anchors.centerIn: parent
-                                                        text: (zwc.widgetsList ? zwc.widgetsList.length : 0).toString()
-                                                        font.pixelSize: 9
-                                                        font.bold: true
-                                                        color: root.color1
-                                                    }
-
-                                                }
-
-                                                Item {
-                                                    Layout.fillWidth: true
-                                                }
-
-                                                Rectangle {
-                                                    implicitWidth: 24
-                                                    implicitHeight: 24
-                                                    radius: 6
-                                                    color: addZoneBtnH.hovered ? root.color1 : root.surface
-                                                    border.color: root.borderCol
-                                                    border.width: 1
-
-                                                    HoverHandler {
-                                                        id: addZoneBtnH
-                                                    }
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: "󰐕"
-                                                        font.pixelSize: 11
-                                                        color: addZoneBtnH.hovered ? root.foreground : root.textColor
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            root.selectedAddZone = zwc.zoneName;
-                                                            root.showAddWidgetModal = true;
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                height: 1
-                                                color: root.borderCol
-                                            }
-
-                                            Text {
-                                                visible: !zwc.widgetsList || zwc.widgetsList.length === 0
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 60
-                                                verticalAlignment: Text.AlignVCenter
-                                                horizontalAlignment: Text.AlignHCenter
-                                                text: qsTr("No widgets. Click + to add.")
-                                                font.pixelSize: 10
-                                                color: root.textMuted
-                                            }
-
-                                            Repeater {
-                                                model: zwc.widgetsList
-
-                                                delegate: Rectangle {
-                                                    id: itemCard
-
-                                                    required property var modelData
-                                                    required property int index
-
-                                                    Layout.fillWidth: true
-                                                    implicitHeight: 46
-                                                    radius: 8
-                                                    color: modelData.visible !== false ? root.surface : Qt.alpha(root.surface, 0.3)
-                                                    border.color: itemCardH.hovered ? root.color1 : root.borderCol
-                                                    border.width: 1
-
-                                                    HoverHandler {
-                                                        id: itemCardH
-                                                    }
-
-                                                    RowLayout {
-                                                        anchors.fill: parent
-                                                        anchors.margins: 6
-                                                        spacing: 6
-
-                                                        Rectangle {
-                                                            implicitWidth: 20
-                                                            implicitHeight: 20
-                                                            radius: 5
-                                                            color: modelData.visible !== false ? root.color1 : root.surfaceContainer
-                                                            border.color: modelData.visible !== false ? root.color1 : root.borderCol
-                                                            border.width: 1
-
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: modelData.visible !== false ? "󰄲" : "󰄱"
-                                                                font.pixelSize: 12
-                                                                color: modelData.visible !== false ? root.foreground : root.textMuted
-                                                            }
-
-                                                            MouseArea {
-                                                                anchors.fill: parent
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: {
-                                                                    BarWidgetService.toggleVisibility(zwc.zoneName, modelData.id);
-                                                                }
-                                                            }
-
-                                                        }
-
-                                                        Rectangle {
-                                                            implicitWidth: 26
-                                                            implicitHeight: 26
-                                                            radius: 6
-                                                            color: modelData.category === "status_capsule" ? Qt.alpha(root.color1, 0.15) : Qt.alpha(root.color2, 0.15)
-
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: BarWidgetService.getWidgetInfo(modelData.type).icon
-                                                                font.pixelSize: 13
-                                                                color: modelData.category === "status_capsule" ? root.color1 : root.color2
-                                                            }
-
-                                                        }
-
-                                                        ColumnLayout {
-                                                            Layout.fillWidth: true
-                                                            spacing: 1
-
-                                                            Text {
-                                                                text: BarWidgetService.getWidgetInfo(modelData.type).name
-                                                                font.pixelSize: 10
-                                                                font.bold: true
-                                                                color: modelData.visible !== false ? root.textColor : root.textMuted
-                                                                elide: Text.ElideRight
-                                                                Layout.fillWidth: true
-                                                            }
-
-                                                            Text {
-                                                                text: modelData.category === "status_capsule" ? qsTr("Status Capsule") : qsTr("General Icon")
-                                                                font.pixelSize: 8
-                                                                color: root.textMuted
-                                                            }
-
-                                                        }
-
-                                                        RowLayout {
-                                                            spacing: 2
-
-                                                            Rectangle {
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: upBtnH.hovered ? root.surfaceContainer : "transparent"
-                                                                opacity: index > 0 ? 1 : 0.2
-
-                                                                HoverHandler {
-                                                                    id: upBtnH
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁞"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    enabled: index > 0
-                                                                    cursorShape: index > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.moveWidgetUp(zwc.zoneName, index);
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: downBtnH.hovered ? root.surfaceContainer : "transparent"
-                                                                opacity: index < zwc.widgetsList.length - 1 ? 1 : 0.2
-
-                                                                HoverHandler {
-                                                                    id: downBtnH
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁆"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    enabled: index < zwc.widgetsList.length - 1
-                                                                    cursorShape: index < zwc.widgetsList.length - 1 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.moveWidgetDown(zwc.zoneName, index);
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                visible: zwc.zoneName === "left"
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: toCenterBtnH1.hovered ? Qt.alpha(root.color1, 0.2) : "transparent"
-
-                                                                HoverHandler {
-                                                                    id: toCenterBtnH1
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁔"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.transferWidget(modelData.id, "left", "center");
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                visible: zwc.zoneName === "center"
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: toLeftBtnH.hovered ? Qt.alpha(root.color1, 0.2) : "transparent"
-
-                                                                HoverHandler {
-                                                                    id: toLeftBtnH
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁍"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.transferWidget(modelData.id, "center", "left");
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                visible: zwc.zoneName === "center"
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: toRightBtnH.hovered ? Qt.alpha(root.color1, 0.2) : "transparent"
-
-                                                                HoverHandler {
-                                                                    id: toRightBtnH
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁔"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.transferWidget(modelData.id, "center", "right");
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                visible: zwc.zoneName === "right"
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: toCenterBtnH2.hovered ? Qt.alpha(root.color1, 0.2) : "transparent"
-
-                                                                HoverHandler {
-                                                                    id: toCenterBtnH2
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰁍"
-                                                                    font.pixelSize: 10
-                                                                    color: root.textColor
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.transferWidget(modelData.id, "right", "center");
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                            Rectangle {
-                                                                implicitWidth: 20
-                                                                implicitHeight: 20
-                                                                radius: 4
-                                                                color: delBtnH.hovered ? Qt.alpha(Colors.cfg.error || "#ff5555", 0.25) : "transparent"
-
-                                                                HoverHandler {
-                                                                    id: delBtnH
-                                                                }
-
-                                                                Text {
-                                                                    anchors.centerIn: parent
-                                                                    text: "󰩹"
-                                                                    font.pixelSize: 10
-                                                                    color: delBtnH.hovered ? (Colors.cfg.error || "#ff5555") : root.textMuted
-                                                                }
-
-                                                                MouseArea {
-                                                                    anchors.fill: parent
-                                                                    cursorShape: Qt.PointingHandCursor
-                                                                    onClicked: {
-                                                                        BarWidgetService.removeWidget(zwc.zoneName, modelData.id);
-                                                                    }
-                                                                }
-
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-                                    // Bar Mode (3 Cards)
-
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 16
-                                    visible: root.currentTab === "notifications"
-
-                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 12
-
-                                        Rectangle {
-                                            implicitWidth: 36
-                                            implicitHeight: 36
-                                            radius: 10
-                                            color: Qt.alpha(root.color1, 0.15)
-                                            border.color: Qt.alpha(root.color1, 0.3)
-                                            border.width: 1
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "󰂚"
-                                                font.pixelSize: 18
-                                                font.family: "GeistMono Nerd Font Propo Propo"
-                                                color: root.color1
-                                            }
-
-                                        }
-
-                                        ColumnLayout {
-                                            spacing: 2
-
-                                            Text {
-                                                text: qsTr("Notifications & Sound Alerts")
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                color: root.textBright
-                                            }
-
-                                            Text {
-                                                text: qsTr("Manage notification toasts, system sound triggers, and sound volume profiles")
-                                                font.pixelSize: 11
-                                                color: root.textMuted
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Sound Effects Toggle Card
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 74
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Sound Effect (Enabled by Default)")
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Plays an audio alert when receiving system notifications and timer events")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 48
-                                                implicitHeight: 26
-                                                radius: 13
-                                                color: Config.cfg.soundEffects ? root.color1 : root.surfaceContainer
-
-                                                Rectangle {
-                                                    width: 20
-                                                    height: 20
-                                                    radius: 10
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    x: Config.cfg.soundEffects ? parent.width - width - 3 : 3
-                                                    color: Config.cfg.soundEffects ? root.foreground : root.textColor
-
-                                                    Behavior on x {
-                                                        NumberAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.soundEffects = !Config.cfg.soundEffects;
-                                                        Config.save();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Select Notification Sound & Test Sound Card
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 140
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 10
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: qsTr("Select Notification Sound")
-                                                        font.pixelSize: 12
-                                                        font.bold: true
-                                                        color: root.textColor
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Choose the audio chime for incoming messages and alerts")
-                                                        font.pixelSize: 10
-                                                        color: root.textMuted
-                                                    }
-
-                                                }
-
-                                                // Quick Reset to Default Sound Button
-                                                Rectangle {
-                                                    implicitWidth: 80
-                                                    implicitHeight: 26
-                                                    radius: 6
-                                                    color: resSndH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-
-                                                        Text {
-                                                            text: "󰑐"
-                                                            font.pixelSize: 10
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Default")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: resSndH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            Config.cfg.notificationSound = "message.oga";
-                                                            Config.save();
-                                                        }
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Available Sound Options
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-
-                                                Repeater {
-                                                    model: [{
-                                                        "id": "message.oga",
-                                                        "label": qsTr("Message (Default)")
-                                                    }, {
-                                                        "id": "complete.oga",
-                                                        "label": qsTr("Chime")
-                                                    }, {
-                                                        "id": "bell.oga",
-                                                        "label": qsTr("Bell")
-                                                    }, {
-                                                        "id": "dialog-information.oga",
-                                                        "label": qsTr("Information")
-                                                    }, {
-                                                        "id": "dialog-warning.oga",
-                                                        "label": qsTr("Warning")
-                                                    }]
-
-                                                    delegate: Rectangle {
-                                                        id: sndPill
-
-                                                        required property var modelData
-
-                                                        Layout.fillWidth: true
-                                                        Layout.preferredHeight: 32
-                                                        radius: 8
-                                                        color: (Config.cfg.notificationSound === modelData.id) ? root.color1 : (sndPillH.hovered ? root.surfaceContainer : Qt.alpha(root.textColor, 0.05))
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: sndPill.modelData.label
-                                                            font.pixelSize: 10
-                                                            font.bold: Config.cfg.notificationSound === sndPill.modelData.id
-                                                            color: (Config.cfg.notificationSound === sndPill.modelData.id) ? root.foreground : root.textColor
-                                                        }
-
-                                                        HoverHandler {
-                                                            id: sndPillH
-                                                        }
-
-                                                        MouseArea {
-                                                            anchors.fill: parent
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                Config.cfg.notificationSound = sndPill.modelData.id;
-                                                                Config.save();
-                                                                root.playTestSound();
-                                                            }
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Test Sound Button Row
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 12
-
-                                                Rectangle {
-                                                    implicitWidth: 160
-                                                    implicitHeight: 34
-                                                    radius: 8
-                                                    color: testSndH.hovered ? Qt.alpha(root.color1, 0.25) : root.surfaceContainer
-
-                                                    RowLayout {
-                                                        anchors.centerIn: parent
-                                                        spacing: 8
-
-                                                        Text {
-                                                            text: ""
-                                                            font.pixelSize: 13
-                                                            color: root.color1
-                                                        }
-
-                                                        Text {
-                                                            text: qsTr("Test Current Sound")
-                                                            font.pixelSize: 10
-                                                            font.bold: true
-                                                            color: root.textColor
-                                                        }
-
-                                                    }
-
-                                                    HoverHandler {
-                                                        id: testSndH
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: root.playTestSound()
-                                                    }
-
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Active sound: ") + (Config.cfg.notificationSound || "message.oga")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Alerts Popups (Enabled by Default)
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 74
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Alerts Popups (Enabled by Default)")
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Display floating toast popups on the desktop when a notification is triggered")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 48
-                                                implicitHeight: 26
-                                                radius: 13
-                                                color: Config.cfg.alertsPopups ? root.color1 : root.surfaceContainer
-
-                                                Rectangle {
-                                                    width: 20
-                                                    height: 20
-                                                    radius: 10
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    x: Config.cfg.alertsPopups ? parent.width - width - 3 : 3
-                                                    color: Config.cfg.alertsPopups ? root.foreground : root.textColor
-
-                                                    Behavior on x {
-                                                        NumberAnimation {
-                                                            duration: 150
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        Config.cfg.alertsPopups = !Config.cfg.alertsPopups;
-                                                        Config.save();
-                                                    }
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    // Test Notification Actions Card
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 74
-                                        radius: 14
-                                        color: root.surface
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 14
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
-
-                                                Text {
-                                                    text: qsTr("Notification History") + " (" + NotificationService.notifications.length + ")"
-                                                    font.pixelSize: 12
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    text: qsTr("Trigger a test desktop notification banner or clear active history")
-                                                    font.pixelSize: 10
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 120
-                                                implicitHeight: 34
-                                                radius: 10
-                                                color: root.color1
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 6
-
-                                                    Text {
-                                                        text: "󰂚"
-                                                        font.pixelSize: 13
-                                                        color: root.foreground
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Send Test")
-                                                        font.pixelSize: 10
-                                                        font.bold: true
-                                                        color: root.foreground
-                                                    }
-
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: NotificationService.addNotification("Quickshell", "Notification Center & Sound Alert", "Popups and audio are working seamlessly!", "󰒓")
-                                                }
-
-                                            }
-
-                                            Rectangle {
-                                                implicitWidth: 80
-                                                implicitHeight: 34
-                                                radius: 10
-                                                color: root.surfaceContainer
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: qsTr("Clear")
-                                                    font.pixelSize: 10
-                                                    font.bold: true
-                                                    color: Colors.cfg.warning
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: NotificationService.clearAll()
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 16
-                                    visible: root.currentTab === "gtk"
-
-                                    // ContentSection Header (inspired by @REF/ii/modules/common/widgets/ContentSection.qml)
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 12
-
-                                        Rectangle {
-                                            implicitWidth: 36
-                                            implicitHeight: 36
-                                            radius: 10
-                                            color: Qt.alpha(root.color1, 0.15)
-                                            border.color: Qt.alpha(root.color1, 0.3)
-                                            border.width: 1
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "󰉼"
-                                                font.pixelSize: 18
-                                                font.family: "GeistMono Nerd Font Propo Propo"
-                                                color: root.color1
-                                            }
-
-                                        }
-
-                                        ColumnLayout {
-                                            spacing: 2
-
-                                            Text {
-                                                text: qsTr("GTK Interface Settings")
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                color: root.textBright
-                                            }
-
-                                            Text {
-                                                text: qsTr("Manage application GTK themes, icons, cursor themes, and system fonts via nwg-look")
-                                                font.pixelSize: 11
-                                                color: root.textMuted
-                                            }
-
-                                        }
-
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 260
-                                        radius: 14
-                                        color: root.surface
-
-                                        ColumnLayout {
-                                            anchors.centerIn: parent
-                                            spacing: 16
-                                            Layout.alignment: Qt.AlignHCenter
-
-                                            Text {
-                                                Layout.alignment: Qt.AlignHCenter
-                                                text: "󰒓"
-                                                font.pixelSize: 46
-                                                color: root.color1
-                                            }
-
-                                            ColumnLayout {
-                                                spacing: 4
-                                                Layout.alignment: Qt.AlignHCenter
-
-                                                Text {
-                                                    Layout.alignment: Qt.AlignHCenter
-                                                    text: qsTr("External GTK Customization")
-                                                    font.pixelSize: 14
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                }
-
-                                                Text {
-                                                    Layout.alignment: Qt.AlignHCenter
-                                                    text: qsTr("GTK themes, icons, cursors, and system fonts are managed via nwg-look.")
-                                                    font.pixelSize: 11
-                                                    color: root.textMuted
-                                                }
-
-                                            }
-
-                                            // Launch nwg-look button
-                                            Rectangle {
-                                                Layout.alignment: Qt.AlignHCenter
-                                                implicitWidth: 170
-                                                implicitHeight: 38
-                                                radius: 19
-                                                color: nwgBtnH.hovered ? Qt.alpha(root.color1, 0.85) : root.color1
-
-                                                RowLayout {
-                                                    anchors.centerIn: parent
-                                                    spacing: 8
-
-                                                    Text {
-                                                        text: "󰌹"
-                                                        font.pixelSize: 14
-                                                        color: root.foreground
-                                                    }
-
-                                                    Text {
-                                                        text: qsTr("Open nwg-look")
-                                                        font.pixelSize: 11
-                                                        font.bold: true
-                                                        color: root.foreground
-                                                    }
-
-                                                }
-
-                                                HoverHandler {
-                                                    id: nwgBtnH
-                                                }
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.openNwgLook()
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
                                 }
 
                                 transform: Translate {
@@ -5603,18 +2423,16 @@ FloatingWindow {
                                 id: vScrollBar
 
                                 policy: ScrollBar.AsNeeded
-                                active: true
+                                active: vScrollBar.hovered || vScrollBar.pressed
 
                                 contentItem: Rectangle {
-                                    implicitWidth: 6
-                                    radius: 3
-                                    color: vScrollBar.pressed ? root.color1 : (vScrollBar.hovered ? Qt.alpha(root.color1, 0.8) : Qt.alpha(root.textColor, 0.25))
+                                    implicitWidth: 3
+                                    radius: 1.5
+                                    color: vScrollBar.pressed ? root.color1 : (vScrollBar.hovered ? Qt.alpha(root.color1, 0.8) : Qt.alpha(root.textColor, 0.2))
                                 }
 
-                                background: Rectangle {
-                                    implicitWidth: 6
-                                    radius: 3
-                                    color: Qt.alpha(root.surfaceContainer, 0.3)
+                                background: Item {
+                                    implicitWidth: 3
                                 }
 
                             }
@@ -5635,4 +2453,304 @@ FloatingWindow {
 
     }
 
+    WidgetConfigModal {
+        id: widgetConfigModal
+        settingsRoot: settingsWindowRoot
+    }
+
+    Rectangle {
+        id: floatingWidgetDrag
+        visible: root.isDraggingWidget
+        z: 99999
+        width: 250
+        height: 44
+        radius: 8
+        x: Math.max(10, Math.min(root.width - width - 10, root.widgetDragX - 30))
+        y: Math.max(10, Math.min(root.height - height - 10, root.widgetDragY - 22))
+        color: root.surfaceContainer
+        border.color: root.color1
+        border.width: 2
+        opacity: 0.95
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 8
+
+            Text {
+                text: "drag_indicator"
+                font.family: "Material Symbols Rounded"
+                font.pixelSize: 18
+                color: root.color1
+            }
+
+            Rectangle {
+                implicitWidth: 26
+                implicitHeight: 26
+                radius: 6
+                color: Qt.alpha(root.color1, 0.2)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.widgetDragData ? root.widgetDragData.icon : ""
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 16
+                    color: root.color1
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+
+                Text {
+                    text: root.widgetDragData ? root.widgetDragData.name : ""
+                    font.pixelSize: 10
+                    font.bold: true
+                    font.family: "Google Sans"
+                    color: root.textColor
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: root.widgetDragHoverZone !== ""
+                        ? (qsTr("Moving to ") + root.widgetDragHoverZone + " [" + root.widgetDragHoverIndex + "]")
+                        : qsTr("Dragging...")
+                    font.pixelSize: 8
+                    font.family: "Google Sans"
+                    color: root.color1
+                }
+            }
+
+            Rectangle {
+                implicitWidth: dragBgBadge.implicitWidth + 8
+                implicitHeight: 20
+                radius: 4
+                color: (root.widgetDragData && root.widgetDragData.hasBackground) ? Qt.alpha(root.color1, 0.2) : root.surface
+                border.color: (root.widgetDragData && root.widgetDragData.hasBackground) ? root.color1 : root.borderCol
+                border.width: 1
+
+                Text {
+                    id: dragBgBadge
+                    anchors.centerIn: parent
+                    text: (root.widgetDragData && root.widgetDragData.hasBackground) ? qsTr("Capsule") : qsTr("No Bg")
+                    font.pixelSize: 8
+                    font.bold: true
+                    font.family: "Google Sans"
+                    color: (root.widgetDragData && root.widgetDragData.hasBackground) ? root.color1 : root.textMuted
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        id: toastCard
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        anchors.horizontalCenter: parent.horizontalCenter
+        z: 999999
+        visible: opacity > 0
+        opacity: root.showToastNotification ? 1 : 0
+        scale: root.showToastNotification ? 1 : 0.92
+        implicitWidth: toastRow.implicitWidth + 28
+        implicitHeight: 38
+        radius: 19
+        color: root.surface
+        border.color: Qt.alpha(root.color1, 0.6)
+        border.width: 1.5
+
+        Behavior on opacity { NumberAnimation { duration: 200 } }
+        Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
+
+        RowLayout {
+            id: toastRow
+            anchors.centerIn: parent
+            spacing: 8
+
+            Text {
+                text: root.toastIcon
+                font.pixelSize: 18
+                font.family: "Material Symbols Rounded"
+                color: root.color1
+            }
+
+            Text {
+                text: root.toastMessage
+                font.pixelSize: 11
+                font.bold: true
+                font.family: "Google Sans"
+                color: root.textBright
+            }
+        }
+    }
+
+    Rectangle {
+        id: monitorConfirmCard
+
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        anchors.horizontalCenter: parent.horizontalCenter
+        z: 999998
+        visible: opacity > 0
+        opacity: (root.activeMonitorsTab && root.activeMonitorsTab.confirmationActive) ? 1 : 0
+        scale: (root.activeMonitorsTab && root.activeMonitorsTab.confirmationActive) ? 1 : 0.94
+
+        readonly property int countdown: (root.activeMonitorsTab ? root.activeMonitorsTab.revertCountdown : 15)
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 240
+                easing.type: Easing.OutBack
+            }
+
+        }
+
+        implicitWidth: Math.min(parent.width - 48, Math.max(720, monitorConfirmRow.implicitWidth + 36))
+        width: implicitWidth
+        implicitHeight: monitorConfirmRow.implicitHeight + 24
+        height: implicitHeight
+        radius: 18
+        color: root.surface
+        border.color: (countdown <= 5) ? Colors.cfg.error : Qt.alpha(root.color1, 0.6)
+        border.width: 1.5
+        clip: true
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            height: 3
+            width: parent.width * Math.max(0, Math.min(1.0, monitorConfirmCard.countdown / 15.0))
+            color: (monitorConfirmCard.countdown <= 5) ? Colors.cfg.error : root.color1
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 950
+                    easing.type: Easing.Linear
+                }
+
+            }
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: 200
+                }
+
+            }
+
+        }
+
+        RowLayout {
+            id: monitorConfirmRow
+
+            anchors.fill: parent
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
+            anchors.topMargin: 12
+            anchors.bottomMargin: 12
+            spacing: 14
+
+            Rectangle {
+                implicitWidth: 38
+                implicitHeight: 38
+                radius: 19
+                color: (monitorConfirmCard.countdown <= 5) ? Qt.alpha(Colors.cfg.error, 0.22) : Qt.alpha(root.color1, 0.18)
+                border.color: (monitorConfirmCard.countdown <= 5) ? Colors.cfg.error : Qt.alpha(root.color1, 0.4)
+                border.width: 1.5
+
+                Text {
+                    anchors.centerIn: parent
+                    text: monitorConfirmCard.countdown + "s"
+                    font.family: "Google Sans"
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: (monitorConfirmCard.countdown <= 5) ? Colors.cfg.error : root.color1
+                }
+
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 160
+                spacing: 2
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Keep these display settings?")
+                    font.family: "Google Sans"
+                    font.pixelSize: 13
+                    font.bold: true
+                    color: root.textBright
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Reverting in %1s if not confirmed • Press Enter to keep, Esc to revert").arg(monitorConfirmCard.countdown)
+                    font.family: "Google Sans"
+                    font.pixelSize: 10
+                    color: root.textMuted
+                    elide: Text.ElideRight
+                }
+
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 8
+
+                SettingButton {
+                    text: qsTr("Revert Now")
+                    icon: "undo"
+                    variant: "danger"
+                    compact: true
+                    Layout.minimumWidth: implicitWidth
+                    onClicked: {
+                        if (root.activeMonitorsTab)
+                            root.activeMonitorsTab.revertToPreviousConfig();
+
+                    }
+                }
+
+                SettingButton {
+                    text: qsTr("Keep Changes")
+                    icon: "check"
+                    variant: "primary"
+                    compact: true
+                    Layout.minimumWidth: implicitWidth
+                    onClicked: {
+                        if (root.activeMonitorsTab)
+                            root.activeMonitorsTab.confirmChanges();
+
+                    }
+                }
+
+            }
+
+        }
+
+    }
+
+    DefaultAppPickerModal {
+        id: defaultAppPickerModal
+        settingsRoot: settingsWindowRoot
+        defaultAppsTab: root.activeAppsTab
+    }
+
+    WallpaperPickerModal {
+        id: wallpaperPickerModal
+        settingsRoot: settingsWindowRoot
+    }
+
+    KeyRecorderModal {
+        id: keyRecorderModal
+    }
 }

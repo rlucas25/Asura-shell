@@ -1,18 +1,16 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import qs.Asura
 import qs.Services
 import qs.Animations
 
-// === SYSTEM POWER BAR MENU ===
-
 Item {
     id: root
 
-    // Theme color properties
     property color background: Colors.cfg.background
     property color surfaceContainer: Colors.cfg.surfaceContainer
     property color primary: Colors.cfg.primary
@@ -22,28 +20,22 @@ Item {
     property color warning: Colors.cfg.warning
     property color success: Colors.cfg.success
 
-    // Geometry and dimensions
     implicitWidth: 360
     implicitHeight: 380
     clip: true
 
-    // === HELPER METHODS ===
-
-    // Executes system command asynchronously
     function executeAction(cmdArray) {
         sysCmdProc.command = cmdArray;
         sysCmdProc.running = false;
         sysCmdProc.running = true;
     }
 
-    // Process helper for command dispatch
     Process {
         id: sysCmdProc
 
         command: []
     }
 
-    // Entrance animation controller
     MenuEntrance {
         id: powerEntrance
 
@@ -52,8 +44,6 @@ Item {
         startOffsetY: 14
         startScale: 0.96
     }
-
-    // === REUSABLE HOLD-TO-CONFIRM ACTION BUTTON ===
 
     component PowerHoldButton: Rectangle {
         id: btnRoot
@@ -90,19 +80,37 @@ Item {
             }
         }
 
-        // Progress fill layer that expands from left to right as the user holds
         Rectangle {
-            id: progressFill
+            id: maskShape
 
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: parent.width * btnRoot.fillLevel
-            radius: 14
-            color: Qt.alpha(btnRoot.accentColor, 0.32)
+            anchors.fill: parent
+            radius: btnRoot.radius
+            color: "white"
+            visible: false
         }
 
-        // Button content row
+        Item {
+            id: fillContent
+
+            anchors.fill: parent
+            visible: false
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: parent.width * btnRoot.fillLevel
+                color: Qt.alpha(btnRoot.accentColor, 0.32)
+            }
+        }
+
+        OpacityMask {
+            anchors.fill: parent
+            source: fillContent
+            maskSource: maskShape
+            visible: btnRoot.fillLevel > 0
+        }
+
         RowLayout {
             anchors.fill: parent
             anchors.margins: 10
@@ -184,7 +192,6 @@ Item {
             }
         }
 
-        // Animation filling up to 1.0 while held
         NumberAnimation {
             id: fillAnim
 
@@ -202,7 +209,6 @@ Item {
             }
         }
 
-        // Animation draining back to 0.0 when released early
         NumberAnimation {
             id: drainAnim
 
@@ -213,7 +219,6 @@ Item {
             easing.type: Easing.OutQuad
         }
 
-        // Scale pop effect when trigger completes
         SequentialAnimation {
             id: popAnim
 
@@ -246,8 +251,6 @@ Item {
         }
     }
 
-    // === MAIN LAYOUT ===
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
@@ -258,8 +261,6 @@ Item {
             y: powerEntrance.offsetY
         }
 
-        // === POWER ACTIONS GRID ===
-
         GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -267,7 +268,6 @@ Item {
             columnSpacing: 10
             rowSpacing: 10
 
-            // 1. Lock Session
             PowerHoldButton {
                 iconText: "󰌾"
                 titleText: "Lock"
@@ -275,7 +275,6 @@ Item {
                 onTriggered: LockScreenService.lock()
             }
 
-            // 2. Suspend System
             PowerHoldButton {
                 iconText: "󰤄"
                 titleText: "Suspend"
@@ -283,7 +282,6 @@ Item {
                 onTriggered: root.executeAction(["systemctl", "suspend"])
             }
 
-            // 3. Hibernate System
             PowerHoldButton {
                 iconText: "󰒲"
                 titleText: "Hibernate"
@@ -291,7 +289,6 @@ Item {
                 onTriggered: root.executeAction(["systemctl", "hibernate"])
             }
 
-            // 4. Log Out of Session
             PowerHoldButton {
                 iconText: "󰍃"
                 titleText: "Log Out"
@@ -299,7 +296,6 @@ Item {
                 onTriggered: root.executeAction(["killall", "Hyprland"])
             }
 
-            // 5. Reboot System
             PowerHoldButton {
                 iconText: "󰜉"
                 titleText: "Reboot"
@@ -307,7 +303,6 @@ Item {
                 onTriggered: root.executeAction(["systemctl", "reboot"])
             }
 
-            // 6. Shut Down System
             PowerHoldButton {
                 iconText: "󰐥"
                 titleText: "Shut Down"

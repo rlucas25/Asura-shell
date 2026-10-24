@@ -4,18 +4,15 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Modules.Bar.Widgets
-
-// === NETWORK STATUS WIDGET ===
+import qs.Asura
 
 Item {
     id: root
 
-    // Theme color properties
-    property color color1: "#c3c0ff"
+    property color color1: Colors.cfg.textBright
     property alias primary: root.color1
     property alias text: root.color1
 
-    // State properties
     readonly property bool isHovered: hoverHandler.hovered
     property alias hovered: root.isHovered
     property alias opened: root.isHovered
@@ -28,12 +25,11 @@ Item {
     readonly property bool isConnected: WifiService.connected || isEthernet
     readonly property string icon: WifiService.getNetworkIcon()
 
-    // Signals
     signal clicked()
 
-    // Geometry and sizing
-    implicitWidth: wifiIcon.implicitWidth + 12
-    implicitHeight: wifiIcon.implicitHeight
+    readonly property bool isVertical: Config.isBarVertical
+    implicitWidth: isVertical ? Math.round(22 * Config.barIconScale) : (wifiIcon.implicitWidth + Math.round(12 * Config.barIconScale))
+    implicitHeight: isVertical ? Math.round(22 * Config.barIconScale) : wifiIcon.implicitHeight
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
 
@@ -43,8 +39,6 @@ Item {
             easing.type: Easing.OutCubic
         }
     }
-
-    // === VISUAL CAPSULE & ICON ===
 
     HoverHandler {
         id: hoverHandler
@@ -78,6 +72,6 @@ Item {
         anchors.centerIn: parent
         name: root.icon
         color: root.color1
-        font.variableAxes: fill
+        fill: 1
     }
 }

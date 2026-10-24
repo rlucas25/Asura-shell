@@ -186,12 +186,10 @@ Popup {
                         hoverEnabled: true
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: {
-                            //Submenus:
                             if (menuItemRoot.modelData.hasChildren) {
                                 menuItemRoot.modelData.display(root.parentWindow, 0, 0);
                                 return ;
                             }
-                            //Normal item
                             menuItemRoot.modelData.triggered();
                             root.close();
                         }

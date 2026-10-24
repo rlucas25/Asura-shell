@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Io
 import qs.Animations as ANIM
 import qs.Asura
+import qs.Services
+import qs.Components
 import Quickshell.Wayland
 
 Scope {
@@ -15,12 +17,15 @@ Scope {
     property color color2
     property color background
     property bool shouldShowOsd: false
+    property bool isInteracting: false
 
     Connections {
         target: BrightnessService
         function onBrightnessChanged() {
             root.shouldShowOsd = true;
-            hideTimer.restart();
+            if (!root.isInteracting) {
+                hideTimer.restart();
+            }
         }
     }
 
@@ -28,7 +33,11 @@ Scope {
         id: hideTimer
 
         interval: 2000
-        onTriggered: root.shouldShowOsd = false
+        onTriggered: {
+            if (!root.isInteracting) {
+                root.shouldShowOsd = false;
+            }
+        }
     }
 
     LazyLoader {
@@ -36,7 +45,13 @@ Scope {
 
         PanelWindow {
             id: panelWindow
-            WlrLayershell.namespace: "volumeOSD"
+            WlrLayershell.namespace: "brightnessOSD"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+            mask: Region {
+                item: content
+            }
             
             property real brightnessPercent: BrightnessService.brightness / 100.0
             
@@ -46,8 +61,8 @@ Scope {
                 return "brightness_7";
             }
 
-            implicitWidth: verticalMode ? 50 : 300
-            implicitHeight: verticalMode ? 300 : 50
+            implicitWidth: verticalMode ? 50 : 340
+            implicitHeight: verticalMode ? 300 : 54
             color: "transparent"
             exclusiveZone: 0
             anchors.right: verticalMode
@@ -58,7 +73,16 @@ Scope {
             Rectangle {
                 id: content
 
-                implicitHeight: verticalMode ? 250 : 35
+                readonly property real effectiveRadius: {
+                    var maxR = (verticalMode ? (parent ? parent.width : 50) : height) / 2;
+                    var userR = (typeof Config !== "undefined" && Config.effectiveGeneralRadius !== undefined)
+                        ? Config.effectiveGeneralRadius
+                        : 20;
+                    return Math.max(0, Math.min(maxR, userR));
+                }
+
+                implicitHeight: verticalMode ? 250 : 44
+                height: implicitHeight
                 anchors.margins: 0
                 anchors.centerIn: parent
   
@@ -67,7 +91,23 @@ Scope {
                 state: ""
                 width: 0
                 opacity: 0
-                radius: 4
+                radius: effectiveRadius
+                scale: root.isInteracting ? (osdSlider.pressed ? 0.98 : 1.02) : 1.0
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on radius {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
                 Component.onCompleted: content.state = "show"
                 states: [
                     State {
@@ -77,7 +117,6 @@ Scope {
                             target: content
                             width: parent.width
                             opacity: 1
-                            radius: 4
                         }
 
                     }
@@ -88,7 +127,7 @@ Scope {
                         to: "show"
 
                         NumberAnimation {
-                            properties: "width,opacity,radius"
+                            properties: "width,opacity"
                             duration: 100
                             easing.type: Easing.OutCirc
                         }
@@ -96,86 +135,81 @@ Scope {
                     }
                 ]
 
-             Item {
-                    id: progressLayer
+                SettingSlider {
+                    id: osdSlider
+
                     anchors.fill: parent
+                    compact: true
+                    fillHeight: true
+                    vertical: root.verticalMode
+                    from: 1
+                    to: 100
+                    stepSize: 1
+                    value: BrightnessService.brightness
+                    activeColor: root.color1
+                    trackColor: "transparent"
+                    trackBorderColor: "transparent"
+                    radius: content.effectiveRadius
+                    thumbWidth: 10
+                    showFloatingTooltip: false
 
-                    property real currentLevel: panelWindow.brightnessPercent
-                    property real animatedLevel: currentLevel
-                    property real progressPx: verticalMode ? (height * animatedLevel) : (width * animatedLevel)
-
-                    property real thumbPresence: animatedLevel > 0.95 ? 0 : 1
-                    Behavior on thumbPresence { NumberAnimation { duration: 150 } }
-
-                    readonly property real gap: 6 * thumbPresence
-                    readonly property real thumbReservedSpace: 4 * thumbPresence
-
-                    Rectangle {
-                        id: filledTrack
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-
-                        width: verticalMode ? parent.width : Math.max(0, progressLayer.progressPx - progressLayer.thumbReservedSpace - progressLayer.gap)
-                        height: verticalMode ? Math.max(0, progressLayer.progressPx - progressLayer.thumbReservedSpace - progressLayer.gap) : parent.height
-                        
-                        color: root.color1
-                        radius: content.radius
+                    onInteractionStarted: {
+                        root.isInteracting = true;
+                        hideTimer.stop();
                     }
 
-                    Rectangle {
-                        id: thumb
-                        opacity: progressLayer.thumbPresence 
-                        color: root.color1
-                        radius: 2
-                        
-                        anchors.verticalCenter: verticalMode ? undefined : parent.verticalCenter
-                        anchors.horizontalCenter: verticalMode ? parent.horizontalCenter : undefined
-                        
-                        anchors.left: verticalMode ? undefined : filledTrack.right
-                        anchors.leftMargin: verticalMode ? 0 : progressLayer.gap
-                        
-                        anchors.bottom: verticalMode ? filledTrack.top : undefined
-                        anchors.bottomMargin: verticalMode ? progressLayer.gap : 0
-
-                        width: verticalMode ? parent.width : 5
-                        height: verticalMode ? 4 : parent.height * 1.2
+                    onInteractionEnded: {
+                        root.isInteracting = false;
+                        hideTimer.restart();
                     }
 
-                    Behavior on animatedLevel {
-                        ANIM.Bezier {}
+                    onMoved: (val) => {
+                        BrightnessService.setBrightness(Math.round(val));
                     }
                 }
 
                 Item {
-                    id: maskItem
-
-                    anchors.fill: parent
-                    layer.enabled: true
-                    visible: false
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: content.radius
-                    }
-
-                }
-
-                Text {
+                    id: iconArea
+                    z: 3
                     anchors.bottom: verticalMode ? parent.bottom : undefined
                     anchors.horizontalCenter: verticalMode ? parent.horizontalCenter : undefined
                     anchors.left: verticalMode ? undefined : parent.left
                     anchors.verticalCenter: verticalMode ? undefined : parent.verticalCenter
-                    anchors.margins: 20
-                    
-                    text: panelWindow.icon
-                    
-                    color: root.background
+                    width: verticalMode ? parent.width : 48
+                    height: verticalMode ? 48 : parent.height
 
-                    font {
-                        pixelSize: 20
-                        family: "Material Symbols Rounded"
+                    Text {
+                        anchors.centerIn: parent
+                        text: panelWindow.icon
+                        color: osdSlider.fraction > 0.15 ? root.background : root.color1
+
+                        font {
+                            pixelSize: 22
+                            family: "Material Symbols Rounded"
+                        }
                     }
 
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+
+                        onEntered: {
+                            root.isInteracting = true;
+                            hideTimer.stop();
+                        }
+
+                        onExited: {
+                            root.isInteracting = false;
+                            hideTimer.restart();
+                        }
+
+                        onClicked: {
+                            var target = (BrightnessService.brightness > 50) ? 30 : 100;
+                            BrightnessService.setBrightness(target);
+                            hideTimer.restart();
+                        }
+                    }
                 }
 
             }

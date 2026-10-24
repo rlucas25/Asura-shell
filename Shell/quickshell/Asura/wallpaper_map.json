@@ -80,7 +80,7 @@
     "light": "shadesmear-light"
   },
   "atelier-savanna_01.png": {
-    "dark": "everforest-dark-medium",
+    "dark": "atelier-estuary",
     "light": "grayscale-light"
   },
   "rose-pine-moon_13.png": {
@@ -156,7 +156,7 @@
     "light": "shadesmear-light"
   },
   "papercolor-dark_01.png": {
-    "dark": "caroline",
+    "dark": "dracula",
     "light": "shadesmear-light"
   },
   "onedark_04.png": {
@@ -476,7 +476,23 @@
     "light": "nord-light"
   },
   "primer-dark-dimmed_02.jpg": {
-    "dark": "ocean",
+    "dark": "dracula",
     "light": "sagelight"
+  },
+  "default_wallpaper.jpg": {
+    "dark": "sandcastle",
+    "light": "swamp-light"
+  },
+  "sparky_01.jpg": {
+    "dark": "da-one-gray",
+    "light": "gruvbox-light-hard"
+  },
+  "selenized-light_01.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "brushtrees"
+  },
+  "papercolor-light_02.png": {
+    "dark": "yesterday-night",
+    "light": "embers-light"
   }
 }

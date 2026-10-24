@@ -1,13 +1,13 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Asura
 import qs.Services
 pragma Singleton
 
 Singleton {
     id: root
 
-    // === ALARMS STATE ===
     property var alarms: []
     readonly property int activeCount: {
         var count = 0;
@@ -18,7 +18,6 @@ Singleton {
         }
         return count;
     }
-    // Seconds remaining until the next enabled alarm fires (-1 if none)
     readonly property int nextAlarmSecondsLeft: {
         void _nextAlarmTick;
         var now = new Date();
@@ -35,7 +34,6 @@ Singleton {
         }
         return best;
     }
-    // Human-readable countdown to the next alarm
     readonly property string nextAlarmCountdown: {
         if (nextAlarmSecondsLeft < 0)
             return "No alarms";
@@ -55,9 +53,7 @@ Singleton {
 
         return "< 1m";
     }
-    // Tick counter that updates every minute to keep nextAlarmSecondsLeft reactive
     property int _nextAlarmTick: 0
-    // Ringing state
     property bool isRinging: false
     property var activeRingingAlarm: null
     readonly property var dayLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -65,7 +61,6 @@ Singleton {
 
     signal alarmTriggered(var alarm)
 
-    // Calculate seconds from 'now' until the given alarm fires next
     function _secondsUntilAlarm(alarm, now) {
         var curH = now.getHours();
         var curM = now.getMinutes();
@@ -102,6 +97,11 @@ Singleton {
     function formatTime(hour, minute) {
         var h = parseInt(hour) || 0;
         var m = parseInt(minute) || 0;
+        if (Config.cfg && Config.cfg.clock24h) {
+            var hh24 = (h < 10 ? "0" : "") + h;
+            var mm24 = (m < 10 ? "0" : "") + m;
+            return hh24 + ":" + mm24;
+        }
         var ap = h >= 12 ? "PM" : "AM";
         var h12 = h % 12;
         if (h12 === 0)
@@ -112,7 +112,6 @@ Singleton {
         return hh + ":" + mm + " " + ap;
     }
 
-    // Recurrence days summary helper
     function formatDaysSummary(days) {
         if (!days || !Array.isArray(days) || days.length === 0)
             return "Once";
@@ -141,16 +140,14 @@ Singleton {
         return names.join(", ");
     }
 
-    // Save alarms to ~/.config/quickshell/alarms.json via Python helper
     function saveAlarms() {
         var jsonStr = JSON.stringify(root.alarms);
-        var pyScript = "import os, json; p = os.path.expanduser('~/.config/quickshell/Asura/data/alarms.json'); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, 'w').write(" + JSON.stringify(jsonStr) + ")";
+        var pyScript = "import os, json; p = os.path.expanduser('~/.config/asura/data/alarms.json'); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, 'w').write(" + JSON.stringify(jsonStr) + ")";
         saveProc.command = ["python3", "-c", pyScript];
         saveProc.running = false;
         saveProc.running = true;
     }
 
-    // === CRUD OPERATIONS ===
     function addAlarm(title, hour, minute, days) {
         var list = root.alarms.slice();
         var newAlarm = {
@@ -233,13 +230,11 @@ Singleton {
         root.saveAlarms();
     }
 
-    // === ALARM TRIGGERING & AUDIO CONTROL ===
     function triggerAlarm(alarm, todayKey) {
         var list = root.alarms.slice();
         for (var i = 0; i < list.length; i++) {
             if (list[i].id === alarm.id) {
                 list[i].lastFiredDate = todayKey;
-                // One-time alarm rule: auto-disable after firing
                 var isRecurring = list[i].days && Array.isArray(list[i].days) && list[i].days.length > 0;
                 if (!isRecurring)
                     list[i].enabled = false;
@@ -249,21 +244,16 @@ Singleton {
         }
         root.alarms = list;
         root.saveAlarms();
-        // Update active ringing state
         root.isRinging = true;
         root.activeRingingAlarm = alarm;
         root.alarmTriggered(alarm);
         var timeStr = root.formatTime(alarm.hour, alarm.minute);
         var alarmName = alarm.title && alarm.title.trim() ? alarm.title.trim() : "Alarm";
-        // Sound alert loop
         TimerService.startAlarmLoop();
-        // Visual overlay transition popup
         TimerService.stateTransitionOccurred("󰀠", alarmName + " (" + timeStr + ")");
-        // Desktop system notification
         NotificationService.addNotification("Alarm", alarmName, "The alarm scheduled for " + timeStr + " is ringing!", "󰀠");
     }
 
-    // Silence and dismiss the ringing alarm
     function dismissAlarm() {
         root.isRinging = false;
         root.activeRingingAlarm = null;
@@ -282,18 +272,16 @@ Singleton {
         onTriggered: root._nextAlarmTick++
     }
 
-    // === PERSISTENCE ===
     Process {
         id: saveProc
 
         command: []
     }
 
-    // Load alarms from ~/.config/quickshell/alarms.json
     Process {
         id: loadProc
 
-        command: ["python3", "-c", "import os, json; p = os.path.expanduser('~/.config/quickshell/Asura/data/alarms.json'); print(open(p).read() if os.path.exists(p) else '[]')"]
+        command: ["python3", "-c", "import os, json; p = os.path.expanduser('~/.config/asura/data/alarms.json'); print(open(p).read() if os.path.exists(p) else '[]')"]
         running: true
 
         stdout: StdioCollector {
@@ -313,7 +301,6 @@ Singleton {
 
     }
 
-    // === CHECK LOOP ===
     Timer {
         id: checkTimer
 
@@ -334,20 +321,17 @@ Singleton {
                 if (!a || !a.enabled)
                     continue;
 
-                // Match hour and minute
                 if (a.hour === curHour && a.minute === curMinute) {
                     // Prevent firing multiple times during the same minute
                     if (a.lastFiredDate === todayKey)
                         continue;
 
-                    // Check day of week recurrence
                     var isRecurring = a.days && Array.isArray(a.days) && a.days.length > 0;
                     if (isRecurring) {
                         if (a.days.indexOf(curDay) === -1)
                             continue;
 
                     }
-                    // Trigger alarm
                     root.triggerAlarm(a, todayKey);
                 }
             }

@@ -11,14 +11,11 @@ Item {
 
     property real trackOpacity: 0.12
 
-    // Quanto a forma "respira"
     property real organicAmount: 1.8
 
     readonly property real progress:
         Math.max(0.0, Math.min(1.0, root.value))
 
-    // Valor usado visualmente.
-    // Evita que o indicador pule de um valor para outro.
     property real animatedProgress: 0.0
 
     implicitWidth: 100
@@ -41,10 +38,8 @@ Item {
         entranceAnimation.start()
     }
 
-    // Pequena animação de entrada
     scale: 0.92
     opacity: 0
-
 
     ParallelAnimation {
         id: entranceAnimation
@@ -74,10 +69,6 @@ Item {
         anchors.fill: parent
 
         preferredRendererType: Shape.CurveRenderer
-
-        // ---------------------------------------------------------
-        // TRACK
-        // ---------------------------------------------------------
 
         ShapePath {
             strokeColor: Qt.alpha(
@@ -111,10 +102,6 @@ Item {
             }
         }
 
-        // ---------------------------------------------------------
-        // ACTIVE ARC
-        // ---------------------------------------------------------
-
         ShapePath {
             strokeColor: root.color
             strokeWidth: root.lineWidth
@@ -147,13 +134,6 @@ Item {
             }
         }
     }
-
-    // -------------------------------------------------------------
-    // ORGANIC END CAP
-    //
-    // Um pequeno "blob" acompanha o final do progresso.
-    // Isso quebra a aparência excessivamente geométrica do arco.
-    // -------------------------------------------------------------
 
     Item {
         id: endBlob

@@ -8,6 +8,18 @@ Item {
     id: root
 
     property bool active: false
+    property int subscriberCount: 0
+    readonly property bool shouldRun: active || subscriberCount > 0
+
+    function subscribe() {
+        subscriberCount++;
+    }
+
+    function unsubscribe() {
+        if (subscriberCount > 0) {
+            subscriberCount--;
+        }
+    }
 
     property real cpuPercent: 0.0
     property int cpuTemp: 0
@@ -26,13 +38,34 @@ Item {
     property real gpuUsedGb: 0.0
     property real gpuTotalGb: 0.0
 
+    property real diskPercent: 0.0
+    property real diskUsedGb: 0.0
+    property real diskTotalGb: 0.0
+    property real diskFreeGb: 0.0
+
     property var cpuHistory: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     property var ramHistory: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     property var gpuHistory: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     property var topProcs: []
 
+    property string distroName: "Linux"
+    property string distroLogo: "linux"
+    property string kernelVersion: ""
+    property string arch: ""
+    property string hostName: ""
+    property string wmVersion: ""
+    property string packageCount: ""
+    property string userShell: ""
+    property string uptimeStr: ""
+
     signal dataUpdated()
+
+    function refresh() {
+        if (!monitorProc.running) {
+            monitorProc.running = true;
+        }
+    }
 
     readonly property string scriptPath: (typeof Quickshell.shellPath === "function")
         ? Quickshell.shellPath("Services/system_monitor.py")
@@ -40,9 +73,9 @@ Item {
 
     Timer {
         id: pollTimer
-        interval: 1500
+        interval: root.active ? 1500 : 2000
         repeat: true
-        running: root.active
+        running: root.shouldRun
         triggeredOnStart: true
         onTriggered: {
             if (!monitorProc.running) {
@@ -51,13 +84,11 @@ Item {
         }
     }
 
-    onActiveChanged: {
-        if (active) {
+    onShouldRunChanged: {
+        if (shouldRun) {
             if (!monitorProc.running) monitorProc.running = true;
         } else {
-            if (monitorProc.running) {
-                monitorProc.kill();
-            }
+            monitorProc.running = false;
         }
     }
 
@@ -103,8 +134,25 @@ Item {
                         gh.push(root.gpuPercent);
                         root.gpuHistory = gh;
                     }
+                    if (data.disk) {
+                        root.diskPercent = data.disk.percent || 0.0;
+                        root.diskUsedGb = data.disk.used_gb || 0.0;
+                        root.diskTotalGb = data.disk.total_gb || 0.0;
+                        root.diskFreeGb = data.disk.free_gb || 0.0;
+                    }
                     if (data.top_procs) {
                         root.topProcs = data.top_procs;
+                    }
+                    if (data.sys_info) {
+                        root.distroName = data.sys_info.distro || "Linux";
+                        root.distroLogo = data.sys_info.logo || "linux";
+                        root.kernelVersion = data.sys_info.kernel || "";
+                        root.arch = data.sys_info.arch || "";
+                        root.hostName = data.sys_info.hostname || "";
+                        root.wmVersion = data.sys_info.wm || "";
+                        root.packageCount = data.sys_info.packages || "";
+                        root.userShell = data.sys_info.shell || "";
+                        root.uptimeStr = data.sys_info.uptime || "";
                     }
                     root.dataUpdated();
                 } catch (e) {
@@ -115,8 +163,6 @@ Item {
     }
 
     Component.onDestruction: {
-        if (monitorProc.running) {
-            monitorProc.kill();
-        }
+        monitorProc.running = false;
     }
 }

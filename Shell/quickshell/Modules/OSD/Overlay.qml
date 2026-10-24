@@ -51,7 +51,7 @@ PanelWindow {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 18
+                radius: Config.effectiveMenuRadius
             }
         }
     }

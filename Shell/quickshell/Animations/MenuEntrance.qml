@@ -3,32 +3,24 @@ import QtQuick
 QtObject {
     id: root
 
-    // Controls whether entrance animation should run
     property bool active: true
 
-    // Configuration parameters
     property int duration: 320
     property int delay: 0
     property real startOffsetY: 14
     property real startScale: 0.98
 
-    // Animated values for consumers to bind to:
-    // opacity: binds to Item.opacity
-    // offsetY: binds to transform Translate.y
-    // scale: binds to Item.scale
     readonly property real progress: animProgress.value
     readonly property real opacity: Math.max(0.0, Math.min(1.0, progress))
     readonly property real offsetY: startOffsetY * (1.0 - progress)
     readonly property real scale: startScale + (1.0 - startScale) * progress
     readonly property bool running: animSeq.running
 
-    // Stagger helper: calculates delay for a given index (in ms)
     function staggerDelay(index, stepMs) {
         var step = stepMs !== undefined ? stepMs : 35;
         return delay + (index * step);
     }
 
-    // Explicit controls
     function restart() {
         animSeq.stop();
         animProgress.value = 0.0;

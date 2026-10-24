@@ -7,7 +7,6 @@ import qs.Services
 Item {
     id: root
 
-    // Semantic Colors
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color surfaceContainer: Colors.cfg.surfaceContainer
@@ -20,8 +19,6 @@ Item {
     property color errorCol: Colors.cfg.error
     property color successCol: Colors.cfg.success
     property color warningCol: Colors.cfg.warning
-
-    // Form state (New / Edit)
     property bool isFormOpen: false
     property bool isEditing: false
     property string editingId: ""
@@ -30,7 +27,6 @@ Item {
     property string formTitle: ""
     property var formDays: []
 
-    // Open form for a new alarm
     function openNewAlarm() {
         var now = new Date();
         formHour = (now.getHours() + 1) % 24;
@@ -42,7 +38,6 @@ Item {
         isFormOpen = true;
     }
 
-    // Open form to edit an existing alarm
     function openEditAlarm(alarm) {
         formHour = alarm.hour;
         formMinute = alarm.minute;
@@ -53,7 +48,6 @@ Item {
         isFormOpen = true;
     }
 
-    // Toggle a day index in formDays (0 = Sun .. 6 = Sat)
     function toggleFormDay(dayIdx) {
         var arr = formDays.slice();
         var idx = arr.indexOf(dayIdx);
@@ -61,23 +55,22 @@ Item {
             arr.splice(idx, 1);
         } else {
             arr.push(dayIdx);
-            arr.sort((a, b) => a - b);
+            arr.sort((a, b) => {
+                return a - b;
+            });
         }
         formDays = arr;
     }
 
-    // Save alarm from form
     function saveForm() {
         var title = formTitle.trim() ? formTitle.trim() : "Alarm";
-        if (isEditing) {
+        if (isEditing)
             AlarmService.updateAlarm(editingId, title, formHour, formMinute, formDays);
-        } else {
+        else
             AlarmService.addAlarm(title, formHour, formMinute, formDays);
-        }
         isFormOpen = false;
     }
 
-    // Cancel form
     function cancelForm() {
         isFormOpen = false;
     }
@@ -86,7 +79,6 @@ Item {
         anchors.fill: parent
         spacing: 10
 
-        // === RINGING ALERT BANNER ===
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: AlarmService.isRinging ? 52 : 0
@@ -97,41 +89,37 @@ Item {
             visible: AlarmService.isRinging
             clip: true
 
-            Behavior on Layout.preferredHeight {
-                NumberAnimation {
-                    duration: 200
-                    easing.type: Easing.OutQuad
-                }
-            }
-
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 10
                 spacing: 12
 
-                // Ringing animated icon
                 Text {
-                    text: "󰀠"
+                    text: "alarm"
+                    font.family: "Material Symbols Rounded"
                     font.pixelSize: 22
                     color: root.errorCol
 
                     SequentialAnimation on scale {
                         running: AlarmService.isRinging
                         loops: Animation.Infinite
+
                         NumberAnimation {
                             to: 1.25
                             duration: 400
                             easing.type: Easing.InOutQuad
                         }
+
                         NumberAnimation {
-                            to: 1.0
+                            to: 1
                             duration: 400
                             easing.type: Easing.InOutQuad
                         }
+
                     }
+
                 }
 
-                // Ringing alert details
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 1
@@ -149,9 +137,9 @@ Item {
                         color: root.textSecondary
                         elide: Text.ElideRight
                     }
+
                 }
 
-                // Dismiss button
                 Rectangle {
                     implicitWidth: 120
                     implicitHeight: 32
@@ -163,7 +151,8 @@ Item {
                         spacing: 6
 
                         Text {
-                            text: "󰅖"
+                            text: "close"
+                    font.family: "Material Symbols Rounded"
                             font.pixelSize: 13
                             color: root.foreground
                         }
@@ -174,6 +163,7 @@ Item {
                             font.bold: true
                             color: root.foreground
                         }
+
                     }
 
                     MouseArea {
@@ -181,22 +171,32 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: AlarmService.dismissAlarm()
                     }
+
                 }
+
             }
+
+            Behavior on Layout.preferredHeight {
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutQuad
+                }
+
+            }
+
         }
 
-        // === HEADER CONTROLS ===
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 36
             spacing: 10
 
-            // Title and active count badge
             RowLayout {
                 spacing: 8
 
                 Text {
-                    text: "󰀠"
+                    text: "alarm"
+                    font.family: "Material Symbols Rounded"
                     font.pixelSize: 18
                     color: root.primary
                 }
@@ -217,20 +217,22 @@ Item {
 
                     Text {
                         id: countText
+
                         anchors.centerIn: parent
                         text: AlarmService.activeCount + " active"
                         font.pixelSize: 10
                         font.bold: true
                         color: AlarmService.activeCount > 0 ? root.primary : root.textSecondary
                     }
+
                 }
+
             }
 
             Item {
                 Layout.fillWidth: true
             }
 
-            // New Alarm Button
             Rectangle {
                 implicitWidth: addBtnRow.implicitWidth + 24
                 implicitHeight: 32
@@ -240,6 +242,7 @@ Item {
 
                 RowLayout {
                     id: addBtnRow
+
                     anchors.centerIn: parent
                     spacing: 6
 
@@ -256,6 +259,7 @@ Item {
                         font.bold: true
                         color: root.foreground
                     }
+
                 }
 
                 HoverHandler {
@@ -267,21 +271,20 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.openNewAlarm()
                 }
+
             }
+
         }
 
-        // === MAIN CONTENT ===
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.isFormOpen ? 1 : 0
 
-            // === ALARMS LIST VIEW ===
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                // Empty state display
                 ColumnLayout {
                     anchors.centerIn: parent
                     spacing: 12
@@ -289,7 +292,8 @@ Item {
 
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "󰀠"
+                        text: "alarm"
+                    font.family: "Material Symbols Rounded"
                         font.pixelSize: 52
                         color: Qt.alpha(root.textSecondary, 0.35)
                     }
@@ -334,6 +338,7 @@ Item {
                                 font.bold: true
                                 color: root.primary
                             }
+
                         }
 
                         MouseArea {
@@ -341,12 +346,14 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.openNewAlarm()
                         }
+
                     }
+
                 }
 
-                // Scrollable list of alarms
                 ListView {
                     id: alarmList
+
                     anchors.fill: parent
                     clip: true
                     spacing: 8
@@ -357,17 +364,18 @@ Item {
                         policy: ScrollBar.AsNeeded
                     }
 
-                    // Alarm card delegate
                     delegate: Rectangle {
                         id: cardRoot
+
                         required property var modelData
                         required property int index
-
                         readonly property var liveAlarm: {
                             var id = cardRoot.modelData.id;
                             var arr = AlarmService.alarms;
                             for (var i = 0; i < arr.length; i++) {
-                                if (arr[i].id === id) return arr[i];
+                                if (arr[i].id === id)
+                                    return arr[i];
+
                             }
                             return cardRoot.modelData;
                         }
@@ -393,10 +401,12 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰀠"
+                                    text: "alarm"
+                    font.family: "Material Symbols Rounded"
                                     font.pixelSize: 18
                                     color: cardRoot.liveAlarm.enabled ? root.primary : root.textSecondary
                                 }
+
                             }
 
                             ColumnLayout {
@@ -411,7 +421,7 @@ Item {
                                         text: AlarmService.formatTime(cardRoot.liveAlarm.hour, cardRoot.liveAlarm.minute)
                                         font.pixelSize: 26
                                         font.bold: true
-                                        font.family: "jetbrainsMono Nerd Font Propo"
+                                        font.family: "JetbrainsMono Nerd Font Propo"
                                         color: cardRoot.liveAlarm.enabled ? root.textBright : root.textSecondary
                                     }
 
@@ -423,6 +433,7 @@ Item {
                                         elide: Text.ElideRight
                                         Layout.maximumWidth: 260
                                     }
+
                                 }
 
                                 RowLayout {
@@ -434,7 +445,6 @@ Item {
                                         delegate: Rectangle {
                                             required property int modelData
                                             required property int index
-
                                             readonly property bool isDayActive: cardRoot.liveDays.indexOf(modelData) !== -1
 
                                             implicitWidth: 22
@@ -443,6 +453,7 @@ Item {
                                             color: {
                                                 if (!cardRoot.liveAlarm.enabled)
                                                     return isDayActive ? Qt.alpha(root.textSecondary, 0.15) : "transparent";
+
                                                 return isDayActive ? Qt.alpha(root.primary, 0.22) : Qt.alpha(root.surfaceVariant, 0.3);
                                             }
                                             border.color: isDayActive && cardRoot.liveAlarm.enabled ? root.primary : "transparent"
@@ -456,10 +467,13 @@ Item {
                                                 color: {
                                                     if (!cardRoot.liveAlarm.enabled)
                                                         return isDayActive ? root.textSecondary : Qt.alpha(root.textSecondary, 0.4);
+
                                                     return isDayActive ? root.primary : Qt.alpha(root.textSecondary, 0.5);
                                                 }
                                             }
+
                                         }
+
                                     }
 
                                     Item {
@@ -472,14 +486,14 @@ Item {
                                         color: cardRoot.liveAlarm.enabled ? root.textSecondary : Qt.alpha(root.textSecondary, 0.6)
                                         elide: Text.ElideRight
                                     }
+
                                 }
+
                             }
 
-                            // Edit and delete controls
                             RowLayout {
                                 spacing: 10
 
-                                // Edit button
                                 Rectangle {
                                     implicitWidth: 32
                                     implicitHeight: 32
@@ -492,7 +506,8 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰏫"
+                                        text: "edit"
+                    font.family: "Material Symbols Rounded"
                                         font.pixelSize: 14
                                         color: editH.hovered ? root.primary : root.textSecondary
                                     }
@@ -502,9 +517,9 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.openEditAlarm(cardRoot.modelData)
                                     }
+
                                 }
 
-                                // Delete button
                                 Rectangle {
                                     implicitWidth: 32
                                     implicitHeight: 32
@@ -517,7 +532,8 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰆴"
+                                        text: "delete"
+                    font.family: "Material Symbols Rounded"
                                         font.pixelSize: 14
                                         color: delH.hovered ? root.errorCol : root.textSecondary
                                     }
@@ -527,15 +543,16 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: AlarmService.removeAlarm(cardRoot.modelData.id)
                                     }
+
                                 }
 
                                 Item {
                                     implicitWidth: 4
                                 }
 
-                                // Toggle switch
                                 Rectangle {
                                     id: toggleTrack
+
                                     implicitWidth: 46
                                     implicitHeight: 24
                                     radius: 12
@@ -543,6 +560,7 @@ Item {
 
                                     Rectangle {
                                         id: toggleKnob
+
                                         width: 18
                                         height: 18
                                         radius: 9
@@ -555,7 +573,9 @@ Item {
                                                 duration: 150
                                                 easing.type: Easing.OutQuad
                                             }
+
                                         }
+
                                     }
 
                                     MouseArea {
@@ -563,14 +583,19 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: AlarmService.toggleAlarm(cardRoot.modelData.id)
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
+
             }
 
-            // === CREATE OR EDIT FORM PANEL ===
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -584,7 +609,6 @@ Item {
                     anchors.margins: 16
                     spacing: 12
 
-                    // Form header
                     RowLayout {
                         Layout.fillWidth: true
 
@@ -607,7 +631,8 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰅖"
+                                text: "close"
+                    font.family: "Material Symbols Rounded"
                                 font.pixelSize: 12
                                 color: root.textSecondary
                             }
@@ -617,15 +642,15 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.cancelForm()
                             }
+
                         }
+
                     }
 
-                    // Time spinners
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter
                         spacing: 16
 
-                        // Hours selector
                         ColumnLayout {
                             spacing: 4
                             Layout.alignment: Qt.AlignHCenter
@@ -660,6 +685,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formHour = (root.formHour - 1 + 24) % 24
                                     }
+
                                 }
 
                                 Rectangle {
@@ -671,10 +697,16 @@ Item {
 
                                     TextInput {
                                         id: hourInput
+
                                         anchors.centerIn: parent
                                         text: {
+                                            if (Config.cfg && Config.cfg.clock24h)
+                                                return (root.formHour < 10 ? "0" : "") + root.formHour;
+
                                             var h12 = root.formHour % 12;
-                                            if (h12 === 0) h12 = 12;
+                                            if (h12 === 0)
+                                                h12 = 12;
+
                                             return (h12 < 10 ? "0" : "") + h12;
                                         }
                                         color: root.textBright
@@ -687,16 +719,20 @@ Item {
                                         onEditingFinished: {
                                             var val = parseInt(text);
                                             if (!isNaN(val)) {
-                                                val = Math.max(1, Math.min(12, val));
-                                                var isPm = root.formHour >= 12;
-                                                if (val === 12) {
-                                                    root.formHour = isPm ? 12 : 0;
+                                                if (Config.cfg && Config.cfg.clock24h) {
+                                                    root.formHour = Math.max(0, Math.min(23, val));
                                                 } else {
-                                                    root.formHour = isPm ? (val + 12) : val;
+                                                    val = Math.max(1, Math.min(12, val));
+                                                    var isPm = root.formHour >= 12;
+                                                    if (val === 12)
+                                                        root.formHour = isPm ? 12 : 0;
+                                                    else
+                                                        root.formHour = isPm ? (val + 12) : val;
                                                 }
                                             }
                                         }
                                     }
+
                                 }
 
                                 Rectangle {
@@ -718,8 +754,11 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formHour = (root.formHour + 1) % 24
                                     }
+
                                 }
+
                             }
+
                         }
 
                         Text {
@@ -730,7 +769,6 @@ Item {
                             Layout.alignment: Qt.AlignVCenter
                         }
 
-                        // Minutes selector
                         ColumnLayout {
                             spacing: 4
                             Layout.alignment: Qt.AlignHCenter
@@ -765,6 +803,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formMinute = (root.formMinute - 1 + 60) % 60
                                     }
+
                                 }
 
                                 Rectangle {
@@ -776,6 +815,7 @@ Item {
 
                                     TextInput {
                                         id: minInput
+
                                         anchors.centerIn: parent
                                         text: (root.formMinute < 10 ? "0" : "") + root.formMinute
                                         color: root.textBright
@@ -792,6 +832,7 @@ Item {
 
                                         }
                                     }
+
                                 }
 
                                 Rectangle {
@@ -813,11 +854,15 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formMinute = (root.formMinute + 1) % 60
                                     }
+
                                 }
+
                             }
+
                         }
 
                         ColumnLayout {
+                            visible: !(Config.cfg && Config.cfg.clock24h)
                             spacing: 4
                             Layout.alignment: Qt.AlignHCenter
 
@@ -849,17 +894,17 @@ Item {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        if (root.formHour >= 12) {
+                                        if (root.formHour >= 12)
                                             root.formHour -= 12;
-                                        } else {
+                                        else
                                             root.formHour += 12;
-                                        }
                                     }
                                 }
+
                             }
+
                         }
 
-                        // Quick time presets
                         RowLayout {
                             spacing: 6
                             Layout.leftMargin: 10
@@ -888,21 +933,15 @@ Item {
                                         }
                                     }
                                 }, {
-                                    "label": "07:00 AM",
+                                    "label": "+1h",
                                     "action": function() {
-                                        root.formHour = 7;
-                                        root.formMinute = 0;
-                                    }
-                                }, {
-                                    "label": "08:00 AM",
-                                    "action": function() {
-                                        root.formHour = 8;
-                                        root.formMinute = 0;
+                                        root.formHour = (root.formHour + 1) % 24;
                                     }
                                 }]
 
                                 delegate: Rectangle {
                                     required property var modelData
+
                                     implicitWidth: presetText.implicitWidth + 14
                                     implicitHeight: 24
                                     radius: 6
@@ -911,6 +950,7 @@ Item {
 
                                     Text {
                                         id: presetText
+
                                         anchors.centerIn: parent
                                         text: modelData.label
                                         font.pixelSize: 10
@@ -923,12 +963,15 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: modelData.action()
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
 
-                    // Title text field
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
@@ -953,13 +996,15 @@ Item {
                                 spacing: 8
 
                                 Text {
-                                    text: "󰏫"
+                                    text: "edit"
+                    font.family: "Material Symbols Rounded"
                                     font.pixelSize: 13
                                     color: root.textSecondary
                                 }
 
                                 TextInput {
                                     id: titleIn
+
                                     Layout.fillWidth: true
                                     text: root.formTitle
                                     color: root.textBright
@@ -974,11 +1019,13 @@ Item {
                                     color: Qt.alpha(root.textSecondary, 0.4)
                                     visible: titleIn.text.length === 0 && !titleIn.activeFocus
                                 }
+
                             }
+
                         }
+
                     }
 
-                    // Recurrence selector
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -1004,7 +1051,6 @@ Item {
                                 Layout.fillWidth: true
                             }
 
-                            // Quick day presets
                             RowLayout {
                                 spacing: 6
 
@@ -1026,6 +1072,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formDays = [1, 2, 3, 4, 5]
                                     }
+
                                 }
 
                                 Rectangle {
@@ -1046,6 +1093,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formDays = [0, 6]
                                     }
+
                                 }
 
                                 Rectangle {
@@ -1066,6 +1114,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formDays = [0, 1, 2, 3, 4, 5, 6]
                                     }
+
                                 }
 
                                 Rectangle {
@@ -1086,11 +1135,13 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.formDays = []
                                     }
+
                                 }
+
                             }
+
                         }
 
-                        // Day selector chips
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -1101,7 +1152,6 @@ Item {
                                 delegate: Rectangle {
                                     required property int modelData
                                     required property int index
-
                                     readonly property bool isSelected: root.formDays.indexOf(modelData) !== -1
 
                                     Layout.fillWidth: true
@@ -1123,16 +1173,19 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: root.toggleFormDay(modelData)
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
 
                     Item {
                         Layout.fillHeight: true
                     }
 
-                    // Form action buttons
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
@@ -1161,6 +1214,7 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.cancelForm()
                             }
+
                         }
 
                         Rectangle {
@@ -1182,10 +1236,17 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.saveForm()
                             }
+
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

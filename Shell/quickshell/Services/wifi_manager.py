@@ -41,7 +41,7 @@ def get_ethernet_info():
             parts = line.strip().split(':')
             if len(parts) >= 3 and parts[1] == 'ethernet' and parts[2] == 'connected':
                 dev = parts[0]
-                conn_name = parts[3] if len(parts) > 3 and parts[3] else "Conexão Cabeada"
+                conn_name = parts[3] if len(parts) > 3 and parts[3] else "Wired Connection"
                 ip_addr = get_ip_address(dev)
                 return {
                     'connected': True,
@@ -161,7 +161,7 @@ def set_wifi_radio(state):
 
 def connect_wifi(ssid, password=None, is_hidden=False):
     if not ssid:
-        return {'success': False, 'message': 'SSID não informado.'}
+        return {'success': False, 'message': 'SSID not specified.'}
 
     cmd = ['nmcli', 'dev', 'wifi', 'connect', ssid]
     if password:
@@ -171,7 +171,7 @@ def connect_wifi(ssid, password=None, is_hidden=False):
 
     code, out, err = run_cmd(cmd)
     success = (code == 0)
-    msg = out if success else (err or "Falha ao conectar à rede Wi-Fi.")
+    msg = out if success else (err or "Failed to connect to Wi-Fi network.")
     return {
         'success': success,
         'message': msg,
@@ -184,17 +184,17 @@ def disconnect_wifi():
     success = (code == 0)
     return {
         'success': success,
-        'message': out if success else (err or "Falha ao desconectar."),
+        'message': out if success else (err or "Failed to disconnect."),
     }
 
 def forget_wifi(ssid):
     if not ssid:
-        return {'success': False, 'message': 'SSID não informado.'}
+        return {'success': False, 'message': 'SSID not specified.'}
     code, out, err = run_cmd(['nmcli', 'connection', 'delete', 'id', ssid])
     success = (code == 0)
     return {
         'success': success,
-        'message': out if success else (err or f"Falha ao esquecer {ssid}."),
+        'message': out if success else (err or f"Failed to forget {ssid}."),
         'ssid': ssid
     }
 
@@ -222,7 +222,7 @@ def main():
             ssid = sys.argv[2]
             print(json.dumps(forget_wifi(ssid)))
         else:
-            print(json.dumps({'success': False, 'message': 'Nome da rede obrigatório.'}))
+            print(json.dumps({'success': False, 'message': 'Network name is required.'}))
     elif cmd == 'connect':
         if len(sys.argv) > 2:
             ssid = sys.argv[2]
@@ -230,9 +230,9 @@ def main():
             is_hidden = len(sys.argv) > 4 and sys.argv[4].lower() in ['true', 'yes', '1', 'hidden']
             print(json.dumps(connect_wifi(ssid, password, is_hidden)))
         else:
-            print(json.dumps({'success': False, 'message': 'Nome da rede obrigatório.'}))
+            print(json.dumps({'success': False, 'message': 'Network name is required.'}))
     else:
-        print(json.dumps({'error': f'Comando desconhecido: {cmd}'}))
+        print(json.dumps({'error': f'Unknown command: {cmd}'}))
 
 if __name__ == '__main__':
     main()

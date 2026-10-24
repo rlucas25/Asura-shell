@@ -20,7 +20,7 @@
     "light": "sagelight"
   },
   "windows-highcontrast_01.jpg": {
-    "dark": "grayscale-dark",
+    "dark": "black-metal-immortal",
     "light": "dirtysea"
   },
   "windows-10-light_01.jpg": {
@@ -80,7 +80,7 @@
     "light": "shadesmear-light"
   },
   "atelier-savanna_01.png": {
-    "dark": "everforest-dark-medium",
+    "dark": "github-dark-colorblind",
     "light": "grayscale-light"
   },
   "rose-pine-moon_13.png": {
@@ -132,7 +132,7 @@
     "light": "gruvbox-light-soft"
   },
   "sandcastle_05.jpg": {
-    "dark": "sandcastle",
+    "dark": "horizon-dark",
     "light": "classic-light"
   },
   "sandcastle_02.png": {
@@ -156,7 +156,7 @@
     "light": "shadesmear-light"
   },
   "papercolor-dark_01.png": {
-    "dark": "caroline",
+    "dark": "dracula",
     "light": "shadesmear-light"
   },
   "onedark_04.png": {
@@ -168,7 +168,7 @@
     "light": "default-light"
   },
   "nova_03.png": {
-    "dark": "brushtrees-dark",
+    "dark": "hardhacker",
     "light": "rose-pine-dawn"
   },
   "nord_02.jpg": {
@@ -176,7 +176,7 @@
     "light": "default-light"
   },
   "nebula_02.png": {
-    "dark": "brushtrees-dark",
+    "dark": "atelier-cave",
     "light": "atelier-savanna-light"
   },
   "mountain_02.jpg": {
@@ -476,7 +476,47 @@
     "light": "nord-light"
   },
   "primer-dark-dimmed_02.jpg": {
-    "dark": "ocean",
+    "dark": "dracula",
     "light": "sagelight"
+  },
+  "default_wallpaper.jpg": {
+    "dark": "horizon-dark",
+    "light": "swamp-light"
+  },
+  "sparky_01.jpg": {
+    "dark": "da-one-gray",
+    "light": "gruvbox-light-hard"
+  },
+  "selenized-light_01.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "brushtrees"
+  },
+  "papercolor-light_02.png": {
+    "dark": "yesterday-night",
+    "light": "embers-light"
+  },
+  "emil_01.png": {
+    "dark": "twilight",
+    "light": "brushtrees"
+  },
+  "nord_04.png": {
+    "dark": "everforest-dark-medium",
+    "light": "default-light"
+  },
+  "nord_03.png": {
+    "dark": "yesterday-bright",
+    "light": "embers-light"
+  },
+  "horizon-dark_02.png": {
+    "dark": "kimber",
+    "light": "brushtrees"
+  },
+  "humanoid-light_01.jpg": {
+    "dark": "railscasts",
+    "light": "shadesmear-light"
+  },
+  "catppuccin-frappe_01.jpg": {
+    "dark": "brushtrees-dark",
+    "light": "boo-shnickle-light"
   }
 }

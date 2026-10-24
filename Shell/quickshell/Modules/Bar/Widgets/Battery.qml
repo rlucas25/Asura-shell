@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
@@ -10,15 +11,18 @@ import qs.Modules.Bar.Widgets
 Item {
     id: root
 
-    property color color1
-    property color color2
+    property color color1: Colors.cfg.textBright
+    property color color2: Colors.cfg.secondary
     property alias primary: root.color1
     property alias secondary: root.color2
     property bool isCharging: UPower.displayDevice && UPower.displayDevice.state === UPowerDeviceState.Charging
     property bool hidePercentage: false
-    property bool pluggedIn: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Unknown || UPower.displayDevice.state === UPowerDeviceState.FullyCharged) : false
-    property int percent: UPower.displayDevice.isPresent ? Math.round(100 * UPower.displayDevice.percentage) : 100
+    readonly property bool hasBattery: !!(UPower.displayDevice && UPower.displayDevice.isPresent)
+    property bool pluggedIn: !hasBattery || (UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Unknown || UPower.displayDevice.state === UPowerDeviceState.FullyCharged) : true)
+    property int percent: hasBattery ? Math.round(100 * UPower.displayDevice.percentage) : 100
+    property bool hoverEnabled: (typeof Config !== "undefined" && Config.barWidgetHoverTextEnabled !== undefined) ? Config.barWidgetHoverTextEnabled : true
     readonly property bool isHovered: hoverHandler.hovered
+    readonly property bool expanded: isHovered && root.hoverEnabled
     property alias opened: root.isHovered
     property alias hovered: root.isHovered
     property string currentEnergyMode: "balanced"
@@ -32,8 +36,9 @@ Item {
         powerSetProc.running = true;
     }
 
-    implicitWidth: root.isCharging ? batteryCharging.implicitWidth + 12 : battery.implicitWidth + 12
-    implicitHeight: battery.implicitHeight
+    readonly property bool isVertical: Config.isBarVertical
+    implicitWidth: isVertical ? Math.round(22 * Config.barIconScale) : ((root.isCharging || root.pluggedIn) ? batteryCharging.implicitWidth + Math.round(12 * Config.barIconScale) : battery.implicitWidth + Math.round(12 * Config.barIconScale))
+    implicitHeight: isVertical ? Math.round(22 * Config.barIconScale) : battery.implicitHeight
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
 
@@ -100,12 +105,12 @@ Item {
         visible: !root.isCharging && !root.pluggedIn
         anchors.centerIn: parent
         spacing: 2
+        scale: root.isVertical ? Math.min(1.0, (root.implicitWidth - 2) / 28) : 1.0
 
-        // Battery body
         Rectangle {
             id: batteryBody
 
-            width: 25
+            width: 27
             height: 15
             color: "transparent"
 
@@ -120,7 +125,6 @@ Item {
                 border.color: root.color1
             }
 
-            // Filler
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -132,13 +136,15 @@ Item {
                 opacity: 1
             }
 
-            // Percent number
             Text {
                 anchors.centerIn: parent
                 text: root.percent
-                font.family: "Google Sans"
-                font.pixelSize: 11
-                color: root.percent > 15 ? Colors.cfg.surfaceContainer : root.color1
+                font.family: "GeistMono Mono Nerd Font Propo"
+                font.pixelSize: root.percent >= 100 ? 9 : 10
+                font.bold: true
+                font.weight: Font.Bold
+                color: Colors.cfg.surfaceContainer
+                styleColor: root.percent > 50 ? root.color1 : Colors.cfg.surfaceContainer
             }
 
         }
@@ -167,16 +173,21 @@ Item {
         }
 
         Text {
-            visible: opacity > 0
+            visible: opacity > 0 && !root.isVertical
             font.family: "Google Sans"
-            font.pixelSize: 14
-            font.weight: 500
+            font.pixelSize: Math.round(14 * Config.barIconScale)
+            font.bold: true
+            font.weight: Font.Bold
             verticalAlignment: Text.AlignVCenter
             text: (root.hidePercentage || root.pluggedIn ? "" : root.percent + "% ")
             color: root.percent > 15 ? root.color1 : root.color2
         }
 
     }
+
+    ToolTip.visible: root.isVertical && root.expanded
+    ToolTip.text: root.percent + "%" + (root.isCharging ? " (" + qsTr("Charging") + ")" : (root.pluggedIn ? " (" + qsTr("Plugged in") + ")" : ""))
+    ToolTip.delay: 300
 
     Behavior on implicitWidth {
         NumberAnimation {

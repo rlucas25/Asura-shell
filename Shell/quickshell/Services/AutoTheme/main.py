@@ -19,7 +19,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../.."))
 
 PALETTES_FILE = os.path.join(PROJECT_ROOT, "Asura", "palettes", "palettes.json")
-OUTPUT_MAP_FILE = os.path.join(PROJECT_ROOT, "Asura", "wallpaper_map.json")
+OUTPUT_MAP_FILE = os.path.expanduser("~/.config/asura/data/wallpaper_map.json")
 SCRIPTS_MAP_FILE = os.path.join(SCRIPT_DIR, "wallpaper_map.json")
 
 DEFAULT_WALLPAPER_DIR = os.path.expanduser("~/Pictures/Wallpapers")
@@ -94,8 +94,18 @@ def save_wallpaper_map(mapping):
     with open(SCRIPTS_MAP_FILE, "w", encoding="utf-8") as f:
         json.dump(mapping, f, indent=2, ensure_ascii=False)
 
+def is_preset_or_generic_wallpaper(path_or_filename):
+    if not path_or_filename:
+        return True
+    p = str(path_or_filename)
+    if "/presets/" in p or "/data/presets/" in p:
+        return True
+    base = os.path.basename(p).lower()
+    if base in ("wallpaper.jpg", "wallpaper.png", "wallpaper.jpeg", "wallpaper.webp"):
+        return True
+    return False
+
 def scan_directory(directory, force=False):
-    """Scans all wallpapers in directory and generates dual dark/light mapping."""
     if not os.path.isdir(directory):
         print(f"Error: Directory '{directory}' does not exist.", file=sys.stderr)
         return {}
@@ -115,6 +125,8 @@ def scan_directory(directory, force=False):
     print(f"Analyzing {len(files)} wallpapers with K-Means dual matching...")
     processed = 0
     for filename in sorted(files):
+        if is_preset_or_generic_wallpaper(filename):
+            continue
         if not force and filename in existing_map:
             entry = existing_map[filename]
             if isinstance(entry, dict) and "dark" in entry and "light" in entry:
@@ -160,7 +172,7 @@ def process_single(image_path, update_map=True):
         }
         filename = os.path.basename(image_path)
 
-        if update_map:
+        if update_map and not is_preset_or_generic_wallpaper(image_path):
             existing_map = load_existing_map()
             existing_map[filename] = result
             save_wallpaper_map(existing_map)
@@ -171,6 +183,8 @@ def process_single(image_path, update_map=True):
         return None
 
 def set_wallpaper_palette(image_target, palette_id, mode="dark"):
+    if is_preset_or_generic_wallpaper(image_target):
+        return {}
     filename = os.path.basename(image_target)
     existing_map = load_existing_map()
     entry = existing_map.get(filename, {})

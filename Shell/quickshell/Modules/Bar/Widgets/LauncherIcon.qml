@@ -8,16 +8,19 @@ import qs.Modules.Bar.Widgets
 Text {
     id: root
 
-    property color textColor
+    property color textColor: Colors.cfg.text
 
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
-    text: " 󰣇 "
+    Layout.alignment: Qt.AlignVCenter
+    text: "󰣇"
     color: root.textColor
+    verticalAlignment: Text.AlignVCenter
+    horizontalAlignment: Text.AlignHCenter
 
     font {
-        pixelSize: 20
-        family: "GeistMono Nerd Font Propo Propo"
+        pixelSize: Math.round(20 * ((typeof Config !== "undefined" && Config.barIconScale !== undefined) ? Config.barIconScale : 1.0))
+        family: "GeistMono Nerd Font Propo"
     }
 
 }

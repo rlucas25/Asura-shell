@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Asura
 import qs.Services
+import qs.Components
 
 PanelWindow {
     id: root
@@ -16,7 +17,6 @@ PanelWindow {
     property color on_primary: Colors.cfg.on_primary
     property color text: Colors.cfg.text
 
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias foreground: root.on_primary
@@ -24,21 +24,32 @@ PanelWindow {
 
     signal notificationClicked()
 
+    WlrLayershell.namespace: "NotificationToast"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    exclusionMode: ExclusionMode.Ignore
+    exclusiveZone: 0
+
+    readonly property string pos: (Config.cfg && Config.cfg.notificationPosition) ? Config.cfg.notificationPosition : "top_right"
 
     anchors {
-        top: true
-        right: true
+        top: root.pos.indexOf("top") !== -1
+        bottom: root.pos.indexOf("bottom") !== -1
+        left: root.pos.indexOf("left") !== -1
+        right: root.pos.indexOf("right") !== -1
     }
 
     margins {
-        top: 30
-        right: 10
+        top: root.pos.indexOf("top") !== -1 ? 30 : 0
+        bottom: root.pos.indexOf("bottom") !== -1 ? 30 : 0
+        left: root.pos.indexOf("left") !== -1 ? 20 : 0
+        right: root.pos.indexOf("right") !== -1 ? 20 : 0
     }
 
     implicitWidth: 360
     implicitHeight: 110
+    width: 360
+    height: 110
     color: "transparent"
 
     visible: NotificationService.popupVisible
@@ -50,8 +61,8 @@ PanelWindow {
     Rectangle {
         id: toastCard
         anchors.fill: parent
-        radius: 16
-        color: background
+        radius: Math.round(Config.effectiveMenuRadius * 0.8)
+        color: Qt.alpha(root.background, Config.effectiveGeneralOpacity)
         border.color: Qt.alpha(root.color1, 0.4)
         border.width: 1
         clip: true
@@ -67,8 +78,8 @@ PanelWindow {
             anchors.margins: 14
             spacing: 12
 
-            // App Icon Circle
             Rectangle {
+                id: iconCircle
                 Layout.preferredWidth: 42
                 Layout.preferredHeight: 42
                 radius: 21
@@ -76,16 +87,15 @@ PanelWindow {
                 border.color: Qt.alpha(root.color1, 0.3)
                 border.width: 1
 
-                Text {
+                ThemedIcon {
                     anchors.centerIn: parent
-                    text: NotificationService.activePopup ? NotificationService.activePopup.appIcon : "󰂚"
-                    font.pixelSize: 20
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    size: 24
+                    source: (NotificationService.activePopup && NotificationService.activePopup.appIcon) ? NotificationService.activePopup.appIcon : "preferences-desktop-notification"
                     color: root.color1
+                    fallbackGlyph: "󰂚"
                 }
             }
 
-            // Notification Info
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -111,9 +121,13 @@ PanelWindow {
                 }
 
                 Text {
-                    text: NotificationService.activePopup ? NotificationService.activePopup.summary : ""
+                    text: {
+                        if (!NotificationService.activePopup) return "";
+                        if (Config.cfg && Config.cfg.notificationPrivacy) return qsTr("Notification Alert");
+                        return NotificationService.activePopup.summary;
+                    }
                     font.pixelSize: 12
-                    font.family: "GeistMono Nerd Font Propo"
+                    font.family: "Google Sans"
                     font.bold: true
                     color: root.textColor
                     Layout.fillWidth: true
@@ -121,9 +135,13 @@ PanelWindow {
                 }
 
                 Text {
-                    text: NotificationService.activePopup ? NotificationService.activePopup.body : ""
+                    text: {
+                        if (!NotificationService.activePopup) return "";
+                        if (Config.cfg && Config.cfg.notificationPrivacy) return qsTr("Content hidden by privacy setting");
+                        return NotificationService.activePopup.body;
+                    }
                     font.pixelSize: 10
-                    font.family: "GeistMono Nerd Font Propo"
+                    font.family: "Google Sans"
                     color: Qt.alpha(root.textColor, 0.7)
                     Layout.fillWidth: true
                     elide: Text.ElideRight
@@ -131,7 +149,6 @@ PanelWindow {
                 }
             }
 
-            // Dismiss X Button
             Rectangle {
                 Layout.preferredWidth: 26
                 Layout.preferredHeight: 26

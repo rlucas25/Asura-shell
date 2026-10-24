@@ -9,7 +9,7 @@ import qs.Modules.Bar.Widgets
 Item {
     id: root
 
-    property color color1: Colors.cfg.primary
+    property color color1: Colors.cfg.secondary
     property color warningColor: Colors.cfg.warning
 
     property alias primary: root.color1
@@ -18,12 +18,9 @@ Item {
 
     signal clicked()
 
-    // ---------------------------------------------------------
-    // SIZE
-    // ---------------------------------------------------------
-
-    implicitWidth: powerIcon.implicitWidth + 12
-    implicitHeight: powerIcon.implicitHeight
+    readonly property bool isVertical: Config.isBarVertical
+    implicitWidth: isVertical ? Math.round(22 * Config.barIconScale) : (powerIcon.implicitWidth + Math.round(12 * Config.barIconScale))
+    implicitHeight: isVertical ? Math.round(22 * Config.barIconScale) : powerIcon.implicitHeight
 
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
@@ -73,17 +70,12 @@ Item {
         }
     }
 
-    // ---------------------------------------------------------
-    // ICON
-    // ---------------------------------------------------------
-
     Icon {
         id: powerIcon
 
         anchors.centerIn: parent
 
         name: "power_settings_new"
-
 
         color: root.isHovered
             ? root.warningColor

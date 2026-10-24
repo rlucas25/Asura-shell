@@ -11,7 +11,7 @@ Singleton {
     property string activeClass: ""
     property string activeTitle: ""
     property string activeDisplayName: ""
-    property string activeIcon: ""
+    property string activeIcon: ""
 
     function getAppFriendlyName(klass, title) {
         if (!klass && !title) return "";
@@ -40,30 +40,14 @@ Singleton {
         if (klass && klass.trim().length > 0) {
             return klass.charAt(0).toUpperCase() + klass.slice(1);
         }
-        return "Active Window";
+        if (title && title.trim().length > 0) {
+            return title.trim();
+        }
+        return "Window";
     }
 
     function getAppIcon(klass, title) {
-        if (!klass && !title) return "";
-        var lowerClass = (klass || "").toLowerCase();
-        var lowerTitle = (title || "").toLowerCase();
-
-        if (lowerClass.includes("brave") || lowerClass.includes("vivaldi")) return "󰊯";
-        if (lowerClass.includes("firefox")) return "󰈹";
-        if (lowerClass.includes("chrome") || lowerClass.includes("chromium")) return "󰊯";
-        if (lowerClass.includes("kitty") || lowerClass.includes("alacritty") || lowerClass.includes("foot") || lowerClass.includes("terminal")) return "󰄛";
-        if (lowerClass.includes("spotify")) return "󰓇";
-        if (lowerClass.includes("code") || lowerClass.includes("vscodium")) return "󰨞";
-        if (lowerClass.includes("discord") || lowerClass.includes("vesktop") || lowerClass.includes("webcord")) return "󰙯";
-        if (lowerClass.includes("telegram")) return "󰈰";
-        if (lowerClass.includes("thunar") || lowerClass.includes("nautilus") || lowerClass.includes("dolphin")) return "󰉋";
-        if (lowerClass.includes("gimp") || lowerClass.includes("inkscape")) return "󰽉";
-        if (lowerClass.includes("vlc") || lowerClass.includes("mpv")) return "󰕼";
-        if (lowerClass.includes("obsidian")) return "";
-        if (lowerClass.includes("steam")) return "󰓓";
-        if (lowerClass.includes("notion")) return "";
-
-        return "󰖲";
+        return IconService.getAppIcon(klass, title);
     }
 
     readonly property string eventsScriptPath: (typeof Quickshell.shellPath === "function")
@@ -79,7 +63,7 @@ Singleton {
             root.activeClass = "";
             root.activeTitle = "";
             root.activeDisplayName = "";
-            root.activeIcon = "";
+            root.activeIcon = "";
             return;
         }
         root.activeClass = klass || "";
@@ -88,7 +72,6 @@ Singleton {
         root.activeIcon = root.getAppIcon(klass, title);
     }
 
-    // Initial snapshot fetch
     Process {
         id: activeWinProc
         command: ["hyprctl", "activewindow", "-j"]
@@ -127,7 +110,6 @@ Singleton {
         }
     }
 
-    // Background passive thumbnail snapshot daemon (event-driven on window focus)
     Process {
         id: previewDaemonProc
         command: ["python3", root.previewScriptPath, "daemon"]

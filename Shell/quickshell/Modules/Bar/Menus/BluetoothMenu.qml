@@ -9,7 +9,6 @@ import qs.Services
 Item {
     id: root
 
-    // === PROPERTIES ===
     property color background: Colors.cfg.background
     property color surfaceContainer: Colors.cfg.surfaceContainer
     property color primary: Colors.cfg.primary
@@ -19,12 +18,10 @@ Item {
     property color warning: Colors.cfg.warning
     property color success: Colors.cfg.success
 
-    // === DIMENSIONS ===
     implicitWidth: 360
     implicitHeight: 450
     clip: true
 
-    // === ANIMATIONS ===
     MenuEntrance {
         id: btEntrance
 
@@ -33,7 +30,6 @@ Item {
         startOffsetY: 14
     }
 
-    // === UI CONTENT ===
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
@@ -44,13 +40,11 @@ Item {
             y: btEntrance.offsetY
         }
 
-        // Header section
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
             spacing: 8
 
-            // Bluetooth icon and title
             Row {
                 Layout.fillWidth: true
                 spacing: 8
@@ -83,7 +77,6 @@ Item {
                 }
             }
 
-            // Scan / refresh button
             Rectangle {
                 Layout.preferredWidth: 30
                 Layout.preferredHeight: 30
@@ -122,7 +115,6 @@ Item {
                 }
             }
 
-            // Master toggle switch
             Rectangle {
                 id: toggleBg
 
@@ -163,7 +155,6 @@ Item {
             }
         }
 
-        // Status message banner
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 28
@@ -189,19 +180,16 @@ Item {
             }
         }
 
-        // Divider
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
             color: Qt.alpha(root.textColor, 0.08)
         }
 
-        // === DEVICE LIST VIEW ===
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // State: bluetooth disabled
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 12
@@ -254,7 +242,6 @@ Item {
                 }
             }
 
-            // State: bluetooth enabled device list
             Flickable {
                 anchors.fill: parent
                 contentHeight: deviceCol.implicitHeight
@@ -268,7 +255,6 @@ Item {
                     width: parent.width
                     spacing: 10
 
-                    // === CONNECTED DEVICES ===
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -354,7 +340,6 @@ Item {
                                         }
                                     }
 
-                                    // Disconnect button
                                     Rectangle {
                                         implicitWidth: 28
                                         implicitHeight: 28
@@ -386,7 +371,6 @@ Item {
                         }
                     }
 
-                    // === PAIRED DEVICES ===
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -455,7 +439,6 @@ Item {
                                         }
                                     }
 
-                                    // Connect action
                                     Rectangle {
                                         implicitWidth: 28
                                         implicitHeight: 28
@@ -483,7 +466,6 @@ Item {
                                         }
                                     }
 
-                                    // Remove / unpair action
                                     Rectangle {
                                         implicitWidth: 28
                                         implicitHeight: 28
@@ -519,7 +501,6 @@ Item {
                         }
                     }
 
-                    // === AVAILABLE DISCOVERED DEVICES ===
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -588,7 +569,6 @@ Item {
                                         }
                                     }
 
-                                    // Pair button
                                     Rectangle {
                                         implicitWidth: 64
                                         implicitHeight: 26
@@ -625,7 +605,6 @@ Item {
                         }
                     }
 
-                    // Empty state when no devices are paired or discovered
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.topMargin: 20

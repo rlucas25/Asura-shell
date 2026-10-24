@@ -36,7 +36,6 @@ Singleton {
         statusResetTimer.restart();
     }
 
-    // Process helper for command execution
     Process {
         id: cmdProc
         command: []
@@ -53,7 +52,6 @@ Singleton {
         id: scanProc
         command: ["bluetoothctl", "scan", root.isScanning ? "off" : "on"]
         onExited: {
-            // keep scan state in sync
         }
     }
 

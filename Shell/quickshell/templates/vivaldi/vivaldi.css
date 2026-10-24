@@ -1,0 +1,853 @@
+/*
+ * ============================================================
+ * ASURA VIVALDI THEME
+ * ============================================================
+ *
+ * LAYOUT:
+ *
+ *   TAB BAR
+ *       -> Glass / Blur
+ *
+ *   NAVIGATION BAR
+ *       -> Solid / Opaque
+ *
+ *   START PAGE
+ *       -> Wallpaper + Dark Overlay
+ *       -> No Blur
+ *
+ * ============================================================
+ *
+ * MAIN VALUES TO ADJUST:
+ *
+ * Wallpaper darkness:
+ *     --asura-wallpaper-overlay-alpha
+ *
+ * Tab bar opacity:
+ *     --asura-tabbar-alpha
+ *
+ * Tab bar blur:
+ *     --asura-tabbar-blur
+ *
+ * Active tab opacity:
+ *     --asura-active-tab-alpha
+ *
+ * Active tab blur:
+ *     --asura-active-tab-blur
+ *
+ * Toolbar color:
+ *     --asura-toolbar-background
+ *
+ * ============================================================
+ */
+
+
+/*
+ * ============================================================
+ * VIVAlDI COLOR VARIABLES
+ * ============================================================
+ */
+
+#browser {
+
+    /*
+     * --------------------------------------------------------
+     * Text colors
+     * --------------------------------------------------------
+     */
+
+    --colorFg:
+        {{colors.on_surface.default.rgb}} !important;
+
+    --colorFgAlpha:
+        {{colors.on_surface.default.rgba | set_alpha: 0.10}} !important;
+
+    --colorFgIntense:
+        {{colors.on_surface.default.rgb}} !important;
+
+
+    /*
+     * Keep faded text readable.
+     *
+     * We intentionally do NOT darken these values because
+     * dark wallpapers can make inactive text unreadable.
+     */
+
+    --colorFgFaded:
+        {{colors.on_surface.default.rgb}} !important;
+
+    --colorFgFadedMore:
+        {{colors.on_surface.default.rgb}} !important;
+
+    --colorFgFadedMost:
+        {{colors.on_surface.default.rgb}} !important;
+
+
+    /*
+     * --------------------------------------------------------
+     * Background colors
+     * --------------------------------------------------------
+     */
+
+    --colorBg:
+        {{colors.secondary_container.default.rgb}} !important;
+
+    --colorBgAlpha:
+        {{colors.secondary_container.default.rgba | set_alpha: 0.90}} !important;
+
+    --colorBgAlphaHeavy:
+        {{colors.secondary_container.default.rgba | set_alpha: 0.65}} !important;
+
+    --colorBgAlphaHeavier:
+        {{colors.secondary_container.default.rgba | set_alpha: 0.25}} !important;
+
+    --colorBgAlphaBlur:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorBgDark:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorBgDarker:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorBgLight:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorBgLighter:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorBgLightIntense:
+        {{colors.surface_dim.default.rgb}} !important;
+
+    --colorBgIntense:
+        {{colors.surface_dim.default.rgb}} !important;
+
+    --colorBgIntenser:
+        {{colors.surface_dim.default.rgb}} !important;
+
+    --colorBgIntserAlpha:
+        {{colors.surface_dim.default.rgba | set_alpha: 0.92}} !important;
+
+    --colorBgInverse:
+        {{colors.surface_variant.default.rgb}} !important;
+
+    --colorBgInverser:
+        {{colors.surface_variant.default.rgb}} !important;
+
+    --colorBgFaded:
+        {{colors.primary.default.rgb}} !important;
+
+
+    /*
+     * --------------------------------------------------------
+     * Highlight / selection
+     * --------------------------------------------------------
+     */
+
+    --colorHighlightBg:
+        {{colors.primary.default.rgb}} !important;
+
+    --colorHighlightBgFaded:
+        {{colors.primary_fixed_dim.default.rgb}} !important;
+
+    --colorHighlightBgAlpha:
+        {{colors.primary.default.rgba | set_alpha: 0.10}} !important;
+
+    --colorHighlightBgDark:
+        {{colors.inverse_primary.default.rgb}} !important;
+
+    --colorHighlightFg:
+        {{colors.on_primary.default.rgb}} !important;
+
+    --colorHighlightFgAlpha:
+        {{colors.on_primary.default.rgba | set_alpha: 0.50}} !important;
+
+    --colorHighlightFgAlphaHeavy:
+        {{colors.on_primary.default.rgba | set_alpha: 0.25}} !important;
+
+
+    /*
+     * --------------------------------------------------------
+     * Accent
+     * --------------------------------------------------------
+     */
+
+    --colorAccentBg:
+        {{colors.surface.default.rgb}} !important;
+
+    --colorAccentBgAlpha:
+        {{colors.surface.default.rgba | set_alpha: 0.55}} !important;
+
+    --colorAccentBgAlphaHeavy:
+        {{colors.surface.default.rgba | set_alpha: 0.35}} !important;
+
+    --colorAccentBgDark:
+        {{colors.surface_container_low.default.rgb}} !important;
+
+    --colorAccentBgDarker:
+        {{colors.surface_container_lowest.default.rgb}} !important;
+
+    --colorAccentBgFaded:
+        {{colors.surface_dim.default.rgb}} !important;
+
+    --colorAccentBgFadedMore:
+        {{colors.surface_container_low.default.rgb}} !important;
+
+    --colorAccentBgFadedMost:
+        {{colors.surface_container_lowest.default.rgb}} !important;
+
+    --colorAccentBorder:
+        {{colors.outline_variant.default.rgb}} !important;
+
+    --colorAccentBorderDark:
+        {{colors.outline_variant.default.rgb}} !important;
+
+    --colorAccentFg:
+        {{colors.on_surface.default.rgb}} !important;
+
+    --colorAccentFgFaded:
+        {{colors.on_surface.default.rgb}} !important;
+
+    --colorAccentFgAlpha:
+        {{colors.on_surface.default.rgba | set_alpha: 0.15}} !important;
+
+    --colorAccentFgAlphaHeavy:
+        {{colors.on_surface.default.rgba | set_alpha: 0.35}} !important;
+
+
+    /*
+     * --------------------------------------------------------
+     * Borders
+     * --------------------------------------------------------
+     */
+
+    --colorBorder:
+        {{colors.outline.default.rgb}} !important;
+
+    --colorBorderDisabled:
+        {{colors.surface_tint.default.rgb}} !important;
+
+    --colorBorderSubtle:
+        {{colors.outline.default.rgb}} !important;
+
+    --colorBorderIntense:
+        {{colors.outline_variant.default.rgb}} !important;
+
+
+    /*
+     * --------------------------------------------------------
+     * Status colors
+     * --------------------------------------------------------
+     */
+
+    --colorSuccessBg:
+        {{colors.tertiary_container.default.rgb}} !important;
+
+    --colorSuccessBgAlpha:
+        {{colors.tertiary_container.default.rgba | set_alpha: 0.10}} !important;
+
+    --colorSuccessFg:
+        {{colors.on_tertiary_container.default.rgb}} !important;
+
+    --colorWarningBg:
+        {{colors.secondary_container.default.rgb}} !important;
+
+    --colorWarningBgAlpha:
+        {{colors.secondary_container.default.rgba | set_alpha: 0.10}} !important;
+
+    --colorWarningFg:
+        {{colors.on_secondary_container.default.rgb}} !important;
+
+    --colorErrorBg:
+        {{colors.error_container.default.rgb}} !important;
+
+    --colorErrorBgAlpha:
+        {{colors.error_container.default.rgba | set_alpha: 0.10}} !important;
+
+    --colorErrorFg:
+        {{colors.on_error.default.rgb}} !important;
+
+
+    /*
+     * ========================================================
+     * ASURA CUSTOM VALUES
+     * ========================================================
+     */
+
+
+    /*
+     * --------------------------------------------------------
+     * START PAGE WALLPAPER OVERLAY
+     *
+     * 0.00 = no darkening
+     * 0.20 = subtle
+     * 0.30 = light
+     * 0.38 = medium
+     * 0.45 = strong
+     * 0.55 = very strong
+     * --------------------------------------------------------
+     */
+
+    --asura-wallpaper-overlay-alpha: 0.38;
+
+
+    /*
+     * --------------------------------------------------------
+     * TOP NAVIGATION BAR
+     *
+     * This bar contains:
+     *
+     *   Back
+     *   Forward
+     *   Reload
+     *   Home
+     *   Address / URL
+     *   Extensions
+     *   Other toolbar buttons
+     *
+     * This is deliberately 100% opaque.
+     * --------------------------------------------------------
+     */
+
+    --asura-toolbar-background:
+        {{colors.surface.default.rgb}};
+
+
+    /*
+     * --------------------------------------------------------
+     * TAB BAR GLASS
+     * --------------------------------------------------------
+     *
+     * Lower alpha:
+     *     more wallpaper visible
+     *
+     * Higher alpha:
+     *     more solid
+     */
+
+    --asura-tabbar-alpha: 0.65;
+
+    /*
+     * Blur amount behind the tab bar.
+     */
+
+    --asura-tabbar-blur: 18px;
+
+
+    /*
+     * --------------------------------------------------------
+     * ACTIVE TAB
+     * --------------------------------------------------------
+     */
+
+    --asura-active-tab-alpha: 0.50;
+
+    --asura-active-tab-blur: 18px;
+}
+
+
+/*
+ * ============================================================
+ * TAB TEXT
+ * ============================================================
+ *
+ * Inactive tabs use the same readable foreground as active
+ * tabs.
+ *
+ * We also remove Vivaldi's fade mask.
+ * ============================================================
+ */
+
+
+/*
+ * Every tab title
+ */
+
+#browser .tab-position .tab .tab-header .title,
+#browser .tab-position .tab .title,
+#tabs-tabbar-container .tab-position .tab .tab-header .title,
+#tabs-tabbar-container .tab-position .tab .title {
+    color: {{colors.on_surface.default.rgb}} !important;
+    opacity: 1 !important;
+
+    -webkit-mask-image: none !important;
+}
+
+
+/*
+ * Inactive tab titles
+ */
+
+#browser .tab-position .tab:not(.active) .tab-header .title,
+#browser .tab-position .tab:not(.active) .tab .title,
+#tabs-tabbar-container .tab-position .tab:not(.active) .tab-header .title,
+#tabs-tabbar-container .tab-position .tab:not(.active) .tab .title {
+    color: {{colors.on_surface.default.rgb}} !important;
+    opacity: 1 !important;
+
+    -webkit-mask-image: none !important;
+}
+
+
+/*
+ * Active tab titles
+ */
+
+#browser .tab-position .tab.active .tab-header .title,
+#browser .tab-position .tab.active .tab .title,
+#tabs-tabbar-container .tab-position .tab.active .tab-header .title,
+#tabs-tabbar-container .tab-position .tab.active .tab .title {
+    color: {{colors.on_surface.default.rgb}} !important;
+    opacity: 1 !important;
+}
+
+
+/*
+ * ============================================================
+ * GLOBAL BROWSER BACKGROUND
+ * ============================================================
+ *
+ * The wallpaper lives here.
+ *
+ * It has NO blur.
+ *
+ * The first layer is a dark overlay.
+ * The second layer is the actual wallpaper.
+ * ============================================================
+ */
+
+#browser {
+    position: relative !important;
+
+    background-image:
+        linear-gradient(
+            {{colors.background.default.rgba | set_alpha: 0.38}},
+            {{colors.background.default.rgba | set_alpha: 0.38}}
+        ),
+        url("chrome://vivaldi-data/thumbnail/APFHCOH3KOCXQAA5MKVZZVNBTQSZAT6E.jpg"),
+        url("chrome://vivaldi-data/thumbnail/AsuraWallpaper.jpg") !important;
+
+    background-size: cover !important;
+
+    background-position: center !important;
+
+    background-repeat: no-repeat !important;
+
+    background-attachment: fixed !important;
+
+    isolation: isolate !important;
+}
+
+
+/*
+ * ============================================================
+ * START PAGE
+ * ============================================================
+ *
+ * The Start Page itself must be transparent.
+ *
+ * IMPORTANT:
+ * There is NO backdrop-filter here.
+ * Therefore the wallpaper remains sharp.
+ * ============================================================
+ */
+
+#browser .startpage,
+#browser .startpage .manager,
+#browser .startpage .manager > div,
+#browser .startpage .inner,
+#browser .startpage #main,
+#browser .startpage .startpage-content,
+#browser .startpage .SpeedDialView,
+#browser .startpage .SpeedDialView-Content,
+#browser .startpage .webpage {
+    background: transparent !important;
+
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    box-shadow: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * Start Page bottom navigation.
+ *
+ * Also transparent.
+ */
+
+#browser .startpage .startpage-navigation {
+    background: transparent !important;
+
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    box-shadow: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * ============================================================
+ * TOP NAVIGATION / TOOLBAR
+ * ============================================================
+ *
+ * THIS IS THE SOLID BAR.
+ *
+ * We target the actual UrlBar structure instead of #header.
+ *
+ * This is the area containing:
+ *
+ *   Back
+ *   Forward
+ *   Reload
+ *   URL
+ *   Extensions
+ *   Toolbar buttons
+ *
+ * It must NOT show the wallpaper.
+ * It must NOT blur.
+ * ============================================================
+ */
+
+
+/*
+ * Main UrlBar container.
+ */
+
+#browser > #main > .UrlBar {
+    background-color: var(--asura-toolbar-background) !important;
+
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * Actual toolbar inside UrlBar.
+ *
+ * Vivaldi uses toolbar-mainbar inside UrlBar in the
+ * horizontal top-toolbar layout.
+ */
+
+#browser > #main > .UrlBar > .toolbar-mainbar {
+    background-color: var(--asura-toolbar-background) !important;
+
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * Keep toolbar children from introducing their own
+ * transparency/blur.
+ */
+
+#browser > #main > .UrlBar > .toolbar-mainbar > *,
+#browser > #main > .UrlBar > .toolbar-mainbar .toolbar,
+#browser > #main > .UrlBar > .toolbar-mainbar .toolbar > * {
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * URL field.
+ *
+ * Transparent because the solid toolbar behind it should be
+ * visible as one continuous surface.
+ */
+
+#browser > #main > .UrlBar .UrlBar-AddressField {
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * Address field children.
+ */
+
+#browser > #main > .UrlBar .UrlBar-AddressField > * {
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * Toolbar buttons themselves.
+ *
+ * They remain transparent, allowing the solid toolbar color
+ * behind them to show through.
+ */
+
+#browser > #main > .UrlBar .ToolbarButton-Button {
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * ============================================================
+ * TAB BAR — GLASS
+ * ============================================================
+ *
+ * IMPORTANT:
+ *
+ * We use #tabs-tabbar-container instead of #header.
+ *
+ * This isolates the glass effect to the TAB BAR.
+ * ============================================================
+ */
+
+#browser #tabs-tabbar-container,
+#tabs-tabbar-container {
+    background-color:
+        {{colors.surface.default.rgba | set_alpha: 0.65}} !important;
+
+    background-image: none !important;
+
+    backdrop-filter:
+        blur(18px) !important;
+
+    -webkit-backdrop-filter:
+        blur(18px) !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * Tabbar wrapper.
+ *
+ * Keep its background transparent so the glass surface
+ * belongs to the tabbar itself.
+ */
+
+#browser #tabs-tabbar-container .tabbar-wrapper,
+#tabs-tabbar-container .tabbar-wrapper {
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * ============================================================
+ * ACTIVE TAB
+ * ============================================================
+ *
+ * The active tab gets an accent-colored glass surface.
+ * ============================================================
+ */
+
+#browser #tabs-tabbar-container .tab-position .tab.active,
+#tabs-tabbar-container .tab-position .tab.active {
+    background-color:
+        {{colors.primary.default.rgba | set_alpha: 0.50}} !important;
+
+    background-image: none !important;
+
+    backdrop-filter:
+        blur(18px) !important;
+
+    -webkit-backdrop-filter:
+        blur(18px) !important;
+}
+
+
+/*
+ * ============================================================
+ * INACTIVE TAB BACKGROUND
+ * ============================================================
+ *
+ * Transparent so the tab bar's glass surface remains visible.
+ * ============================================================
+ */
+
+#browser #tabs-tabbar-container .tab-position .tab:not(.active),
+#tabs-tabbar-container .tab-position .tab:not(.active) {
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * ============================================================
+ * TAB HOVER
+ * ============================================================
+ *
+ * Small surface when hovering an inactive tab.
+ * ============================================================
+ */
+
+#browser #tabs-tabbar-container .tab-position .tab:not(.active):hover,
+#tabs-tabbar-container .tab-position .tab:not(.active):hover {
+    background-color:
+        {{colors.surface_variant.default.rgba | set_alpha: 0.35}} !important;
+}
+
+
+/*
+ * ============================================================
+ * START PAGE NAVIGATION
+ * ============================================================
+ *
+ * No blur here.
+ * ============================================================
+ */
+
+#browser .startpage-navigation {
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+
+    background: transparent !important;
+
+    background-color: transparent !important;
+
+    background-image: none !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * ============================================================
+ * SETTINGS
+ * ============================================================
+ *
+ * Settings are solid.
+ * ============================================================
+ */
+
+#browser .vivaldi-settings,
+#browser .settings-content,
+#browser .settings-sidebar,
+.vivaldi-settings,
+.settings-content,
+.settings-sidebar {
+    background-color:
+        {{colors.surface.default.rgb}} !important;
+
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+}
+
+
+/*
+ * ============================================================
+ * POPUPS / DROPDOWNS
+ * ============================================================
+ *
+ * These can remain translucent.
+ *
+ * They are intentionally NOT part of the top toolbar.
+ * ============================================================
+ */
+
+#browser .OmniDropdown {
+    background-color:
+        {{colors.surface.default.rgba | set_alpha: 0.88}} !important;
+
+    backdrop-filter:
+        blur(12px) !important;
+
+    -webkit-backdrop-filter:
+        blur(12px) !important;
+
+    box-shadow: none !important;
+}
+
+
+/*
+ * Quick Command dialog
+ */
+
+#browser #modal-bg {
+    background-color:
+        {{colors.surface.default.rgba | set_alpha: 0.88}} !important;
+
+    backdrop-filter:
+        blur(12px) !important;
+
+    -webkit-backdrop-filter:
+        blur(12px) !important;
+}
+#browser .mainbar {
+    background-color: {{colors.surface.default.rgb}} !important;
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow: none !important;
+}
+
+#browser .mainbar > .toolbar-mainbar {
+    background-color: {{colors.surface.default.rgb}} !important;
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    box-shadow: none !important;
+}
+
+#browser .mainbar > .toolbar-mainbar > * {
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#browser .mainbar .UrlBar-AddressField,
+#browser .mainbar .UrlBar-AddressField > * {
+    background-color: transparent !important;
+    background-image: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}

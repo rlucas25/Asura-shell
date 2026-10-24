@@ -23,7 +23,6 @@ Singleton {
                 return found;
         }
 
-        // Default to the one currently playing or the first available
         var playing = list.find(p => p && p.isPlaying);
         if (playing)
             return playing;
@@ -63,21 +62,10 @@ Singleton {
     }
 
     function getAppIcon(identity) {
-        if (!identity)
-            return "󰎆";
-        var id = identity.toLowerCase();
-        if (id.includes("spotify"))
-            return "󰓇";
-        if (id.includes("firefox"))
-            return "󰈹";
-        if (id.includes("chrome") || id.includes("chromium") || id.includes("brave"))
-            return "󰊯";
-        if (id.includes("vlc"))
-            return "󰕼";
-        if (id.includes("mpv"))
-            return "󰐎";
-        if (id.includes("apple"))
-            return "󰀵";
-        return "󰎆";
+        if (!identity) return "";
+        var desktop = (root.activePlayer && root.activePlayer.identity === identity)
+            ? (root.activePlayer.desktopEntry || "")
+            : "";
+        return IconService.getAppIcon(identity, desktop);
     }
 }

@@ -5,30 +5,32 @@ import qs.Services
 import qs.Modules.Bar.Widgets
 import qs.Asura
 
-// === AUDIO VOLUME STATUS WIDGET ===
-
 Item {
     id: root
 
-    // Theme color properties
-    property color text
+    property color text: Colors.cfg.textBright
     property color color2: Colors.cfg.secondary
     property alias primary: root.text
     property alias secondary: root.color2
 
-    // State properties
     property int volumeLevel: AudioService.masterVolume
-    property bool hoverEnabled: true
+    property bool hoverEnabled: (typeof Config !== "undefined" && Config.barWidgetHoverTextEnabled !== undefined) ? Config.barWidgetHoverTextEnabled : true
     property bool showPercent: false
     property bool isMuted: AudioService.masterMuted
     property alias muted: root.isMuted
 
+    onVolumeLevelChanged: {
+        if (root.hoverEnabled) {
+            root.showPercent = true;
+            hideTimer.restart();
+        }
+    }
+
     readonly property bool isHovered: hoverHandler.hovered
-    readonly property bool expanded: isHovered || showPercent
+    readonly property bool expanded: (isHovered || showPercent) && root.hoverEnabled
     property alias hovered: root.isHovered
     property alias opened: root.isHovered
 
-    // Dynamic icon based on volume level and mute state
     readonly property string icon: {
         if (isMuted || volumeLevel === 0)
             return "volume_off";
@@ -39,12 +41,11 @@ Item {
         return "volume_down";
     }
 
-    // Signals
     signal clicked()
 
-    // Geometry and layout
-    implicitWidth: volumeLayout.implicitWidth + 12
-    implicitHeight: volumeLayout.implicitHeight
+    readonly property bool isVertical: Config.isBarVertical
+    implicitWidth: isVertical ? Math.round(22 * Config.barIconScale) : (volumeLayout.implicitWidth + Math.round(12 * Config.barIconScale))
+    implicitHeight: isVertical ? Math.round(22 * Config.barIconScale) : volumeLayout.implicitHeight
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
 
@@ -55,7 +56,6 @@ Item {
         }
     }
 
-    // Auto-hide percentage label timer
     Timer {
         id: hideTimer
 
@@ -67,17 +67,14 @@ Item {
         }
     }
 
-    // === VISUAL CAPSULE & CONTROLS ===
-
     HoverHandler {
         id: hoverHandler
 
-        enabled: root.hoverEnabled
         onHoveredChanged: {
-            if (hovered) {
+            if (hovered && root.hoverEnabled) {
                 root.showPercent = true;
                 hideTimer.stop();
-            } else {
+            } else if (!hovered) {
                 hideTimer.restart();
             }
         }
@@ -94,8 +91,10 @@ Item {
             AudioService.setMasterVolume(
                 AudioService.masterVolume + (wheel.angleDelta.y > 0 ? 5 : -5)
             );
-            root.showPercent = true;
-            hideTimer.restart();
+            if (root.hoverEnabled) {
+                root.showPercent = true;
+                hideTimer.restart();
+            }
         }
     }
 
@@ -118,6 +117,7 @@ Item {
     RowLayout {
         id: volumeLayout
 
+        visible: !root.isVertical
         anchors.centerIn: parent
         spacing: root.expanded ? 5 : 0
 
@@ -133,11 +133,59 @@ Item {
 
             text: root.volumeLevel + "%"
             font.family: "Google Sans"
-            font.pixelSize: 14
+            font.pixelSize: Math.round(14 * Config.barIconScale)
             font.weight: 500
             color: root.isMuted ? root.color2 : root.text
             opacity: root.expanded ? 1 : 0
             visible: opacity > 0
+            verticalAlignment: Text.AlignVCenter
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+    }
+
+    Item {
+        id: verticalContent
+
+        visible: root.isVertical
+        anchors.centerIn: parent
+        width: Math.round(22 * Config.barIconScale)
+        height: Math.round(22 * Config.barIconScale)
+
+        Icon {
+            id: vVolumeIcon
+
+            anchors.centerIn: parent
+            name: root.icon
+            color: root.isMuted ? root.color2 : root.text
+            opacity: root.expanded ? 0 : 1
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+
+        Text {
+            id: vVolumePercent
+
+            anchors.centerIn: parent
+            text: root.volumeLevel + "%"
+            font.family: "Google Sans"
+            font.pixelSize: Math.round((root.volumeLevel >= 100 ? 8.5 : 9.5) * Config.barIconScale)
+            font.weight: 600
+            color: root.isMuted ? root.color2 : root.text
+            opacity: root.expanded ? 1 : 0
+            visible: opacity > 0
+            horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
 
             Behavior on opacity {

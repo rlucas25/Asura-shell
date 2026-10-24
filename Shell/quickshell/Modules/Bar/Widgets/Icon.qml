@@ -1,21 +1,23 @@
 import QtQuick
+import qs.Asura
 
 Text {
     id: root
 
     property string name: ""
     property real size: 18
+    readonly property real effectiveSize: Math.round(size * ((typeof Config !== "undefined" && Config.barIconScale !== undefined) ? Config.barIconScale : 1.0))
     property int weight: 400
     property real fill: 1
     property real grade: 0
 
-    width: size
-    height: size
+    width: effectiveSize
+    height: effectiveSize
 
     text: name
 
     font.family: "Material Symbols Rounded"
-    font.pixelSize: size
+    font.pixelSize: effectiveSize
     font.weight: weight
 
     color: "white"
@@ -27,6 +29,6 @@ Text {
         "FILL": fill,
         "wght": weight,
         "GRAD": grade,
-        "opsz": size
+        "opsz": effectiveSize
     }
 }

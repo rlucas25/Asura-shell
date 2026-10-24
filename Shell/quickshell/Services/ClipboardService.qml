@@ -17,14 +17,12 @@ Item {
         ? Quickshell.shellPath("Services/clipboard_manager.py")
         : (Quickshell.env("HOME") + "/.config/quickshell/Services/clipboard_manager.py")
 
-    // Daemon process to watch Wayland clipboard event-driven (0% CPU when idle)
     Process {
         id: daemonProc
         command: ["python3", root.scriptPath, "daemon"]
         running: true
     }
 
-    // Process to list items
     Process {
         id: listProc
         command: ["python3", root.scriptPath, "list"]
@@ -40,14 +38,12 @@ Item {
                             root.itemsUpdated();
                         }
                     } catch (e) {
-                        // ignore parse errors
                     }
                 }
             }
         }
     }
 
-    // Generic Action Process for Copy, Delete, Clear
     Process {
         id: actionProc
         command: []

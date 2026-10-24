@@ -16,12 +16,11 @@ ColumnLayout {
     id: root
 
     spacing: 10
-    // Semantic colors
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color tertiary: Colors.cfg.tertiary
     property color background: Colors.cfg.background
-    property color surface: Qt.alpha(Colors.cfg.surface, Math.max(0, Math.min(1, Config.cfg.opacity)))
+    property color surface: Qt.alpha(Colors.cfg.surface, Config.effectiveGeneralOpacity)
     property color surfaceContainer: Colors.cfg.surfaceContainer
     property color surfaceVariant: Colors.cfg.surfaceVariant
     property color borderCol: Colors.cfg.border
@@ -33,17 +32,14 @@ ColumnLayout {
     property color error: Colors.cfg.error
     property color success: Colors.cfg.success
 
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias textColor: root.text
     property alias textMuted: root.textSecondary
     property alias foreground: root.on_primary
 
-    // Whether this tab is currently selected and visible
     property bool tabActive: false
 
-    // Staggered entrance animations for header and timer cards
     CardEntrance {
         id: headerEntrance
         active: root.tabActive
@@ -86,97 +82,136 @@ ColumnLayout {
         startOffsetY: 20
     }
 
-                    // ── Mode Selector Header ──
-                    RowLayout {
-                        id: modeSelectorRow
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredHeight: 30
-                        spacing: 10
-                        opacity: headerEntrance.opacity
-                        scale: headerEntrance.scale
-                        transform: Translate {
-                            y: headerEntrance.offsetY
-                        }
+    RowLayout {
+        id: modeSelectorRow
+        Layout.fillWidth: true
+        Layout.preferredHeight: 36
+        spacing: 10
+        opacity: headerEntrance.opacity
+        scale: headerEntrance.scale
+        transform: Translate {
+            y: headerEntrance.offsetY
+        }
 
-                        Repeater {
-                            model: [{
-                                "mode": "pomodoro",
-                                "icon": "󰄉",
-                                "label": "Pomodoro"
-                            }, {
-                                "mode": "timer",
-                                "icon": "󰔛",
-                                "label": "Timer"
-                            }, {
-                                "mode": "stopwatch",
-                                "icon": "󰑐",
-                                "label": "Stopwatch"
-                            }, {
-                                "mode": "alarm",
-                                "icon": "󰀠",
-                                "label": "Alarm"
-                            }]
+        Repeater {
+            model: [{
+                "mode": "pomodoro",
+                "icon": "timelapse",
+                "label": "Pomodoro"
+            }, {
+                "mode": "timer",
+                "icon": "timer",
+                "label": "Timer"
+            }, {
+                "mode": "stopwatch",
+                "icon": "pace",
+                "label": "Stopwatch"
+            }, {
+                "mode": "alarm",
+                "icon": "alarm",
+                "label": "Alarm"
+            }]
 
-                            delegate: Rectangle {
-                                required property var modelData
-                                required property int index
+            delegate: Rectangle {
+                id: modeBtn
+                required property var modelData
+                required property int index
 
-                                Layout.fillWidth: true
-                                implicitHeight: 36
-                                radius: 12
-                                color: TimerService.activeMode === modelData.mode ? root.color1 : (modeHover.hovered ? root.surfaceContainer : "transparent")
-                                border.color: TimerService.activeMode === modelData.mode ? root.color1 : Qt.alpha(root.textMuted, 0.08)
+                Layout.fillWidth: true
+                implicitHeight: 36
+                radius: Math.round(Config.effectiveGeneralRadius * 0.7)
+                color: TimerService.activeMode === modelData.mode ? root.color1 : (modeHover.hovered ? root.surfaceContainer : "transparent")
+                border.color: TimerService.activeMode === modelData.mode ? root.color1 : Qt.alpha(root.textColor, 0.08)
+                border.width: 1
+                scale: modeMouse.pressed ? 0.94 : (modeHover.hovered ? 1.02 : 1.0)
 
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: 6
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 140
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
-                                    Text {
-                                        text: modelData.icon
-                                        font.pixelSize: 14
-                                        color: TimerService.activeMode === modelData.mode ? root.foreground : root.textMuted
-                                    }
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
-                                    Text {
-                                        text: modelData.label
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: TimerService.activeMode === modelData.mode ? root.foreground : root.textMuted
-                                    }
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
-                                }
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: 6
 
-                                HoverHandler {
-                                    id: modeHover
-                                }
+                    Text {
+                        text: modelData.icon
+                        font.family: "Material Symbols Rounded"
+                        font.pixelSize: 16
+                        color: TimerService.activeMode === modelData.mode ? root.foreground : (modeHover.hovered ? root.textColor : root.textMuted)
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: TimerService.activeMode = modelData.mode
-                                }
-
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 180
+                                easing.type: Easing.OutCubic
                             }
-
                         }
-
                     }
 
-                    // POMODORO VIEW
+                    Text {
+                        text: modelData.label
+                        font.family: "Google Sans"
+                        font.pixelSize: 12
+                        font.bold: true
+                        color: TimerService.activeMode === modelData.mode ? root.foreground : (modeHover.hovered ? root.textColor : root.textMuted)
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 180
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+
+                }
+
+                HoverHandler {
+                    id: modeHover
+                }
+
+                MouseArea {
+                    id: modeMouse
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: TimerService.activeMode = modelData.mode
+                }
+
+            }
+
+        }
+
+    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         spacing: 12
                         visible: TimerService.activeMode === "pomodoro"
 
-                        // ── Left: Big Display + Controls ──
                         Rectangle {
                             id: pomoLeftCard
                             Layout.fillHeight: true
                             Layout.preferredWidth: 480
-                            radius: 18
+                            radius: Math.round(Config.effectiveGeneralRadius * 0.88)
                             color: root.surface
-                            border.color: Qt.alpha(root.textMuted, 0.08)
+                            border.color: Qt.alpha(root.textColor, 0.08)
+                            border.width: 1
                             opacity: pomoLeftEntrance.opacity
                             scale: pomoLeftEntrance.scale
                             transform: Translate {
@@ -188,7 +223,6 @@ ColumnLayout {
                                 anchors.margins: 14
                                 spacing: 6
 
-                                // Phase chips
                                 RowLayout {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: 8
@@ -224,7 +258,8 @@ ColumnLayout {
                                                     text: modelData.label
                                                     font.pixelSize: 10
                                                     font.bold: true
-                                                    color: TimerService.pomodoroPhase === modelData.key ? root.background : root.textMuted
+                                                    font.family: "Google Sans"
+                                                    color: TimerService.pomodoroPhase === modelData.key ? root.foreground : root.textMuted
                                                 }
 
                                             }
@@ -245,25 +280,89 @@ ColumnLayout {
                                     Layout.fillHeight: true
                                 }
 
-                                // Big Time Display
-                                Text {
-                                    text: TimerService.formatSeconds(TimerService.pomodoroSecondsLeft)
-                                    font.pixelSize: 58
-                                    font.family: "JetbrainsMono Nerd Font Propo"
-                                    font.bold: true
-                                    color: TimerService.pomodoroRunning ? root.color1 : root.textMuted
+                                Item {
+                                    id: pomoCircleContainer
+
                                     Layout.alignment: Qt.AlignHCenter
+                                    Layout.preferredWidth: 180
+                                    Layout.preferredHeight: 180
+
+                                    CircularProgress {
+                                        id: pomoCircle
+
+                                        anchors.fill: parent
+                                        lineWidth: 6
+                                        color: TimerService.pomodoroPhase === "work" ? root.color1 : (TimerService.pomodoroPhase === "shortBreak" ? Colors.cfg.success : Colors.cfg.warning)
+                                        trackColor: Qt.alpha(pomoCircle.color, 0.12)
+                                        value: {
+                                            var total = (TimerService.pomodoroPhase === "work" ? TimerService.workMinutes : (TimerService.pomodoroPhase === "shortBreak" ? TimerService.shortBreakMinutes : TimerService.longBreakMinutes)) * 60;
+                                            return total > 0 ? Math.max(0.0, Math.min(1.0, 1.0 - (TimerService.pomodoroSecondsLeft / total))) : 0.0;
+                                        }
+                                        opacity: TimerService.pomodoroRunning ? 1.0 : 0.0
+                                        scale: TimerService.pomodoroRunning ? 1.0 : 0.94
+
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: 300
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 300
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
+
+                                    Column {
+                                        id: pomoTimeCol
+
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        scale: TimerService.pomodoroRunning ? 1.0 : 1.35
+                                        transformOrigin: Item.Center
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 320
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+
+                                        Text {
+                                            id: pomoTimeText
+
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            text: TimerService.formatSeconds(TimerService.pomodoroSecondsLeft)
+                                            font.pixelSize: text.length > 5 ? 30 : 38
+                                            font.family: "JetbrainsMono Nerd Font Propo"
+                                            font.bold: true
+                                            color: TimerService.pomodoroRunning ? root.color1 : root.textBright
+
+                                            Behavior on color {
+                                                ColorAnimation {
+                                                    duration: 250
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            text: TimerService.pomodoroPhase === "work" ? "Focus Session" : (TimerService.pomodoroPhase === "shortBreak" ? "Short Break" : "Long Break")
+                                            font.pixelSize: 11
+                                            color: root.textMuted
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: TimerService.togglePomodoro()
+                                    }
                                 }
 
-                                // Phase label below time
-                                Text {
-                                    text: TimerService.pomodoroPhase === "work" ? "Focus Session" : (TimerService.pomodoroPhase === "shortBreak" ? "Short Break" : "Long Break")
-                                    font.pixelSize: 12
-                                    color: root.textMuted
-                                    Layout.alignment: Qt.AlignHCenter
-                                }
-
-                                // Cycle dots + counter
                                 RowLayout {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: 6
@@ -296,7 +395,6 @@ ColumnLayout {
                                     Layout.fillHeight: true
                                 }
 
-                                // Quick add buttons
                                 RowLayout {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: 8
@@ -356,7 +454,6 @@ ColumnLayout {
                                     height: 4
                                 }
 
-                                // Play / Reset / Skip controls
                                 RowLayout {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: 18
@@ -369,8 +466,9 @@ ColumnLayout {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰑐"
-                                            font.pixelSize: 16
+                                            text: "replay"
+                                            font.family: "Material Symbols Rounded"
+                                            font.pixelSize: 18
                                             color: root.textMuted
                                         }
 
@@ -391,8 +489,9 @@ ColumnLayout {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: TimerService.pomodoroRunning ? "" : ""
-                                            font.pixelSize: 22
+                                            text: TimerService.pomodoroRunning ? "pause" : "play_arrow"
+                                            font.family: "Material Symbols Rounded"
+                                            font.pixelSize: 26
                                             color: root.foreground
                                         }
 
@@ -423,8 +522,9 @@ ColumnLayout {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰒭"
-                                            font.pixelSize: 16
+                                            text: "skip_next"
+                                            font.family: "Material Symbols Rounded"
+                                            font.pixelSize: 18
                                             color: root.textMuted
                                         }
 
@@ -442,13 +542,14 @@ ColumnLayout {
 
                         }
 
-                        // ── Right: 3 Config Fields ──
                         Rectangle {
                             id: pomoRightCard
                             Layout.fillHeight: true
                             Layout.fillWidth: true
-                            radius: 18
+                            radius: Math.round(Config.effectiveGeneralRadius * 0.88)
                             color: root.surface
+                            border.color: Qt.alpha(root.textColor, 0.08)
+                            border.width: 1
                             opacity: pomoRightEntrance.opacity
                             scale: pomoRightEntrance.scale
                             transform: Translate {
@@ -471,7 +572,6 @@ ColumnLayout {
                                     Layout.fillHeight: true
                                 }
 
-                                // ── Field 1: Focus Time──
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 52
@@ -484,7 +584,8 @@ ColumnLayout {
                                         spacing: 8
 
                                         Text {
-                                            text: "󱎫"
+                                            text: "timer"
+                                            font.family: "Material Symbols Rounded"
                                             font.pixelSize: 18
                                             color: root.color1
                                         }
@@ -592,7 +693,6 @@ ColumnLayout {
 
                                 }
 
-                                // ── Field 2: Short Break ──
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 52
@@ -605,9 +705,10 @@ ColumnLayout {
                                         spacing: 8
 
                                         Text {
-                                            text: "󰒫"
+                                            text: "coffee"
+                                            font.family: "Material Symbols Rounded"
                                             font.pixelSize: 18
-                                            color: Colors.cfg.base0B
+                                            color: Colors.cfg.success
                                         }
 
                                         ColumnLayout {
@@ -627,14 +728,14 @@ ColumnLayout {
                                                     implicitWidth: 24
                                                     implicitHeight: 24
                                                     radius: 12
-                                                    color: Qt.alpha(Colors.cfg.base0B, 0.15)
+                                                    color: Qt.alpha(Colors.cfg.success, 0.15)
 
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: "−"
                                                         font.pixelSize: 14
                                                         font.bold: true
-                                                        color: Colors.cfg.base0B
+                                                        color: Colors.cfg.success
                                                     }
 
                                                     MouseArea {
@@ -682,14 +783,14 @@ ColumnLayout {
                                                     implicitWidth: 24
                                                     implicitHeight: 24
                                                     radius: 12
-                                                    color: Qt.alpha(Colors.cfg.base0B, 0.15)
+                                                    color: Qt.alpha(Colors.cfg.success, 0.15)
 
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: "+"
                                                         font.pixelSize: 14
                                                         font.bold: true
-                                                        color: Colors.cfg.base0B
+                                                        color: Colors.cfg.success
                                                     }
 
                                                     MouseArea {
@@ -710,7 +811,6 @@ ColumnLayout {
 
                                 }
 
-                                // ── Field 3: Number of Sessions ──
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 52
@@ -723,9 +823,10 @@ ColumnLayout {
                                         spacing: 8
 
                                         Text {
-                                            text: "󰑘"
+                                            text: "autorenew"
+                                            font.family: "Material Symbols Rounded"
                                             font.pixelSize: 18
-                                            color: Colors.cfg.base0E
+                                            color: Colors.cfg.secondary
                                         }
 
                                         ColumnLayout {
@@ -745,14 +846,14 @@ ColumnLayout {
                                                     implicitWidth: 24
                                                     implicitHeight: 24
                                                     radius: 12
-                                                    color: Qt.alpha(Colors.cfg.base0E, 0.15)
+                                                    color: Qt.alpha(Colors.cfg.secondary, 0.15)
 
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: "−"
                                                         font.pixelSize: 14
                                                         font.bold: true
-                                                        color: Colors.cfg.base0E
+                                                        color: Colors.cfg.secondary
                                                     }
 
                                                     MouseArea {
@@ -800,14 +901,14 @@ ColumnLayout {
                                                     implicitWidth: 24
                                                     implicitHeight: 24
                                                     radius: 12
-                                                    color: Qt.alpha(Colors.cfg.base0E, 0.15)
+                                                    color: Qt.alpha(Colors.cfg.secondary, 0.15)
 
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: "+"
                                                         font.pixelSize: 14
                                                         font.bold: true
-                                                        color: Colors.cfg.base0E
+                                                        color: Colors.cfg.secondary
                                                     }
 
                                                     MouseArea {
@@ -832,13 +933,12 @@ ColumnLayout {
                                     Layout.fillHeight: true
                                 }
 
-                                // Long break info
                                 Rectangle {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 32
                                     radius: 8
-                                    color: Qt.alpha(Colors.cfg.base0A, 0.08)
-                                    border.color: Qt.alpha(Colors.cfg.base0A, 0.15)
+                                    color: Qt.alpha(Colors.cfg.warning, 0.08)
+                                    border.color: Qt.alpha(Colors.cfg.warning, 0.15)
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -846,9 +946,10 @@ ColumnLayout {
                                         spacing: 6
 
                                         Text {
-                                            text: "󰄉"
-                                            font.pixelSize: 13
-                                            color: Colors.cfg.base0A
+                                            text: "hourglass_bottom"
+                                            font.family: "Material Symbols Rounded"
+                                            font.pixelSize: 14
+                                            color: Colors.cfg.warning
                                         }
 
                                         Text {
@@ -863,14 +964,14 @@ ColumnLayout {
                                             implicitWidth: 20
                                             implicitHeight: 20
                                             radius: 10
-                                            color: Qt.alpha(Colors.cfg.base0A, 0.15)
+                                            color: Qt.alpha(Colors.cfg.warning, 0.15)
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "−"
                                                 font.pixelSize: 12
                                                 font.bold: true
-                                                color: Colors.cfg.base0A
+                                                color: Colors.cfg.warning
                                             }
 
                                             MouseArea {
@@ -887,21 +988,21 @@ ColumnLayout {
                                             text: TimerService.longBreakMinutes + "m"
                                             font.pixelSize: 10
                                             font.bold: true
-                                            color: Colors.cfg.base0A
+                                            color: Colors.cfg.warning
                                         }
 
                                         Rectangle {
                                             implicitWidth: 20
                                             implicitHeight: 20
                                             radius: 10
-                                            color: Qt.alpha(Colors.cfg.base0A, 0.15)
+                                            color: Qt.alpha(Colors.cfg.warning, 0.15)
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "+"
                                                 font.pixelSize: 12
                                                 font.bold: true
-                                                color: Colors.cfg.base0A
+                                                color: Colors.cfg.warning
                                             }
 
                                             MouseArea {
@@ -924,13 +1025,14 @@ ColumnLayout {
 
                     }
 
-                    // CUSTOM TIMER VIEW
                     Rectangle {
                         id: timerCard
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 18
+                        radius: Math.round(Config.effectiveGeneralRadius * 0.88)
                         color: root.surface
+                        border.color: Qt.alpha(root.textColor, 0.08)
+                        border.width: 1
                         visible: TimerService.activeMode === "timer"
                         opacity: timerCardEntrance.opacity
                         scale: timerCardEntrance.scale
@@ -942,17 +1044,80 @@ ColumnLayout {
                             anchors.centerIn: parent
                             spacing: 14
 
-                            // Big Time Display
-                            Text {
-                                text: TimerService.formatSeconds(TimerService.timerSecondsLeft)
-                                font.pixelSize: 58
-                                font.family: "JetbrainsMono Nerd Font Propo"
-                                font.bold: true
-                                color: TimerService.timerRunning ? root.color1 : root.textMuted
+                            Item {
+                                id: timerCircleContainer
+
                                 Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: 180
+                                Layout.preferredHeight: 180
+
+                                CircularProgress {
+                                    id: timerCircle
+
+                                    anchors.fill: parent
+                                    lineWidth: 6
+                                    color: root.color1
+                                    trackColor: Qt.alpha(root.color1, 0.12)
+                                    value: TimerService.timerTotalSeconds > 0 ? Math.max(0.0, Math.min(1.0, 1.0 - (TimerService.timerSecondsLeft / TimerService.timerTotalSeconds))) : 0.0
+                                    opacity: TimerService.timerRunning ? 1.0 : 0.0
+                                    scale: TimerService.timerRunning ? 1.0 : 0.94
+
+                                    Behavior on opacity {
+                                        NumberAnimation {
+                                            duration: 300
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Behavior on scale {
+                                        NumberAnimation {
+                                            duration: 300
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    id: timerTextContainer
+
+                                    anchors.centerIn: parent
+                                    width: timerTimeText.implicitWidth
+                                    height: timerTimeText.implicitHeight
+                                    scale: TimerService.timerRunning ? 1.0 : 1.45
+                                    transformOrigin: Item.Center
+
+                                    Behavior on scale {
+                                        NumberAnimation {
+                                            duration: 320
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Text {
+                                        id: timerTimeText
+
+                                        anchors.centerIn: parent
+                                        text: TimerService.formatSeconds(TimerService.timerSecondsLeft)
+                                        font.pixelSize: text.length > 5 ? 30 : 38
+                                        font.family: "JetbrainsMono Nerd Font Propo"
+                                        font.bold: true
+                                        color: TimerService.timerRunning ? root.color1 : root.textBright
+
+                                        Behavior on color {
+                                            ColorAnimation {
+                                                duration: 250
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: TimerService.toggleTimer()
+                                }
                             }
 
-                            // Quick Add Buttons
                             RowLayout {
                                 Layout.alignment: Qt.AlignHCenter
                                 spacing: 8
@@ -1009,13 +1174,21 @@ ColumnLayout {
 
                             }
 
-                            // Manual Input Field
                             Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
                                 width: 220
                                 height: 38
                                 radius: 10
                                 color: root.surfaceContainer
+                                border.width: timerManualIn.activeFocus ? 2 : 1
+                                border.color: timerManualIn.activeFocus ? root.color1 : Qt.alpha(root.textColor, 0.08)
+
+                                Behavior on border.color {
+                                    ColorAnimation {
+                                        duration: 180
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -1024,7 +1197,8 @@ ColumnLayout {
 
                                     Text {
                                         text: "Define:"
-                                        font.pixelSize: 10
+                                        font.family: "Google Sans"
+                                        font.pixelSize: 11
                                         color: root.textMuted
                                     }
 
@@ -1034,8 +1208,10 @@ ColumnLayout {
                                         Layout.fillWidth: true
                                         text: Math.round(TimerService.timerTotalSeconds / 60).toString()
                                         color: root.textBright
+                                        font.family: "Google Sans"
                                         font.pixelSize: 13
                                         font.bold: true
+                                        selectByMouse: true
                                         horizontalAlignment: Text.AlignHCenter
                                         inputMethodHints: Qt.ImhDigitsOnly
                                         onAccepted: {
@@ -1056,7 +1232,6 @@ ColumnLayout {
 
                             }
 
-                            // Play / Reset Controls
                             RowLayout {
                                 Layout.alignment: Qt.AlignHCenter
                                 spacing: 20
@@ -1069,8 +1244,9 @@ ColumnLayout {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰑐"
-                                        font.pixelSize: 18
+                                        text: "replay"
+                                        font.family: "Material Symbols Rounded"
+                                        font.pixelSize: 20
                                         color: root.textMuted
                                     }
 
@@ -1091,8 +1267,9 @@ ColumnLayout {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: TimerService.timerRunning ? "" : ""
-                                        font.pixelSize: 22
+                                        text: TimerService.timerRunning ? "pause" : "play_arrow"
+                                        font.family: "Material Symbols Rounded"
+                                        font.pixelSize: 26
                                         color: root.foreground
                                     }
 
@@ -1121,13 +1298,14 @@ ColumnLayout {
 
                     }
 
-                    // STOPWATCH VIEW
                     Rectangle {
                         id: stopwatchCard
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 18
+                        radius: Math.round(Config.effectiveGeneralRadius * 0.88)
                         color: root.surface
+                        border.color: Qt.alpha(root.textColor, 0.08)
+                        border.width: 1
                         visible: TimerService.activeMode === "stopwatch"
                         opacity: stopwatchCardEntrance.opacity
                         scale: stopwatchCardEntrance.scale
@@ -1144,7 +1322,6 @@ ColumnLayout {
                                 Layout.fillHeight: true
                             }
 
-                            // Big Time Display
                             Text {
                                 text: TimerService.formatSeconds(TimerService.stopwatchSeconds)
                                 font.pixelSize: 58
@@ -1154,12 +1331,10 @@ ColumnLayout {
                                 Layout.alignment: Qt.AlignHCenter
                             }
 
-                            // Controls
                             RowLayout {
                                 Layout.alignment: Qt.AlignHCenter
                                 spacing: 18
 
-                                // Reset
                                 Rectangle {
                                     implicitWidth: 44
                                     implicitHeight: 44
@@ -1168,8 +1343,9 @@ ColumnLayout {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰑐"
-                                        font.pixelSize: 18
+                                        text: "replay"
+                                        font.family: "Material Symbols Rounded"
+                                        font.pixelSize: 20
                                         color: root.textColor
                                     }
 
@@ -1181,7 +1357,6 @@ ColumnLayout {
 
                                 }
 
-                                // Play/Pause
                                 Rectangle {
                                     implicitWidth: 56
                                     implicitHeight: 56
@@ -1191,8 +1366,9 @@ ColumnLayout {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: TimerService.stopwatchRunning ? "" : ""
-                                        font.pixelSize: 22
+                                        text: TimerService.stopwatchRunning ? "pause" : "play_arrow"
+                                        font.family: "Material Symbols Rounded"
+                                        font.pixelSize: 26
                                         color: root.foreground
                                     }
 
@@ -1215,7 +1391,6 @@ ColumnLayout {
 
                                 }
 
-                                // Lap
                                 Rectangle {
                                     implicitWidth: 44
                                     implicitHeight: 44
@@ -1225,8 +1400,9 @@ ColumnLayout {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰐕"
-                                        font.pixelSize: 18
+                                        text: "flag"
+                                        font.family: "Material Symbols Rounded"
+                                        font.pixelSize: 20
                                         color: root.textColor
                                     }
 
@@ -1241,7 +1417,6 @@ ColumnLayout {
 
                             }
 
-                            // Laps list
                             Flickable {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -1307,7 +1482,6 @@ ColumnLayout {
 
                     }
 
-                    // === ALARM VIEW ===
                     AlarmView {
                         id: alarmView
                         Layout.fillWidth: true
@@ -1331,6 +1505,5 @@ ColumnLayout {
                         successCol: root.success
                         warningCol: root.warning
                     }
-
 
 }

@@ -1,0 +1,181 @@
+{
+  "templates": [
+    {
+      "name": "Asura",
+      "title": "Quickshell (Asura)",
+      "desc": "Dynamic colors for shell bar, windows, and widgets",
+      "category": "desktop",
+      "icon": "desktop_windows",
+      "input": "quickshell/qs.json",
+      "output": "~/.config/asura/colors.json"
+    },
+    {
+      "name": "hyprland",
+      "title": "Hyprland",
+      "desc": "Color scheme and active/inactive borders for compositor",
+      "category": "desktop",
+      "icon": "grid_view",
+      "input": "hyprland/hyprland-colors.lua",
+      "output": "~/.config/hypr/scheme/current.lua",
+      "post_hook": "hyprctl reload"
+    },
+    {
+      "name": "kitty",
+      "title": "Kitty Terminal",
+      "desc": "Color theme for Kitty terminal emulator",
+      "category": "terminal",
+      "icon": "terminal",
+      "input": "kitty/kitty-colors.conf",
+      "output": "~/.config/kitty/themes/Asura.conf",
+      "post_hook": "kitty +kitten themes --reload-in=all Asura"
+    },
+    {
+      "name": "btop",
+      "title": "Btop",
+      "desc": "Resource and process system monitor",
+      "category": "terminal",
+      "icon": "monitoring",
+      "input": "btop/btop.theme",
+      "output": "~/.config/btop/themes/Asura.theme",
+      "post_hook": "pkill -USR2 btop || true"
+    },
+    {
+      "name": "micro",
+      "title": "Micro Editor",
+      "desc": "Color scheme for Micro terminal text editor",
+      "category": "editor",
+      "icon": "edit_note",
+      "input": "micro/micro.micro",
+      "output": "~/.config/micro/colorschemes/Asura.micro"
+    },
+    {
+      "name": "starship",
+      "title": "Starship Prompt",
+      "desc": "Color scheme for Starship prompt",
+      "category": "terminal",
+      "icon": "rocket_launch",
+      "input": "starship/starship-colors.toml",
+      "output": "~/.config/starship.toml"
+    },
+    {
+      "name": "fish",
+      "title": "Fish Shell",
+      "desc": "Syntax and autocomplete colors for Fish shell",
+      "category": "terminal",
+      "icon": "terminal",
+      "input": "fish/fish-colors.fish",
+      "output": "~/.config/fish/conf.d/material-colors.fish"
+    },
+    {
+      "name": "fastfetch",
+      "title": "Fastfetch",
+      "desc": "Visual configuration for system overview",
+      "category": "terminal",
+      "icon": "info",
+      "input": "fastfetch/fastfetch.jsonc",
+      "output": "~/.config/fastfetch/config.jsonc"
+    },
+    {
+      "name": "flameshot",
+      "title": "Flameshot",
+      "desc": "Interface colors for screenshot capture tool",
+      "category": "apps",
+      "icon": "photo_camera",
+      "input": "flameshot/flameshot.ini",
+      "output": "~/.config/flameshot/flameshot.ini"
+    },
+    {
+      "name": "gtk3",
+      "title": "GTK 3 (CSS)",
+      "desc": "Global CSS styling for GTK 3 applications",
+      "category": "desktop",
+      "icon": "palette",
+      "input": "gtk/gtk-colors.css",
+      "output": "~/.config/gtk-3.0/gtk.css",
+      "post_hook": "gsettings set org.gnome.desktop.interface gtk-theme \"\"; gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-{{mode}}"
+    },
+    {
+      "name": "gtk4",
+      "title": "GTK 4 / Libadwaita",
+      "desc": "Global CSS styling for GTK 4 / Libadwaita applications",
+      "category": "desktop",
+      "icon": "palette",
+      "input": "gtk/gtk-colors.css",
+      "output": "~/.config/gtk-4.0/gtk.css",
+      "post_hook": "{{script_dir}}/gtk-themes-reload.sh"
+    },
+    {
+      "name": "vivaldi",
+      "title": "Vivaldi Browser",
+      "desc": "UI colors and CSS mods for Vivaldi browser",
+      "category": "apps",
+      "icon": "language",
+      "input": "vivaldi/vivaldi.css",
+      "output": "~/.config/asura/vivaldi/vivaldi.css"
+    },
+    {
+      "name": "vivaldi-compat",
+      "title": "Vivaldi (Compat)",
+      "desc": "Compatibility theme copy for Material extensions",
+      "category": "apps",
+      "icon": "language",
+      "input": "vivaldi/vivaldi.css",
+      "output": "~/.config/matugen/vivaldi/vivaldi.css"
+    },
+    {
+      "name": "vscode-raw",
+      "title": "VS Code (Tokens)",
+      "desc": "Raw color definitions for Visual Studio Code",
+      "category": "editor",
+      "icon": "code",
+      "input": "vscode/vscode-colors",
+      "output": "~/.local/state/quickshell/user/generated/vscode-colors"
+    },
+    {
+      "name": "vscode-json",
+      "title": "VS Code (JSON)",
+      "desc": "JSON theme scheme generated for Visual Studio Code",
+      "category": "editor",
+      "icon": "code",
+      "input": "vscode/vscode-colors.json",
+      "output": "~/.local/state/quickshell/user/generated/vscode-colors.json"
+    },
+    {
+      "name": "vscode-raw-compat",
+      "title": "VS Code Raw (Cache)",
+      "desc": "Compatibility tokens for Material extensions",
+      "category": "editor",
+      "icon": "code",
+      "input": "vscode/vscode-colors",
+      "output": "~/.cache/matugen/vscode-colors"
+    },
+    {
+      "name": "vscode-json-compat",
+      "title": "VS Code JSON (Cache)",
+      "desc": "Compatibility JSON scheme for Material extensions",
+      "category": "editor",
+      "icon": "code",
+      "input": "vscode/vscode-colors.json",
+      "output": "~/.cache/matugen/vscode-colors.json"
+    },
+    {
+      "name": "cava",
+      "title": "Cava Audio",
+      "desc": "Gradient colors for Cava audio visualizer",
+      "category": "apps",
+      "icon": "graphic_eq",
+      "input": "cava/cava-colors.ini",
+      "output": "~/.config/cava/config",
+      "post_hook": "pkill -USR2 cava || true"
+    },
+    {
+      "name": "nvim",
+      "title": "Neovim",
+      "desc": "Vimscript/Lua colorscheme for Neovim editor",
+      "category": "editor",
+      "icon": "code_blocks",
+      "input": "nvim/nvim-colors.vim",
+      "output": "~/.config/nvim/colors/asura.vim"
+    }
+  ]
+}

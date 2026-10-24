@@ -8,50 +8,34 @@ import qs.Services
 Singleton {
     id: root
     
-    // ─────────────────────────────────────────────────────────────────────────
-    // GENERAL STATE & ALARM AUDIO
-    // ─────────────────────────────────────────────────────────────────────────
     property string activeMode: "pomodoro" // "pomodoro" | "timer" | "stopwatch" | "alarm"
 
-    // Emitted on every Pomodoro/Timer phase transition.
-    // message: Short English label (e.g. "Time to focus")
     signal stateTransitionOccurred(string icon, string message)
 
-    // true while the looping alarm is active; cleared by stopAlarmLoop()
     property bool alarmLoopRunning: false
 
-    // Loops the alarm sound indefinitely via a bash while-loop.
-    // Quickshell kills the bash process (SIGKILL) when running → false;
-    // any in-flight paplay instance finishes its current play-through and stops.
     Process {
         id: alarmLoopProc
         command: ["bash", "-c", "while true; do paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga; done"]
         running: root.alarmLoopRunning
     }
 
-    // Forcibly kills any lingering paplay process left behind when bash is SIGKILL'd.
     Process {
         id: killAlarmProc
         command: ["killall", "-q", "paplay"]
     }
 
-    // Start (or restart) the looping alarm.
     function startAlarmLoop() {
         alarmLoopRunning = false; // kill current loop if any
         alarmLoopRunning = true;
     }
 
-    // Stop the alarm completely. Called by the play/pause bar button.
     function stopAlarmLoop() {
         alarmLoopRunning = false;
-        // Also kill any orphaned paplay child process
         killAlarmProc.running = false;
         killAlarmProc.running = true;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 1. POMODORO STATE
-    // ─────────────────────────────────────────────────────────────────────────
     property int workMinutes: 25
     property int shortBreakMinutes: 5
     property int longBreakMinutes: 15
@@ -119,13 +103,9 @@ Singleton {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 2. CUSTOM TIMER STATE
-    // ─────────────────────────────────────────────────────────────────────────
     property int timerTotalSeconds: 300 // 5 minutes default
     property int timerSecondsLeft: 300
     property bool timerRunning: false
-    // True while the timer has finished and the alarm is ringing
     property bool timerRinging: false
 
     function startTimer() {
@@ -135,7 +115,6 @@ Singleton {
         timerRunning = true;
     }
 
-    // Pause the timer; if it was ringing, stop the alarm and reset
     function pauseTimer() {
         if (timerRinging) {
             stopAlarmLoop();
@@ -180,9 +159,6 @@ Singleton {
             timerTotalSeconds = n;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 3. STOPWATCH STATE
-    // ─────────────────────────────────────────────────────────────────────────
     property int stopwatchSeconds: 0
     property bool stopwatchRunning: false
     property var stopwatchLaps: []
@@ -214,9 +190,6 @@ Singleton {
         stopwatchLaps = list;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // FORMATTING & TICKING TIMER
-    // ─────────────────────────────────────────────────────────────────────────
     function formatSeconds(secs) {
         if (!secs || isNaN(secs) || secs < 0)
             return "00:00";
@@ -234,7 +207,6 @@ Singleton {
         running: root.pomodoroRunning || root.timerRunning || root.stopwatchRunning
         repeat: true
         onTriggered: {
-            // Pomodoro state machine tick
             if (root.pomodoroRunning) {
                 if (root.pomodoroSecondsLeft > 1) {
                     root.pomodoroSecondsLeft--;
@@ -244,7 +216,6 @@ Singleton {
                 }
             }
 
-            // Custom timer tick: when it reaches zero, enter ringing state
             if (root.timerRunning && !root.timerRinging) {
                 if (root.timerSecondsLeft > 0) {
                     root.timerSecondsLeft--;
@@ -256,16 +227,12 @@ Singleton {
                 }
             }
 
-            // Stopwatch tick
             if (root.stopwatchRunning) {
                 root.stopwatchSeconds++;
             }
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // SHARED SUMMARY PROPERTIES FOR BAR WIDGET
-    // ─────────────────────────────────────────────────────────────────────────
     readonly property bool isAnyActive: pomodoroRunning || timerRunning || timerRinging || stopwatchRunning || (pomodoroSecondsLeft < (workMinutes * 60) && pomodoroSecondsLeft > 0) || (timerSecondsLeft < timerTotalSeconds && timerSecondsLeft > 0) || stopwatchSeconds > 0 || AlarmService.isRinging
  readonly property string activeIcon: {
         if (activeMode === "pomodoro") {
@@ -294,7 +261,6 @@ Singleton {
         return AlarmService.isRinging ? "Ringing!" : AlarmService.nextAlarmCountdown;
     }
 
-    // Ringing timer still counts as "running" so the bar shows the pause button
     readonly property bool activeIsRunning: {
         if (activeMode === "pomodoro") return pomodoroRunning;
         if (activeMode === "timer") return timerRunning || timerRinging;
@@ -302,7 +268,6 @@ Singleton {
         return AlarmService.isRinging;
     }
 
-    // Full progress when the timer is ringing (bar stays filled)
     readonly property real activeProgress: {
         if (activeMode === "pomodoro") {
             var total = (pomodoroPhase === "work" ? workMinutes : (pomodoroPhase === "shortBreak" ? shortBreakMinutes : longBreakMinutes)) * 60;

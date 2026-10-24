@@ -9,7 +9,6 @@ import qs.Services
 Singleton {
     id: root
 
-    // Bar spectrum point resolution (20 bands calibrated for Player widget and audio visualizer)
     property int barCount: 20
     property var bars: {
         var arr = [];
@@ -94,7 +93,6 @@ Singleton {
         onTriggered: root.isRestarting = false
     }
 
-    // Watchdog to restart cava if long silence occurs during playback
     Timer {
         id: dataWatchdog
         interval: 10000
@@ -121,7 +119,6 @@ Singleton {
         command: ["pkill", "-x", "cava"]
     }
 
-    // Ensure user cava configuration file exists with proper 20-band settings and custom tuning
     Process {
         id: ensureConfigProc
         running: false

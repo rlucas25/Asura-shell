@@ -4,21 +4,16 @@ import QtQuick.Shapes
 Item {
     id: root
 
-    // Progress value normalized between 0.0 and 1.0
     property real value: 0
-    // Visual styling properties
     property color color: "white"
     property color trackColor: Qt.alpha(root.color, 0.18)
     property color strokeColor: "transparent"
     property real strokeWidth: 0
     property real startAngle: -90
     property bool clockwise: true
-    // Animation configuration
     property bool animated: true
     property int animationDuration: 280
-    // Clamped target progress
     readonly property real targetProgress: Math.max(0, Math.min(1, isNaN(value) ? 0 : value))
-    // Animated value for smooth visual transitions
     property real animProgress: targetProgress
     readonly property real progress: root.animated ? animProgress : targetProgress
     readonly property real radius: Math.max(0, Math.min(width, height) / 2 - (strokeWidth / 2))
@@ -28,14 +23,12 @@ Item {
     implicitWidth: 20
     implicitHeight: 20
 
-    // Background track circle
     Rectangle {
         anchors.fill: parent
         radius: width / 2
         color: root.trackColor
     }
 
-    // Active pie slice for partial progress (0.001 < progress < 0.999)
     Shape {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
@@ -66,7 +59,6 @@ Item {
 
     }
 
-    // Full circle overlay
     Rectangle {
         anchors.fill: parent
         radius: width / 2

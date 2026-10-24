@@ -1,0 +1,257 @@
+format = '''
+$directory$git_branch$rust$python
+$character'''
+
+palette = 'asura'
+
+[palettes.asura]
+mustard = '#af8700'
+color1 = '{{colors.primary_fixed_dim.default.hex}}'
+color2 = '{{colors.on_primary.default.hex}}'
+color3 = '{{colors.on_surface_variant.default.hex}}'
+color4 = '{{colors.surface_container.default.hex}}'
+color5 = '{{colors.on_primary.default.hex}}'
+color6 = '{{colors.surface_dim.default.hex}}'
+color7 = '{{colors.surface.default.hex}}'
+color8 = '{{colors.primary.default.hex}}'
+color9 = '{{colors.tertiary.default.hex}}'
+
+blue      = '{{colors.primary.default.hex}}'
+red       = '{{colors.error.default.hex}}'
+green     = '{{colors.tertiary.default.hex}}'
+yellow    = '{{colors.secondary.default.hex}}'
+cyan      = '{{colors.primary_fixed_dim.default.hex}}'
+magenta   = '{{colors.tertiary_fixed_dim.default.hex}}'
+white     = '{{colors.on_surface.default.hex}}'
+black     = '{{colors.surface.default.hex}}'
+
+rosewater = '{{colors.tertiary.default.hex}}'
+flamingo  = '{{colors.error.default.hex}}'
+pink      = '{{colors.tertiary_fixed_dim.default.hex}}'
+mauve     = '{{colors.tertiary_container.default.hex}}'
+maroon    = '{{colors.error_container.default.hex}}'
+peach     = '{{colors.secondary.default.hex}}'
+teal      = '{{colors.secondary_container.default.hex}}'
+sky       = '{{colors.primary_fixed_dim.default.hex}}'
+sapphire  = '{{colors.primary.default.hex}}'
+lavender  = '{{colors.secondary_fixed_dim.default.hex}}'
+
+text      = '{{colors.on_surface.default.hex}}'
+subtext1  = '{{colors.on_surface_variant.default.hex}}'
+subtext0  = '{{colors.outline.default.hex}}'
+
+overlay2  = '{{colors.outline.default.hex}}'
+overlay1  = '{{colors.outline_variant.default.hex}}'
+overlay0  = '{{colors.surface_container_highest.default.hex}}'
+surface2  = '{{colors.surface_container_high.default.hex}}'
+surface1  = '{{colors.surface_container.default.hex}}'
+surface0  = '{{colors.surface_container_low.default.hex}}'
+base      = '{{colors.surface.default.hex}}'
+mantle    = '{{colors.surface_dim.default.hex}}'
+crust     = '{{colors.surface_container_lowest.default.hex}}'
+
+[character]
+success_symbol = "[❯](color9 bold)"
+error_symbol = "[❯](@{error})"
+vicmd_symbol = "[🞈](#f9e2af)"
+
+
+[directory.substitutions]
+"Documents" = "󰈙 Documents"
+"Downloads" = " Downloads"
+"Music" = " Music"
+"Pictures" = "  Pictures"
+
+[battery]
+full_symbol = "󰁹 "
+charging_symbol = "󰂄 "
+discharging_symbol = "󰂃 "
+unknown_symbol = "󰂑 "
+empty_symbol = "󰂎 "
+
+[time]
+format = "[](fg:color8 bg:color4)[ ](bg:color8 fg:color5)[](fg:color8 bg:color4)[(bg:color8 fg:color5) $time](fg:color3 bg:color4)[](fg:color4) "
+disabled = false
+time_format = "%R"
+
+[python]
+format = "[](fg:color8 bg:color4)[${symbol}${version}](bg:color8 fg:color5)[](fg:color8 bg:color4)[(bg:color8 fg:color5)( ${virtualenv})](fg:color3 bg:color4)[](fg:color4) "
+symbol = '🐍'
+pyenv_prefix = 'venv'
+
+
+[aws]
+symbol = "  "
+
+[buf]
+symbol = " "
+
+[c]
+symbol = " "
+
+[cpp]
+symbol = " "
+
+[cmake]
+symbol = " "
+
+[conda]
+symbol = " "
+
+[crystal]
+symbol = " "
+
+[dart]
+symbol = " "
+
+[docker_context]
+symbol = " "
+
+[elixir]
+symbol = " "
+
+[elm]
+symbol = " "
+
+[fennel]
+symbol = " "
+
+[fossil_branch]
+symbol = " "
+
+[git_commit]
+tag_symbol = '  '
+
+[golang]
+symbol = " "
+
+[guix_shell]
+symbol = " "
+
+[haskell]
+symbol = " "
+
+[haxe]
+symbol = " "
+
+[hg_branch]
+symbol = " "
+
+[hostname]
+ssh_symbol = " "
+
+[java]
+symbol = " "
+
+[julia]
+symbol = " "
+
+[kotlin]
+symbol = " "
+
+[lua]
+symbol = " "
+
+[memory_usage]
+symbol = "󰍛 "
+
+[meson]
+symbol = "󰔷 "
+
+[nim]
+symbol = "󰆥 "
+
+[nix_shell]
+symbol = " "
+
+[nodejs]
+symbol = " "
+
+[ocaml]
+symbol = " "
+
+[os.symbols]
+Alpaquita = " "
+Alpine = " "
+AlmaLinux = " "
+Amazon = " "
+Android = " "
+Arch = " "
+Artix = " "
+CachyOS = " "
+CentOS = " "
+Debian = " "
+DragonFly = " "
+Emscripten = " "
+EndeavourOS = " "
+Fedora = " "
+FreeBSD = " "
+Garuda = "󰛓 "
+Gentoo = " "
+HardenedBSD = "󰞌 "
+Illumos = "󰈸 "
+Kali = " "
+Linux = " "
+Mabox = " "
+Macos = " "
+Manjaro = " "
+Mariner = " "
+MidnightBSD = " "
+Mint = " "
+NetBSD = " "
+NixOS = " "
+Nobara = " "
+OpenBSD = "󰈺 "
+openSUSE = " "
+OracleLinux = "󰌷 "
+Pop = " "
+Raspbian = " "
+Redhat = " "
+RedHatEnterprise = " "
+RockyLinux = " "
+Redox = "󰀘 "
+Solus = "󰠳 "
+SUSE = " "
+Ubuntu = " "
+Unknown = " "
+Void = " "
+Windows = "󰍲 "
+
+[package]
+symbol = "󰏗 "
+
+[perl]
+symbol = " "
+
+[php]
+symbol = " "
+
+[pijul_channel]
+symbol = " "
+
+[rlang]
+symbol = "󰟔 "
+
+[ruby]
+symbol = " "
+
+[rust]
+symbol = "󱘗 "
+
+[scala]
+symbol = " "
+
+[swift]
+symbol = " "
+
+[zig]
+symbol = " "
+
+[gradle]
+symbol = " "
+
+[cobol]
+symbol = " "
+
+[container]
+symbol = " "

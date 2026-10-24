@@ -5,7 +5,6 @@ import qs.Services
 Item {
     id: root
 
-    // Bar Audio Visualizer configuration properties
     property bool enabled: (Config.cfg && Config.cfg.barVisualizerEnabled !== undefined)
         ? Config.cfg.barVisualizerEnabled : true
     property string visualizerType: (Config.cfg && Config.cfg.barVisualizerType)
@@ -107,7 +106,6 @@ Item {
         anchors.fill: parent
         renderStrategy: Canvas.Threaded
 
-        // Helper to draw rounded rectangles portably
         function drawRoundedRect(ctx, x, y, w, h, r) {
             if (r <= 0) {
                 ctx.rect(x, y, w, h);
@@ -134,7 +132,6 @@ Item {
             if (!root.active || width <= 0 || height <= 0 || !root.points || root.points.length === 0)
                 return;
 
-            // Clip visualizer within the outer bar capsule radius if specified
             if (root.barRadius > 0) {
                 drawRoundedRect(ctx, 0, 0, width, height, root.barRadius);
                 ctx.clip();
@@ -171,7 +168,6 @@ Item {
             ctx.fillStyle = grad;
 
             if (root.visualizerType === "wave") {
-                // === SMOOTH WAVE VISUALIZER ===
                 var step = Math.max(6, root.density);
                 var sampleCount = Math.max(8, Math.floor(width / step));
                 var wavePoints = [];
@@ -191,7 +187,6 @@ Item {
                     wavePoints.push({ x: x, h: valH });
                 }
 
-                // Render filled wave based on origin
                 ctx.beginPath();
                 if (root.barsOrigin === "top") {
                     ctx.moveTo(0, 0);
@@ -205,7 +200,6 @@ Item {
                     ctx.closePath();
                     ctx.fill();
 
-                    // Wave outline crest
                     ctx.beginPath();
                     ctx.moveTo(wavePoints[0].x, wavePoints[0].h);
                     for (var j = 0; j < wavePoints.length - 1; j++) {
@@ -219,7 +213,6 @@ Item {
 
                 } else if (root.barsOrigin === "mirror" || root.barsOrigin === "center") {
                     var centerY = height / 2;
-                    // Upper half
                     ctx.moveTo(0, centerY);
                     ctx.lineTo(wavePoints[0].x, centerY - wavePoints[0].h / 2);
                     for (var u = 0; u < wavePoints.length - 1; u++) {
@@ -229,7 +222,6 @@ Item {
                     }
                     ctx.lineTo(width, centerY);
 
-                    // Lower half
                     for (var l = wavePoints.length - 1; l > 0; l--) {
                         var lMidX = (wavePoints[l].x + wavePoints[l - 1].x) / 2;
                         var lMidY = centerY + (wavePoints[l].h + wavePoints[l - 1].h) / 4;
@@ -239,7 +231,6 @@ Item {
                     ctx.fill();
 
                 } else {
-                    // Default: bottom rising wave
                     ctx.moveTo(0, height);
                     ctx.lineTo(wavePoints[0].x, height - wavePoints[0].h);
                     for (var b = 0; b < wavePoints.length - 1; b++) {
@@ -251,7 +242,6 @@ Item {
                     ctx.closePath();
                     ctx.fill();
 
-                    // Wave outline crest
                     ctx.beginPath();
                     ctx.moveTo(wavePoints[0].x, height - wavePoints[0].h);
                     for (var k = 0; k < wavePoints.length - 1; k++) {
@@ -265,7 +255,6 @@ Item {
                 }
 
             } else {
-                // === BARS VISUALIZER (CAVA EQUALIZER STYLE) ===
                 var barGap = Math.max(0, root.gap);
                 var barPitch = Math.max(4, root.density);
                 var barCount = Math.max(6, Math.floor((width + barGap) / barPitch));
@@ -297,7 +286,6 @@ Item {
                         drawRoundedRect(ctx, xPos, mCenter - mHalf, barWidth, curBarH, radius);
                         ctx.fill();
                     } else {
-                        // Default: bottom rising bars
                         drawRoundedRect(ctx, xPos, height - curBarH, barWidth, curBarH, radius);
                         ctx.fill();
                     }

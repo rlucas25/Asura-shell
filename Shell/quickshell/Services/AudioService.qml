@@ -38,6 +38,11 @@ Singleton {
                         root.micMuted = data.mic.muted;
                     }
                     if (Array.isArray(data.apps)) {
+                        for (var i = 0; i < data.apps.length; i++) {
+                            if (!data.apps[i].icon || data.apps[i].icon === "") {
+                                data.apps[i].icon = IconService.getAppIcon(data.apps[i].name);
+                            }
+                        }
                         root.appStreams = data.apps;
                     }
                 } catch (e) {

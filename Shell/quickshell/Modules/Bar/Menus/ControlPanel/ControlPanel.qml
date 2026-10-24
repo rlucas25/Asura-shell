@@ -14,13 +14,12 @@ import qs.Services
 Item {
     id: root
 
-    // SEMANTIC COLORS
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color tertiary: Colors.cfg.tertiary
     property color background: Colors.cfg.background
-    property color surface: Qt.alpha(Colors.cfg.surface, Math.max(0, Math.min(1, Config.cfg.opacity)))
-    property color surfaceContainer: Colors.cfg.surfaceContainer
+    property color surface: Qt.alpha(Colors.cfg.surface, Config.effectiveGeneralOpacity)
+    property color surfaceContainer: Qt.alpha(Colors.cfg.surfaceContainer, Config.effectiveGeneralOpacity)
     property color surfaceVariant: Colors.cfg.surfaceVariant
     property color borderCol: Colors.cfg.border
     property color on_primary: Colors.cfg.on_primary
@@ -30,14 +29,12 @@ Item {
     property color warning: Colors.cfg.warning
     property color error: Colors.cfg.error
     property color success: Colors.cfg.success
-    // COMPATIBILITY ALIASES
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias textColor: root.text
     property alias textMuted: root.textSecondary
     property alias foreground: root.on_primary
     property string activeTab: "dashboard" // "dashboard" | "system" | "timer" | "notifications"
-    // Tab switching scroll transition
     readonly property var tabsList: ["dashboard", "timer", "notifications", "system"]
     property string currentTab: activeTab
     property string previousTab: activeTab
@@ -86,7 +83,8 @@ Item {
 
     implicitWidth: 1040
     implicitHeight: 460
-    // Keyboard navigation
+    width: implicitWidth
+    height: implicitHeight
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
             const tabs = ["dashboard", "timer", "notifications", "system"];
@@ -205,14 +203,15 @@ Item {
         command: ["quickshell", "ipc", "call", "settings", "open"]
     }
 
-    // MAIN CONTAINER: SIDEBAR + CONTENT TABS
     Rectangle {
         id: mainContainer
 
-        //clip: true
-        anchors.fill: parent
+        width: 1040
+        height: 460
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
         color: "transparent"
-        radius: 30
+        radius: Config.effectiveControlPanelRadius
         scale: panelEntrance.scale
         opacity: panelEntrance.opacity
         transformOrigin: Item.Top
@@ -222,11 +221,10 @@ Item {
             anchors.margins: 14
             spacing: 14
 
-            // LEFT SIDEBAR
             Rectangle {
                 Layout.fillHeight: true
                 Layout.preferredWidth: 58
-                radius: 24
+                radius: Config.effectiveMenuRadius
                 color: root.surface
                 opacity: sidebarEntrance.opacity
 
@@ -447,7 +445,7 @@ Item {
                                         font.family: "Google Sans"
                                         font.pixelSize: 8
                                         font.bold: true
-                                        color: "#ffffff"
+                                        color: root.foreground
                                     }
 
                                 }
@@ -673,7 +671,6 @@ Item {
 
             }
 
-            // MAIN CONTENT TABS VIEWPORT
             Item {
                 id: tabsViewport
 
@@ -681,7 +678,6 @@ Item {
                 Layout.fillHeight: true
                 clip: true
 
-                // VIEW 1: DASHBOARD TAB
                 DashboardTab {
                     anchors.fill: parent
                     visible: root.isTabVisible("dashboard")
@@ -693,7 +689,6 @@ Item {
                     }
                 }
 
-                // VIEW 2: PRODUCTIVITY TAB (Pomodoro / Timer / Stopwatch)
                 TimerTab {
                     anchors.fill: parent
                     visible: root.isTabVisible("timer")
@@ -705,7 +700,6 @@ Item {
                     }
                 }
 
-                // VIEW 3: NOTIFICATIONS TAB
                 NotificationsTab {
                     anchors.fill: parent
                     visible: root.isTabVisible("notifications")
@@ -717,7 +711,6 @@ Item {
                     }
                 }
 
-                // VIEW 4: SYSTEM MONITOR TAB
                 SystemTab {
                     anchors.fill: parent
                     visible: root.isTabVisible("system")

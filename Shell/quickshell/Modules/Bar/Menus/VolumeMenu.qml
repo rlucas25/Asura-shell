@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.Animations
 import qs.Asura
 import qs.Services
+import qs.Components
 
 Item {
     id: root
@@ -37,7 +38,6 @@ Item {
         spacing: 12
         opacity: soundEntrance.opacity
 
-        // 1. HEADER
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
@@ -58,7 +58,6 @@ Item {
 
         }
 
-        // 2. MASTER & MICROPHONE CONTROLS
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: masterCol.implicitHeight + 20
@@ -73,7 +72,6 @@ Item {
                 anchors.margins: 15
                 spacing: 10
 
-                // Master Output Slider
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
@@ -102,7 +100,6 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        // Mute button
                         Rectangle {
                             implicitWidth: 26
                             implicitHeight: 26
@@ -125,60 +122,26 @@ Item {
 
                         }
 
-                        // Slider Bar
-                        Rectangle {
+                        SettingSlider {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 15
-                            color: "transparent"
-
-                            Rectangle {
-                                id: volumeBarPercent
-
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: parent.width * (Math.max(0, Math.min(1, AudioService.masterVolume / 100)))
-                                radius: 5
-                                color: AudioService.masterMuted ? root.secondary : root.primary
-                            }
-
-                            Rectangle {
-                                visible: AudioService.masterVolume < 100
-                                anchors.left: volumeBarPercent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: 25
-                                width: 10
-                                radius: 5
-                                color: volumeBarPercent.color
-                                border.width: 3
-                                border.color: root.surfaceContainer
-                            }
-
-                            MouseArea {
-                                function updateVol(mx) {
-                                    var pct = Math.round(Math.max(0, Math.min(1, mx / width)) * 100);
-                                    AudioService.setMasterVolume(pct);
-                                }
-
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: (mouse) => {
-                                    return updateVol(mouse.x);
-                                }
-                                onPositionChanged: (mouse) => {
-                                    if (pressed)
-                                        updateVol(mouse.x);
-
-                                }
-                            }
-
+                            Layout.preferredHeight: 16
+                            compact: true
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: AudioService.masterVolume
+                            activeColor: AudioService.masterMuted ? root.secondary : root.primary
+                            trackColor: Qt.alpha(root.textColor, 0.08)
+                            radius: 5
+                            showFloatingTooltip: false
+                            onMoved: (val) => AudioService.setMasterVolume(Math.round(val))
+                            onValueCommitted: (val) => AudioService.setMasterVolume(Math.round(val))
                         }
 
                     }
 
                 }
 
-                // Microphone Slider
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
@@ -207,7 +170,6 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        // Mute button
                         Rectangle {
                             implicitWidth: 26
                             implicitHeight: 26
@@ -230,55 +192,20 @@ Item {
 
                         }
 
-                        // Slider Bar
-                        Rectangle {
+                        SettingSlider {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 15
+                            Layout.preferredHeight: 16
+                            compact: true
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: AudioService.micVolume
+                            activeColor: AudioService.micMuted ? root.secondary : root.primary
+                            trackColor: Qt.alpha(root.textColor, 0.08)
                             radius: 5
-                            color: Qt.alpha(root.textColor, 0.08)
-                            clip: false
-
-                            Rectangle {
-                                id: micBarPercent
-
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: parent.width * (Math.max(0, Math.min(1, AudioService.micVolume / 100)))
-                                radius: 5
-                                color: AudioService.micMuted ? root.secondary : root.primary
-                            }
-
-                            Rectangle {
-                                visible: AudioService.micVolume < 100
-                                anchors.left: micBarPercent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: 25
-                                width: 10
-                                radius: 5
-                                color: micBarPercent.color
-                                border.width: 3
-                                border.color: root.surfaceContainer
-                            }
-
-                            MouseArea {
-                                function updateVol(mx) {
-                                    var pct = Math.round(Math.max(0, Math.min(1, mx / width)) * 100);
-                                    AudioService.setMicVolume(pct);
-                                }
-
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: (mouse) => {
-                                    return updateVol(mouse.x);
-                                }
-                                onPositionChanged: (mouse) => {
-                                    if (pressed)
-                                        updateVol(mouse.x);
-
-                                }
-                            }
-
+                            showFloatingTooltip: false
+                            onMoved: (val) => AudioService.setMicVolume(Math.round(val))
+                            onValueCommitted: (val) => AudioService.setMicVolume(Math.round(val))
                         }
 
                     }
@@ -289,7 +216,6 @@ Item {
 
         }
 
-        // 3. APPS VOLUME MIXER SECTION
         RowLayout {
             Layout.fillWidth: true
 
@@ -361,11 +287,11 @@ Item {
                                 Layout.fillWidth: true
                                 spacing: 6
 
-                                Text {
-                                    text: appCardRoot.modelData.icon || "󰓃"
-                                    font.pixelSize: 13
-                                    font.family: "GeistMono Nerd Font Propo Propo"
+                                ThemedIcon {
+                                    size: 16
+                                    source: appCardRoot.modelData.icon || "audio-x-generic"
                                     color: root.primary
+                                    fallbackGlyph: "󰓃"
                                 }
 
                                 Text {
@@ -475,7 +401,6 @@ Item {
 
                 }
 
-                // Empty state when no apps are playing
                 ColumnLayout {
                     visible: AudioService.appStreams.length === 0
                     Layout.alignment: Qt.AlignHCenter

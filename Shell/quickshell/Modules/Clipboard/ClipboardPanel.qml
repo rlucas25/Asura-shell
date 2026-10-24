@@ -75,8 +75,10 @@ PanelWindow {
         width: 500
         height: 600
         anchors.centerIn: parent
-        radius: 15
-        color: Colors.cfg.background
+        radius: Config.effectiveMenuRadius
+        color: Qt.alpha(Colors.cfg.background, Config.effectiveGeneralOpacity)
+        border.color: Qt.alpha(Colors.cfg.primary, 0.25)
+        border.width: 1
 
         MouseArea {
             anchors.fill: parent

@@ -13,10 +13,16 @@ Singleton {
 
     signal closeAllRequested()
     signal toggleLauncherRequested(string monitorName)
+    signal openLauncherRequested(string monitorName)
     signal toggleWallpaperRequested(string monitorName)
+    signal togglePresetsRequested(string monitorName)
     signal toggleControlPanelRequested(string monitorName)
     signal togglePlayerRequested(string monitorName)
     signal toggleRightMenuRequested(string menuType, string monitorName)
+    signal toggleShortcutsOverlayRequested(string monitorName)
+    signal openShortcutsOverlayRequested(string monitorName)
+    signal closeShortcutsOverlayRequested()
+    signal openSettingsTabRequested(string tabName)
 
     function registerMenuOpen(source) {
         var list = openSources.slice();
@@ -49,6 +55,24 @@ Singleton {
         return (Hyprland.focusedMonitor && Hyprland.focusedMonitor.name) ? Hyprland.focusedMonitor.name : "";
     }
 
+    function toggleShortcutsOverlay(monitorName) {
+        var m = (monitorName && monitorName !== "") ? monitorName : root.getFocusedMonitorName();
+        root.toggleShortcutsOverlayRequested(m);
+    }
+
+    function openShortcutsOverlay(monitorName) {
+        var m = (monitorName && monitorName !== "") ? monitorName : root.getFocusedMonitorName();
+        root.openShortcutsOverlayRequested(m);
+    }
+
+    function closeShortcutsOverlay() {
+        root.closeShortcutsOverlayRequested();
+    }
+
+    function openSettingsTab(tabName) {
+        root.openSettingsTabRequested(tabName || "");
+    }
+
     Connections {
         target: Hyprland
         function onFocusedWorkspaceChanged() {
@@ -64,7 +88,7 @@ Singleton {
     IpcHandler {
         target: "launcher"
         function toggle() { root.toggleLauncherRequested(root.getFocusedMonitorName()); }
-        function open() { root.toggleLauncherRequested(root.getFocusedMonitorName()); }
+        function open() { root.openLauncherRequested(root.getFocusedMonitorName()); }
         function close() { root.closeAll(); }
     }
 
@@ -72,6 +96,20 @@ Singleton {
         target: "wallpaper"
         function toggle() { root.toggleWallpaperRequested(root.getFocusedMonitorName()); }
         function open() { root.toggleWallpaperRequested(root.getFocusedMonitorName()); }
+        function close() { root.closeAll(); }
+    }
+
+    IpcHandler {
+        target: "presets"
+        function toggle() { root.togglePresetsRequested(root.getFocusedMonitorName()); }
+        function open() { root.togglePresetsRequested(root.getFocusedMonitorName()); }
+        function close() { root.closeAll(); }
+    }
+
+    IpcHandler {
+        target: "preset"
+        function toggle() { root.togglePresetsRequested(root.getFocusedMonitorName()); }
+        function open() { root.togglePresetsRequested(root.getFocusedMonitorName()); }
         function close() { root.closeAll(); }
     }
 
@@ -129,5 +167,26 @@ Singleton {
         function toggle() { root.toggleRightMenuRequested("clipboard", root.getFocusedMonitorName()); }
         function open() { root.toggleRightMenuRequested("clipboard", root.getFocusedMonitorName()); }
         function close() { root.closeAll(); }
+    }
+
+    IpcHandler {
+        target: "brightness"
+        function toggle() { root.toggleRightMenuRequested("brightness", root.getFocusedMonitorName()); }
+        function open() { root.toggleRightMenuRequested("brightness", root.getFocusedMonitorName()); }
+        function close() { root.closeAll(); }
+    }
+
+    IpcHandler {
+        target: "shortcuts"
+        function toggle() { root.toggleShortcutsOverlay(root.getFocusedMonitorName()); }
+        function open() { root.openShortcutsOverlay(root.getFocusedMonitorName()); }
+        function close() { root.closeShortcutsOverlay(); }
+    }
+
+    IpcHandler {
+        target: "keybinds"
+        function toggle() { root.toggleShortcutsOverlay(root.getFocusedMonitorName()); }
+        function open() { root.openShortcutsOverlay(root.getFocusedMonitorName()); }
+        function close() { root.closeShortcutsOverlay(); }
     }
 }

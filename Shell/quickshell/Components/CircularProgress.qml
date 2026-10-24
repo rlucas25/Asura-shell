@@ -6,9 +6,18 @@ Item {
 
     property real value: 0.0
     property color color: "white"
+    property color trackColor: Qt.alpha(root.color, 0.15)
     property real lineWidth: 7
 
     readonly property real progress: Math.max(0.0, Math.min(1.0, value))
+    property real animatedProgress: progress
+
+    Behavior on animatedProgress {
+        NumberAnimation {
+            duration: 350
+            easing.type: Easing.OutCubic
+        }
+    }
 
     implicitWidth: 100
     implicitHeight: 100
@@ -19,7 +28,7 @@ Item {
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
-            strokeColor: Qt.alpha(root.color, 0.15)
+            strokeColor: root.trackColor
             strokeWidth: root.lineWidth
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
@@ -44,10 +53,16 @@ Item {
         }
 
         ShapePath {
-            strokeColor: root.color
+            strokeColor: root.progress > 0.001 ? root.color : "transparent"
             strokeWidth: root.lineWidth
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
+
+            Behavior on strokeColor {
+                ColorAnimation {
+                    duration: 200
+                }
+            }
 
             PathAngleArc {
                 centerX: root.width / 2
@@ -64,7 +79,7 @@ Item {
                 )
 
                 startAngle: -90
-                sweepAngle: root.progress * 360
+                sweepAngle: root.animatedProgress * 360
             }
         }
     }

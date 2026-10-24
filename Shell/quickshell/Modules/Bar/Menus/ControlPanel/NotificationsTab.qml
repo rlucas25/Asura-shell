@@ -5,16 +5,16 @@ import Quickshell
 import qs.Animations
 import qs.Asura
 import qs.Services
+import qs.Components
 
 Rectangle {
     id: root
 
-    // Semantic colors
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color tertiary: Colors.cfg.tertiary
     property color background: Colors.cfg.background
-    property color surface: Qt.alpha(Colors.cfg.surface, Math.max(0, Math.min(1, Config.cfg.opacity)))
+    property color surface: Qt.alpha(Colors.cfg.surface, Config.effectiveGeneralOpacity)
     property color surfaceContainer: Colors.cfg.surfaceContainer
     property color surfaceVariant: Colors.cfg.surfaceVariant
     property color borderCol: Colors.cfg.border
@@ -25,25 +25,33 @@ Rectangle {
     property color warning: Colors.cfg.warning
     property color error: Colors.cfg.error
     property color success: Colors.cfg.success
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias textColor: root.text
     property alias textMuted: root.textSecondary
     property alias foreground: root.on_primary
-    // Whether this tab is currently selected and visible
     property bool tabActive: false
 
-    radius: 18
+    radius: Config.effectiveGeneralRadius
     color: root.surface
+    border.color: Qt.alpha(root.textColor, 0.08)
+    border.width: 1
 
-    // Staggered entrance animations
     CardEntrance {
         id: notifHeaderEntrance
 
         active: root.tabActive
         delay: 20
         startOffsetY: 12
+    }
+
+    CardEntrance {
+        id: notifListEntrance
+
+        active: root.tabActive
+        delay: 50
+        duration: 340
+        startOffsetY: 18
     }
 
     CardEntrance {
@@ -68,6 +76,7 @@ Rectangle {
 
             Text {
                 text: "Notification Center"
+                font.family: "Google Sans"
                 font.pixelSize: 14
                 font.bold: true
                 color: root.textMuted
@@ -75,21 +84,47 @@ Rectangle {
             }
 
             Rectangle {
-                implicitWidth: 80
+                id: clearAllBtn
+
+                visible: NotificationService.notifications.length > 0
+                implicitWidth: 84
                 implicitHeight: 28
-                radius: 8
-                color: root.surfaceContainer
-                border.color: Colors.cfg.warning
+                radius: Math.round(Config.effectiveGeneralRadius * 0.5)
+                color: clearAllH.hovered ? Qt.alpha(Colors.cfg.warning, 0.18) : root.surfaceContainer
+                border.color: clearAllH.hovered ? Colors.cfg.warning : Qt.alpha(Colors.cfg.warning, 0.35)
+                border.width: 1
+                scale: clearAllMouse.pressed ? 0.92 : (clearAllH.hovered ? 1.04 : 1)
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 140
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                HoverHandler {
+                    id: clearAllH
+                }
 
                 Text {
                     anchors.centerIn: parent
                     text: "Clear All"
-                    font.pixelSize: 10
+                    font.family: "Google Sans"
+                    font.pixelSize: 11
                     font.bold: true
                     color: Colors.cfg.warning
                 }
 
                 MouseArea {
+                    id: clearAllMouse
+
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: NotificationService.clearAll()
@@ -103,201 +138,270 @@ Rectangle {
 
         }
 
-        Flickable {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentHeight: notifCol.implicitHeight
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
 
-            ColumnLayout {
-                id: notifCol
+            Flickable {
+                id: notifFlickable
 
-                width: parent.width
-                spacing: 8
+                anchors.fill: parent
+                contentHeight: notifCol.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                visible: NotificationService.notifications.length > 0
+                opacity: notifListEntrance.opacity
+                scale: notifListEntrance.scale
 
-                Repeater {
-                    model: NotificationService.notifications
+                transform: Translate {
+                    y: notifListEntrance.offsetY
+                }
 
-                    delegate: Rectangle {
-                        id: notifCard
+                ColumnLayout {
+                    id: notifCol
 
-                        required property var modelData
-                        required property int index
+                    width: notifFlickable.width
+                    spacing: 8
 
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 84
-                        radius: 16
-                        color: cardH.hovered ? Qt.alpha(root.surfaceContainer, 0.9) : root.surfaceContainer
-                        border.color: cardH.hovered ? Qt.alpha(root.color1, 0.4) : Qt.alpha(root.color1, 0.18)
-                        border.width: 1
-                        clip: true
-                        opacity: notifCardEntrance.opacity
-                        scale: notifCardEntrance.scale
+                    Repeater {
+                        model: (NotificationService.notifications || []).slice(0, 20)
 
-                        HoverHandler {
-                            id: cardH
-                        }
+                        delegate: Rectangle {
+                            id: notifCard
 
-                        // Staggered entrance animation for each notification item
-                        CardEntrance {
-                            id: notifCardEntrance
+                            required property var modelData
+                            required property int index
 
-                            active: root.tabActive
-                            delay: Math.min(50 + notifCard.index * 35, 250)
-                            startOffsetY: 16
-                        }
+                            readonly property var notifId: (modelData && modelData.id !== undefined) ? modelData.id : null
+                            property bool dismissing: false
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 14
-                            spacing: 12
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: dismissing ? 0 : 84
+                            radius: Math.round(Config.effectiveGeneralRadius * 0.88)
+                            color: cardH.hovered ? Qt.alpha(root.surfaceVariant, 0.6) : root.surfaceContainer
+                            border.color: cardH.hovered ? Qt.alpha(root.color1, 0.35) : Qt.alpha(root.textColor, 0.08)
+                            border.width: 1
+                            clip: true
+                            opacity: dismissing ? 0.0 : 1.0
+                            scale: dismissing ? 0.95 : (cardH.hovered ? 1.01 : 1.0)
 
-                            // App Icon Circle
-                            Rectangle {
-                                Layout.preferredWidth: 42
-                                Layout.preferredHeight: 42
-                                radius: 21
-                                color: Qt.alpha(root.color1, 0.15)
-                                border.color: Qt.alpha(root.color1, 0.3)
-                                border.width: 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: (notifCard.modelData && (notifCard.modelData.appIcon || notifCard.modelData.icon)) ? (notifCard.modelData.appIcon || notifCard.modelData.icon) : "󰂚"
-                                    font.pixelSize: 20
-                                    font.family: "GeistMono Nerd Font Propo Propo"
-                                    color: root.color1
+                            Behavior on Layout.preferredHeight {
+                                NumberAnimation {
+                                    duration: 220
+                                    easing.type: Easing.OutCubic
                                 }
-
                             }
 
-                            // Notification Info
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                spacing: 2
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 180
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
 
-                                RowLayout {
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 180
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 160
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            transform: Translate {
+                                x: notifCard.dismissing ? 50 : 0
+
+                                Behavior on x {
+                                    NumberAnimation {
+                                        duration: 180
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+
+                            Timer {
+                                id: dismissTimer
+
+                                interval: 220
+                                repeat: false
+                                onTriggered: {
+                                    if (notifCard.notifId !== null && notifCard.notifId !== undefined) {
+                                        NotificationService.removeNotification(notifCard.notifId);
+                                    } else {
+                                        NotificationService.removeNotification(notifCard.index);
+                                    }
+                                }
+                            }
+
+                            HoverHandler {
+                                id: cardH
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 14
+                                spacing: 12
+
+                                Rectangle {
+                                    Layout.preferredWidth: 42
+                                    Layout.preferredHeight: 42
+                                    radius: 21
+                                    color: Qt.alpha(root.color1, 0.15)
+                                    border.color: Qt.alpha(root.color1, 0.3)
+                                    border.width: 1
+
+                                    ThemedIcon {
+                                        anchors.centerIn: parent
+                                        size: 22
+                                        source: (notifCard.modelData && (notifCard.modelData.appIcon || notifCard.modelData.icon)) ? (notifCard.modelData.appIcon || notifCard.modelData.icon) : "preferences-desktop-notification"
+                                        color: root.color1
+                                        fallbackGlyph: "notifications"
+                                    }
+
+                                }
+
+                                ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    spacing: 2
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+
+                                        Text {
+                                            text: (notifCard.modelData && notifCard.modelData.appName) ? notifCard.modelData.appName : "Notification"
+                                            font.pixelSize: 11
+                                            font.family: "Google Sans"
+                                            font.bold: true
+                                            color: root.color1
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            text: (notifCard.modelData && notifCard.modelData.time) ? notifCard.modelData.time : ""
+                                            font.pixelSize: 10
+                                            font.family: "Google Sans"
+                                            color: Qt.alpha(root.textColor, 0.5)
+                                        }
+
+                                    }
 
                                     Text {
-                                        text: (notifCard.modelData && notifCard.modelData.appName) ? notifCard.modelData.appName : "Notification"
-                                        font.pixelSize: 10
-                                        font.family: "GeistMono Nerd Font Propo"
+                                        text: (notifCard.modelData && (notifCard.modelData.summary || notifCard.modelData.title)) ? (notifCard.modelData.summary || notifCard.modelData.title) : ""
+                                        font.pixelSize: 12
+                                        font.family: "Google Sans"
                                         font.bold: true
-                                        color: root.color1
+                                        color: root.textColor
                                         Layout.fillWidth: true
                                         elide: Text.ElideRight
+                                        visible: text.length > 0
                                     }
 
                                     Text {
-                                        text: (notifCard.modelData && notifCard.modelData.time) ? notifCard.modelData.time : ""
-                                        font.pixelSize: 9
-                                        font.family: "GeistMono Nerd Font Propo"
-                                        color: Qt.alpha(root.textColor, 0.5)
+                                        text: (notifCard.modelData && notifCard.modelData.body) ? notifCard.modelData.body : ""
+                                        font.pixelSize: 11
+                                        font.family: "Google Sans"
+                                        color: Qt.alpha(root.textColor, 0.7)
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                        wrapMode: Text.NoWrap
+                                        visible: text.length > 0
                                     }
 
                                 }
 
-                                Text {
-                                    text: (notifCard.modelData && (notifCard.modelData.summary || notifCard.modelData.title)) ? (notifCard.modelData.summary || notifCard.modelData.title) : ""
-                                    font.pixelSize: 12
-                                    font.family: "GeistMono Nerd Font Propo"
-                                    font.bold: true
-                                    color: root.textColor
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                    visible: text.length > 0
-                                }
+                                Rectangle {
+                                    Layout.preferredWidth: 26
+                                    Layout.preferredHeight: 26
+                                    radius: 13
+                                    color: notifCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.2) : Qt.alpha(root.textColor, 0.06)
+                                    border.color: notifCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.4) : "transparent"
+                                    border.width: 1
+                                    scale: notifCloseMouse.pressed ? 0.90 : (notifCloseH.hovered ? 1.08 : 1)
 
-                                Text {
-                                    text: (notifCard.modelData && notifCard.modelData.body) ? notifCard.modelData.body : ""
-                                    font.pixelSize: 10
-                                    font.family: "GeistMono Nerd Font Propo"
-                                    color: Qt.alpha(root.textColor, 0.7)
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                    wrapMode: Text.NoWrap
-                                    visible: text.length > 0
-                                }
-
-                            }
-
-                            // Dismiss X Button
-                            Rectangle {
-                                Layout.preferredWidth: 26
-                                Layout.preferredHeight: 26
-                                radius: 13
-                                color: notifCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.2) : Qt.alpha(root.textColor, 0.06)
-                                border.color: notifCloseH.hovered ? Qt.alpha(Colors.cfg.warning, 0.4) : "transparent"
-                                border.width: 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "󰅖"
-                                    font.pixelSize: 12
-                                    font.family: "GeistMono Nerd Font Propo Propo"
-                                    color: notifCloseH.hovered ? Colors.cfg.warning : Qt.alpha(root.textColor, 0.6)
-                                }
-
-                                HoverHandler {
-                                    id: notifCloseH
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (notifCard.modelData && notifCard.modelData.id !== undefined) {
-                                            NotificationService.removeNotification(notifCard.modelData.id);
-                                        } else {
-                                            NotificationService.removeNotification(notifCard.index);
+                                    Behavior on scale {
+                                        NumberAnimation {
+                                            duration: 140
+                                            easing.type: Easing.OutCubic
                                         }
                                     }
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 180
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "close"
+                                        font.pixelSize: 14
+                                        font.family: "Material Symbols Rounded"
+                                        color: notifCloseH.hovered ? Colors.cfg.warning : Qt.alpha(root.textColor, 0.6)
+                                    }
+
+                                    HoverHandler {
+                                        id: notifCloseH
+                                    }
+
+                                    MouseArea {
+                                        id: notifCloseMouse
+
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (notifCard.dismissing) return;
+                                            notifCard.dismissing = true;
+                                            dismissTimer.restart();
+                                        }
+                                    }
+
                                 }
 
                             }
 
-                        }
-
-                        transform: Translate {
-                            y: notifCardEntrance.offsetY
                         }
 
                     }
 
                 }
 
-                ColumnLayout {
-                    id: notifEmptyState
+            }
 
-                    visible: NotificationService.notifications.length === 0
+            ColumnLayout {
+                id: notifEmptyState
+
+                anchors.centerIn: parent
+                visible: NotificationService.notifications.length === 0
+                spacing: 8
+                opacity: notifEmptyEntrance.opacity
+                scale: notifEmptyEntrance.scale
+
+                Text {
+                    text: "notifications_off"
+                    font.pixelSize: 36
+                    font.family: "Material Symbols Rounded"
+                    color: Qt.alpha(root.textColor, 0.3)
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: 40
-                    spacing: 6
-                    opacity: notifEmptyEntrance.opacity
-                    scale: notifEmptyEntrance.scale
+                }
 
-                    Text {
-                        text: "󰂚"
-                        font.pixelSize: 32
-                        font.family: "GeistMono Nerd Font Propo Propo"
-                        color: Qt.alpha(root.textColor, 0.3)
-                        Layout.alignment: Qt.AlignHCenter
-                    }
+                Text {
+                    text: "No archived notifications"
+                    font.family: "Google Sans"
+                    font.pixelSize: 12
+                    color: root.textMuted
+                    Layout.alignment: Qt.AlignHCenter
+                }
 
-                    Text {
-                        text: "No archived notifications"
-                        font.pixelSize: 12
-                        color: root.textMuted
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    transform: Translate {
-                        y: notifEmptyEntrance.offsetY
-                    }
-
+                transform: Translate {
+                    y: notifEmptyEntrance.offsetY
                 }
 
             }

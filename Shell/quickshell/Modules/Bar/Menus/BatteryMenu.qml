@@ -11,7 +11,6 @@ import qs.Asura
 Item {
     id: root
 
-    // === PROPERTIES ===
     property color primary: Colors.cfg.primary
     property color secondary: Colors.cfg.secondary
     property color background: Colors.cfg.background
@@ -19,7 +18,6 @@ Item {
     property color on_primary: Colors.cfg.on_primary
     property color text: Colors.cfg.text
 
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias foreground: root.on_primary
@@ -30,11 +28,9 @@ Item {
     readonly property bool isCharging: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Charging) : false
     readonly property bool isPlugged: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Unknown || isCharging) : false
 
-    // === DIMENSIONS ===
     implicitWidth: 360
     implicitHeight: 420
 
-    // === HELPER FUNCTIONS ===
     function setEnergyMode(modeName) {
         root.currentEnergyMode = modeName;
         powerSetProc.command = ["powerprofilesctl", "set", modeName];
@@ -42,7 +38,6 @@ Item {
         powerSetProc.running = true;
     }
 
-    // === ANIMATIONS ===
     MenuEntrance {
         id: batteryEntrance
 
@@ -51,7 +46,6 @@ Item {
         startOffsetY: 14
     }
 
-    // === PROCESSES AND TIMERS ===
     Process {
         id: powerGetProc
 
@@ -81,7 +75,6 @@ Item {
         }
     }
 
-    // === UI CONTENT ===
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -92,7 +85,6 @@ Item {
             y: batteryEntrance.offsetY
         }
 
-        // Top header
         RowLayout {
             id: header
 
@@ -111,7 +103,6 @@ Item {
             }
         }
 
-        // Battery status card
         Rectangle {
             id: statusCard
 
@@ -127,7 +118,6 @@ Item {
             RowLayout {
                 anchors.fill: parent
 
-                // Battery progress bar
                 Rectangle {
                     Layout.preferredWidth: parent.width
                     Layout.preferredHeight: parent.height
@@ -164,7 +154,6 @@ Item {
             color: root.textColor
         }
 
-        // 1. Performance mode card
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 65
@@ -235,7 +224,6 @@ Item {
             }
         }
 
-        // 2. Balanced mode card
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 65
@@ -306,7 +294,6 @@ Item {
             }
         }
 
-        // 3. Power saver mode card
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 65
@@ -382,7 +369,6 @@ Item {
         }
     }
 
-    // === LIFECYCLE ===
     Component.onCompleted: {
         powerGetProc.running = true;
     }

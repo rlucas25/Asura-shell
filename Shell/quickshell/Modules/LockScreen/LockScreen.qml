@@ -1,8 +1,8 @@
+import Qt5Compat.GraphicalEffects
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Effects
-import Qt5Compat.GraphicalEffects
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs.Asura
@@ -10,12 +10,47 @@ import qs.Services
 
 PanelWindow {
     id: root
-    WlrLayershell.namespace: "lockscreen"
 
+    property real panelReveal: 0
+    property real contentReveal: 0
+    property bool isUnlocking: false
+    property string typedPassword: ""
+    property string authError: ""
+    property string currentTime: ""
+    property string currentDate: ""
+    property bool authActive: false
+    readonly property bool showAuth: authActive || typedPassword.length > 0 || LockScreenService.isAuthenticating || authError !== ""
+
+    function clearInput() {
+        hiddenInput.text = "";
+        root.typedPassword = "";
+    }
+
+    function submitPassword() {
+        if (root.typedPassword.length > 0 && !LockScreenService.isAuthenticating && !root.isUnlocking)
+            LockScreenService.tryUnlock(root.typedPassword);
+
+    }
+
+    WlrLayershell.namespace: "lockscreen"
     visible: LockScreenService.isLocked || root.isUnlocking
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: (root.visible && !root.isUnlocking) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+    color: "transparent"
+    onVisibleChanged: {
+        if (visible && !isUnlocking) {
+            root.clearInput();
+            root.authError = "";
+            root.authActive = false;
+            root.panelReveal = 0;
+            root.contentReveal = 0;
+            introSequence.restart();
+            Qt.callLater(function() {
+                hiddenInput.forceActiveFocus();
+            });
+        }
+    }
 
     anchors {
         top: true
@@ -24,20 +59,6 @@ PanelWindow {
         bottom: true
     }
 
-    color: "transparent"
-
-    // === ANIMATION & REVEAL PROPERTIES ===
-    property real panelReveal: 0.0
-    property real contentReveal: 0.0
-    property bool isUnlocking: false
-
-    // === STATE & CREDENTIAL DATA ===
-    property string typedPassword: ""
-    property string authError: ""
-    property string currentTime: ""
-    property string currentDate: ""
-
-    // === CLOCK TIMER ===
     Timer {
         interval: 1000
         running: root.visible
@@ -45,27 +66,11 @@ PanelWindow {
         triggeredOnStart: true
         onTriggered: {
             var now = new Date();
-            root.currentTime = Qt.formatTime(now, "hh:mm");
-            
-            root.currentDate = Qt.formatDate(now, "dddd, MMMM d"); 
+            root.currentTime = Qt.formatTime(now, (Config.cfg && Config.cfg.clock24h) ? "HH:mm" : "hh:mm");
+            root.currentDate = Qt.formatDate(now, "ddd, MMMM d");
         }
     }
 
-    // === HELPER METHODS ===
-    function clearInput() {
-        hiddenInput.text = "";
-        root.typedPassword = "";
-    }
-
-    function submitPassword() {
-        if (root.typedPassword.length > 0 && !LockScreenService.isAuthenticating && !root.isUnlocking) {
-            var pwd = root.typedPassword;
-            root.clearInput();
-            LockScreenService.tryUnlock(pwd);
-        }
-    }
-
-    // === TRANSITIONS ===
     SequentialAnimation {
         id: introSequence
 
@@ -73,28 +78,33 @@ PanelWindow {
             NumberAnimation {
                 target: root
                 property: "panelReveal"
-                from: 0.0
-                to: 1.0
+                from: 0
+                to: 1
                 duration: 550
                 easing.type: Easing.OutCubic
             }
 
             SequentialAnimation {
-                PauseAnimation { duration: 120 }
+                PauseAnimation {
+                    duration: 120
+                }
+
                 NumberAnimation {
                     target: root
                     property: "contentReveal"
-                    from: 0.0
-                    to: 1.0
+                    from: 0
+                    to: 1
                     duration: 1400
                     easing.type: Easing.OutBack
                     easing.overshoot: 1.15
                 }
+
             }
+
         }
+
     }
 
-    // Exit sequence when authentication succeeds
     SequentialAnimation {
         id: unlockSequence
 
@@ -108,17 +118,19 @@ PanelWindow {
             NumberAnimation {
                 target: root
                 property: "contentReveal"
-                to: 0.0
+                to: 0
                 duration: 220
                 easing.type: Easing.InQuad
             }
+
             NumberAnimation {
                 target: root
                 property: "panelReveal"
-                to: 0.0
+                to: 0
                 duration: 300
                 easing.type: Easing.InOutCubic
             }
+
         }
 
         ScriptAction {
@@ -126,25 +138,10 @@ PanelWindow {
                 root.isUnlocking = false;
             }
         }
-    }
 
-    // === WINDOW LIFECYCLE & INPUT FOCUS ===
-    onVisibleChanged: {
-        if (visible && !isUnlocking) {
-            root.clearInput();
-            root.authError = "";
-            root.panelReveal = 0.0;
-            root.contentReveal = 0.0;
-            introSequence.restart();
-            Qt.callLater(function() {
-                hiddenInput.forceActiveFocus();
-            });
-        }
     }
 
     Connections {
-        target: LockScreenService
-
         function onAuthFailed() {
             root.authError = "Incorrect password";
             root.clearInput();
@@ -155,15 +152,19 @@ PanelWindow {
         function onAuthSuccess() {
             root.clearInput();
             root.authError = "";
+            root.authActive = false;
             unlockSequence.restart();
         }
+
+        target: LockScreenService
     }
 
-    // === BACKDROP & BLURRED WALLPAPER ===
     Item {
         anchors.fill: parent
+
         Image {
             id: bgWallpaper
+
             anchors.fill: parent
             source: {
                 var wp = Config.cfg.wallpaper;
@@ -174,15 +175,14 @@ PanelWindow {
             visible: true
         }
 
-
         MultiEffect {
             id: blurEffect
+
             anchors.fill: bgWallpaper
             source: bgWallpaper
             blurEnabled: true
             blurMax: 24
-            blur: 1.0
-
+            blur: 1
             opacity: root.panelReveal
         }
 
@@ -190,34 +190,47 @@ PanelWindow {
             anchors.fill: parent
             opacity: root.panelReveal
 
-            // Dark frosted tint layer
             Rectangle {
                 anchors.fill: parent
                 color: Qt.alpha(Colors.cfg.background, 0.55)
             }
 
-            // Subtle primary gradient vignette
             Rectangle {
                 anchors.fill: parent
+
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Qt.alpha(Colors.cfg.primary, 0.12) }
-                    GradientStop { position: 1.0; color: Qt.alpha(Colors.cfg.background, 0.35) }
+                    GradientStop {
+                        position: 0
+                        color: Qt.alpha(Colors.cfg.primary, 0.12)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: Qt.alpha(Colors.cfg.background, 0.35)
+                    }
+
                 }
+
             }
+
         }
+
     }
 
-    // Intercept clicks to maintain focus on password field
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.ArrowCursor
-        onClicked: hiddenInput.forceActiveFocus()
+        onClicked: {
+            root.authActive = true;
+            hiddenInput.forceActiveFocus();
+        }
     }
 
-    // Invisible text input to intercept keys reliably
     TextInput {
         id: hiddenInput
+
         focus: root.visible && !root.isUnlocking
+        readOnly: LockScreenService.isAuthenticating || root.isUnlocking
         echoMode: TextInput.Normal
         opacity: 0
         width: 1
@@ -226,87 +239,211 @@ PanelWindow {
 
         onTextChanged: {
             root.typedPassword = text;
-            if (root.authError) root.authError = "";
+            if (text.length > 0)
+                root.authActive = true;
+            if (root.authError)
+                root.authError = "";
         }
 
-        onAccepted: root.submitPassword()
+        onAccepted: {
+            if (!root.showAuth) {
+                root.authActive = true;
+            } else {
+                root.submitPassword();
+            }
+        }
+
+        Keys.onPressed: event => {
+            if (!root.authActive && event.key !== Qt.Key_Escape) {
+                root.authActive = true;
+            }
+        }
 
         Keys.onEscapePressed: {
             root.clearInput();
             root.authError = "";
+            root.authActive = false;
         }
     }
 
-    // === MAIN LOCKSCREEN CONTENT CONTAINER ===
+    Timer {
+        id: idleAuthTimer
+        interval: 10000
+        repeat: false
+        running: root.authActive && root.typedPassword.length === 0 && !LockScreenService.isAuthenticating && root.authError === ""
+        onTriggered: root.authActive = false
+    }
+
     ColumnLayout {
         id: mainContentCol
-        anchors.centerIn: parent
-        spacing: 36
-        width: Math.min(480, root.width - 40)
 
+        anchors.centerIn: parent
+        spacing: root.showAuth ? 36 : 0
         opacity: root.contentReveal
-        scale: 0.90 + 0.10 * root.contentReveal
-        transform: Translate {
-            y: 24 * (1.0 - root.contentReveal)
+        scale: 0.9 + 0.1 * root.contentReveal
+
+        Behavior on spacing {
+            NumberAnimation {
+                duration: 380
+                easing.type: Easing.OutCubic
+            }
         }
 
-        // === TIME & DATE ===
         ColumnLayout {
+            id: clockCol
+
             Layout.alignment: Qt.AlignHCenter
-            spacing: 6
+            spacing: 8
+            scale: root.showAuth ? 0.86 : 1.0
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 380
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.currentTime
-                font.pixelSize: 84
+                horizontalAlignment: Text.AlignHCenter
+                text: root.currentDate
+                font.pixelSize: 28
                 font.bold: true
-                font.family: "GeistMono Nerd Font Propo Propo ExtraBold"
+                font.family: "Google Sans"
+                color: Colors.cfg.primary
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                horizontalAlignment: Text.AlignHCenter
+                text: root.currentTime
+                font.pixelSize: 156
+                font.bold: true
+                font.family: "Google Sans"
                 color: Colors.cfg.textBright
             }
 
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: root.currentDate
-                font.pixelSize: 17
-                font.bold: true
-                font.family: "GeistMono Nerd Font Propo Propo"
-                color: Colors.cfg.primary
-            }
         }
 
-        // === USER & INTERACTIVE AUTHENTICATION CARD ===
         Item {
             id: authContainer
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 380
-            Layout.preferredHeight: 240
 
-            // Shake Animation on Authentication Error
-            transform: Translate { id: shakeTranslate }
+            Layout.alignment: Qt.AlignHCenter
+            implicitWidth: authContentCol.implicitWidth
+            implicitHeight: root.showAuth ? authContentCol.implicitHeight : 0
+            clip: true
+            opacity: root.showAuth ? 1.0 : 0.0
+            visible: opacity > 0.001
+
+            Behavior on implicitHeight {
+                NumberAnimation {
+                    duration: 400
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             SequentialAnimation {
                 id: shakeAnim
-                NumberAnimation { target: shakeTranslate; property: "x"; to: -16; duration: 50; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: 16; duration: 50; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: -12; duration: 50; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: 12; duration: 50; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: -6; duration: 40; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: 6; duration: 40; easing.type: Easing.OutQuad }
-                NumberAnimation { target: shakeTranslate; property: "x"; to: 0; duration: 40; easing.type: Easing.OutQuad }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: -24
+                    duration: 50
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: 24
+                    duration: 50
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: -18
+                    duration: 50
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: 18
+                    duration: 50
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: -10
+                    duration: 40
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: 10
+                    duration: 40
+                    easing.type: Easing.OutQuad
+                }
+
+                NumberAnimation {
+                    target: shakeTranslate
+                    property: "x"
+                    to: 0
+                    duration: 40
+                    easing.type: Easing.OutQuad
+                }
+
             }
 
             ColumnLayout {
-                anchors.fill: parent
-                spacing: 16
+                id: authContentCol
 
-                // User Avatar
+                anchors.centerIn: parent
+                spacing: 20
+
                 Item {
+                    id: avatarContainer
+
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 100
-                    implicitHeight: 100
+                    implicitWidth: 170
+                    implicitHeight: 170
+                    scale: root.showAuth ? 1.0 : 0.2
+                    opacity: root.showAuth ? 1.0 : 0.0
+                    transformOrigin: Item.Center
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 450
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 1.25
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 250
+                        }
+                    }
 
                     Image {
                         id: profilePic
+
                         anchors.fill: parent
                         source: "file://" + Quickshell.env("HOME") + "/.face.icon"
                         fillMode: Image.PreserveAspectCrop
@@ -315,20 +452,24 @@ PanelWindow {
 
                     Rectangle {
                         id: avatarMask
+
                         anchors.fill: parent
-                        radius: 100
+                        radius: 170
                         color: Colors.cfg.surfaceContainer
                         border.color: Qt.alpha(Colors.cfg.primary, 0.45)
-                        border.width: 2
-                        
+                        border.width: 3
+
                         Text {
                             anchors.centerIn: parent
                             visible: profilePic.status !== Image.Ready
-                            text: "󰀉"
-                            font.pixelSize: 42
-                            font.family: "GeistMono Nerd Font Propo Propo"
+                            text: "person"
+                            font.pixelSize: 84
+                            font.family: "Material Symbols Rounded"
                             color: Colors.cfg.primary
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
+
                     }
 
                     OpacityMask {
@@ -337,103 +478,181 @@ PanelWindow {
                         maskSource: avatarMask
                         visible: profilePic.status === Image.Ready
                     }
+
                 }
 
-                // Username
                 Text {
                     Layout.alignment: Qt.AlignHCenter
+                    horizontalAlignment: Text.AlignHCenter
                     text: LockScreenService.username
-                    font.pixelSize: 18
+                    font.pixelSize: 28
                     font.bold: true
                     font.capitalization: Font.Capitalize
+                    font.family: "Google Sans"
                     color: Colors.cfg.text
+                    opacity: root.showAuth ? 1.0 : 0.0
+                    scale: root.showAuth ? 1.0 : 0.85
+                    transformOrigin: Item.Center
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 280
+                        }
+                    }
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 350
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
 
-                // Password Input Pill
                 Rectangle {
                     id: passwordPill
-                    Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 320
-                    implicitHeight: 46
-                    radius: 14
-                    clip: true
-                    color: Qt.alpha(Colors.cfg.surfaceContainer, 0.85)
-                    border.color: root.authError !== "" 
-                        ? Colors.cfg.error 
-                        : (LockScreenService.isAuthenticating ? Colors.cfg.primary : Qt.alpha(Colors.cfg.border, 0.4))
-                    border.width: 1.5
-
-                    Behavior on border.color {
-                        ColorAnimation { duration: 200 }
-                    }
 
                     property int charCount: root.typedPassword.length
                     property real capsuleWidth: {
-                        if (charCount <= 8) return 12;
-                        if (charCount <= 14) return 9;
-                        if (charCount <= 22) return 6;
-                        return 4;
+                        if (charCount <= 8)
+                            return 18;
+
+                        if (charCount <= 14)
+                            return 14;
+
+                        if (charCount <= 22)
+                            return 10;
+
+                        return 6;
                     }
                     property real capsuleSpacing: {
-                        if (charCount <= 8) return 6;
-                        if (charCount <= 14) return 4;
-                        if (charCount <= 22) return 3;
-                        return 2;
+                        if (charCount <= 8)
+                            return 10;
+
+                        if (charCount <= 14)
+                            return 7;
+
+                        if (charCount <= 22)
+                            return 5;
+
+                        return 3;
+                    }
+
+                    Layout.alignment: Qt.AlignHCenter
+                    implicitWidth: root.showAuth ? 460 : 64
+                    implicitHeight: 64
+                    radius: 18
+                    clip: true
+                    color: Qt.alpha(Colors.cfg.surfaceContainer, 0.85)
+                    border.color: root.authError !== "" ? Colors.cfg.error : (LockScreenService.isAuthenticating ? Colors.cfg.primary : Qt.alpha(Colors.cfg.border, 0.4))
+                    border.width: 2
+                    opacity: root.showAuth ? 1.0 : 0.0
+                    scale: root.showAuth ? 1.0 : 0.85
+                    transformOrigin: Item.Center
+
+                    Behavior on implicitWidth {
+                        NumberAnimation {
+                            duration: 420
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 1.05
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 250
+                        }
+                    }
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 350
+                            easing.type: Easing.OutCubic
+                        }
                     }
 
                     Text {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 10
-                        text: "󰌾"
-                        font.pixelSize: 15
-                        font.family: "GeistMono Nerd Font Propo Propo"
+                        anchors.leftMargin: 16
+                        text: "lock"
+                        font.pixelSize: 24
+                        font.family: "Material Symbols Rounded"
                         color: Colors.cfg.primary
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        opacity: passwordPill.implicitWidth > 120 ? 1.0 : 0.0
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: 160
+                            }
+                        }
                     }
 
-                    // Content Viewport with margin for unlock button
                     Item {
                         id: pillContent
+
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.leftMargin: 20
-                        anchors.rightMargin: (root.typedPassword.length > 0 && !LockScreenService.isAuthenticating) ? 44 : 20
+                        anchors.leftMargin: 56
+                        anchors.rightMargin: 56
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         clip: true
+                        opacity: passwordPill.implicitWidth > 200 ? 1.0 : 0.0
 
-                        // Placeholder when empty
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: 200
+                            }
+                        }
+
                         Text {
                             anchors.centerIn: parent
                             visible: root.typedPassword.length === 0 && !LockScreenService.isAuthenticating
                             text: "Enter password"
-                            font.pixelSize: 13
+                            font.pixelSize: 18
+                            font.family: "Google Sans"
                             color: Colors.cfg.textSecondary
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
 
-                        // Authenticating spinner text
                         RowLayout {
                             anchors.centerIn: parent
                             visible: LockScreenService.isAuthenticating
-                            spacing: 8
+                            spacing: 12
+
                             Text {
-                                text: "󰑐"
-                                font.pixelSize: 15
-                                font.family: "GeistMono Nerd Font Propo Propo"
+                                text: "progress_activity"
+                                font.pixelSize: 24
+                                font.family: "Material Symbols Rounded"
                                 color: Colors.cfg.primary
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+
                                 RotationAnimation on rotation {
-                                    from: 0; to: 360; duration: 900; loops: Animation.Infinite; running: LockScreenService.isAuthenticating
+                                    from: 0
+                                    to: 360
+                                    duration: 900
+                                    loops: Animation.Infinite
+                                    running: LockScreenService.isAuthenticating
                                 }
+
                             }
+
                             Text {
                                 text: "Verifying..."
-                                font.pixelSize: 13
+                                font.pixelSize: 18
                                 font.bold: true
+                                font.family: "Google Sans"
                                 color: Colors.cfg.primary
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
+
                         }
 
-                        // Rounded Geometric Capsule Dots (One per character)
                         Row {
                             anchors.centerIn: parent
                             visible: root.typedPassword.length > 0 && !LockScreenService.isAuthenticating
@@ -441,87 +660,147 @@ PanelWindow {
 
                             Repeater {
                                 model: LockScreenService.isAuthenticating ? 0 : Math.min(root.typedPassword.length, 32)
+
                                 delegate: Rectangle {
                                     required property int index
+
                                     width: passwordPill.capsuleWidth
                                     height: passwordPill.capsuleWidth
-                                    radius: 3
+                                    radius: 5
                                     color: Colors.cfg.primary
-
                                     scale: 0.2
                                     opacity: 0
-
                                     Component.onCompleted: {
-                                        scale = 1.0;
-                                        opacity = 1.0;
+                                        scale = 1;
+                                        opacity = 1;
                                     }
 
                                     Behavior on scale {
-                                        NumberAnimation { duration: 160; easing.type: Easing.OutBack }
+                                        NumberAnimation {
+                                            duration: 160
+                                            easing.type: Easing.OutBack
+                                        }
+
                                     }
+
                                     Behavior on opacity {
-                                        NumberAnimation { duration: 120 }
+                                        NumberAnimation {
+                                            duration: 120
+                                        }
+
                                     }
+
                                     Behavior on width {
-                                        NumberAnimation { duration: 150 }
+                                        NumberAnimation {
+                                            duration: 150
+                                        }
+
                                     }
+
                                     Behavior on height {
-                                        NumberAnimation { duration: 150 }
+                                        NumberAnimation {
+                                            duration: 150
+                                        }
+
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
 
-                    // Unlock Arrow Button
                     Rectangle {
                         anchors.right: parent.right
-                        anchors.rightMargin: 6
+                        anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
-                        implicitWidth: 34
-                        implicitHeight: 34
-                        radius: 10
+                        implicitWidth: 48
+                        implicitHeight: 48
+                        radius: 14
                         visible: root.typedPassword.length > 0 && !LockScreenService.isAuthenticating
                         color: enterH.hovered ? Colors.cfg.primary : Qt.alpha(Colors.cfg.primary, 0.2)
 
                         Text {
                             anchors.centerIn: parent
-                            text: "󰁕"
-                            font.pixelSize: 15
-                            font.family: "GeistMono Nerd Font Propo Propo"
+                            text: "arrow_forward"
+                            font.pixelSize: 24
+                            font.family: "Material Symbols Rounded"
                             color: enterH.hovered ? Colors.cfg.on_primary : Colors.cfg.primary
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
 
-                        HoverHandler { id: enterH }
+                        HoverHandler {
+                            id: enterH
+                        }
+
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.submitPassword()
                         }
+
                     }
+
+                    Behavior on border.color {
+                        ColorAnimation {
+                            duration: 200
+                        }
+
+                    }
+
                 }
 
-                // Error Message
-                Text {
+                RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     visible: root.authError !== ""
-                    text: "󰅙 " + root.authError
-                    font.pixelSize: 12
-                    font.bold: true
-                    color: Colors.cfg.error
+                    spacing: 6
+
+                    Text {
+                        text: "error"
+                        font.pixelSize: 20
+                        font.family: "Material Symbols Rounded"
+                        color: Colors.cfg.error
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Text {
+                        text: root.authError
+                        font.pixelSize: 16
+                        font.bold: true
+                        font.family: "Google Sans"
+                        color: Colors.cfg.error
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
                 }
+
             }
+
+            transform: Translate {
+                id: shakeTranslate
+            }
+
         }
+
+        transform: Translate {
+            y: 24 * (1 - root.contentReveal)
+        }
+
     }
 
-    // === FOOTER HINT ===
     Text {
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 28
+        anchors.bottomMargin: 36
         anchors.horizontalCenter: parent.horizontalCenter
-        text: "Press Enter to unlock"
-        font.pixelSize: 11
+        horizontalAlignment: Text.AlignHCenter
+        text: root.showAuth ? "Press Escape to cancel" : "Press any key to unlock"
+        font.pixelSize: 15
+        font.family: "Google Sans"
         color: Qt.alpha(Colors.cfg.textSecondary, 0.65)
-        opacity: Math.max(0.0, (root.contentReveal - 0.3) / 0.7)
+        opacity: Math.max(0, (root.contentReveal - 0.3) / 0.7)
     }
+
 }

@@ -32,7 +32,6 @@ Item {
     property color warning: Colors.cfg.warning
     property color error: Colors.cfg.error
 
-    // Compatibility aliases
     property alias color1: root.primary
     property alias color2: root.secondary
     property alias foreground: root.on_primary
@@ -76,7 +75,6 @@ Item {
         }
     }
 
-    // Refresh when menu is opened / active
     Timer {
         id: menuRefreshTimer
         interval: 1500
@@ -130,7 +128,6 @@ Item {
             y: clipEntrance.offsetY
         }
 
-        // ── Top Header ──
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -142,7 +139,6 @@ Item {
                 color: root.textColor
             }
 
-            // Count Badge
             Rectangle {
                 implicitHeight: 20
                 implicitWidth: countText.implicitWidth + 12
@@ -161,7 +157,6 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            // Clear All Button
             Rectangle {
                 implicitWidth: clearRow.implicitWidth + 14
                 implicitHeight: 30
@@ -196,7 +191,6 @@ Item {
             }
         }
 
-        // ── Search Input Field ──
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
@@ -290,12 +284,10 @@ Item {
             }
         }
 
-        // ── Main Content: List of Items or Empty State ──
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // Empty State
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 8
@@ -325,7 +317,6 @@ Item {
                 }
             }
 
-            // Clipboard Items ListView
             ListView {
                 id: clipList
                 anchors.fill: parent
@@ -368,7 +359,6 @@ Item {
                         anchors.margins: 10
                         spacing: 10
 
-                        // Type Icon / Indicator
                         Rectangle {
                             Layout.preferredWidth: 3
                             Layout.preferredHeight: 30
@@ -376,7 +366,6 @@ Item {
                             color: delegateItem.isImage ? root.secondary : root.color1
                         }
 
-                        // Image Thumbnail
                         Rectangle {
                             visible: delegateItem.isImage
                             Layout.preferredWidth: 100
@@ -396,7 +385,6 @@ Item {
                             }
                         }
 
-                        // Content Details
                         ColumnLayout {
                             id: textPreviewCol
                             Layout.fillWidth: true
@@ -442,12 +430,10 @@ Item {
                             }
                         }
 
-                        // Quick Action Buttons
                         RowLayout {
                             spacing: 4
                             z: 5
 
-                            // Copy Button
                             Rectangle {
                                 implicitWidth: 30
                                 implicitHeight: 30
@@ -475,7 +461,6 @@ Item {
                                 }
                             }
 
-                            // Delete Button
                             Rectangle {
                                 implicitWidth: 30
                                 implicitHeight: 30
@@ -507,7 +492,6 @@ Item {
             }
         }
 
-        // ── Keyboard Hint Footer ──
         RowLayout {
             Layout.fillWidth: true
             spacing: 8

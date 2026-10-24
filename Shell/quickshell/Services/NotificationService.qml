@@ -16,7 +16,7 @@ Singleton {
             summary: "Welcome to Shell",
             body: "Dashboard and notification center integrated successfully.",
             time: "Now",
-            appIcon: "󰂚"
+            appIcon: "preferences-desktop-notification"
         }
     ]
 
@@ -36,7 +36,7 @@ Singleton {
     }
 
     function playSound() {
-        if (!Config.cfg.soundEffects) return;
+        if (!Config.cfg.soundEffects || !Config.cfg.alertsPopups) return;
         var soundFile = Config.cfg.notificationSound || "message.oga";
         if (!soundFile.startsWith("/")) {
             soundFile = "/usr/share/sounds/freedesktop/stereo/" + soundFile;
@@ -52,17 +52,7 @@ Singleton {
     }
 
     function getAppIcon(appName) {
-        if (!appName) return "󰂚";
-        var lower = appName.toLowerCase();
-        if (lower.includes("spotify")) return "󰓇";
-        if (lower.includes("brave")) return "󰊯";
-        if (lower.includes("firefox")) return "󰈹";
-        if (lower.includes("discord")) return "󰙯";
-        if (lower.includes("telegram")) return "󰈰";
-        if (lower.includes("kitty") || lower.includes("terminal") || lower.includes("alacritty")) return "󰄛";
-        if (lower.includes("code") || lower.includes("vscodium")) return "󰨞";
-        if (lower.includes("pomodoro") || lower.includes("timer")) return "󰄉";
-        return "󰂚";
+        return IconService.getAppIcon(appName);
     }
 
     function addNotification(appName, summary, body, icon) {
@@ -79,14 +69,16 @@ Singleton {
 
         var list = root.notifications.slice();
         list.unshift(notif);
+        if (list.length > 20) {
+            list = list.slice(0, 20);
+        }
         root.notifications = list;
         root.unreadCount = list.length;
 
-        // Show popup toast
         if (Config.cfg.alertsPopups) {
             showPopup(notif);
+            playSound();
         }
-        playSound();
     }
 
     function showPopup(notif) {
@@ -100,7 +92,7 @@ Singleton {
 
     Timer {
         id: popupTimer
-        interval: 4500
+        interval: (Config.cfg && Config.cfg.notificationTimeout) ? Config.cfg.notificationTimeout : 4500
         repeat: false
         onTriggered: {
             root.dismissPopup();
@@ -122,15 +114,15 @@ Singleton {
         root.dismissPopup();
     }
 
-    // Quickshell Notification Server integration
     NotificationServer {
         id: server
         onNotification: notif => {
+            var icon = notif.appIcon || root.getAppIcon(notif.appName);
             root.addNotification(
                 notif.appName,
                 notif.summary,
                 notif.body,
-                root.getAppIcon(notif.appName)
+                icon
             );
         }
     }

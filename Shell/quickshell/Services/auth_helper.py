@@ -57,6 +57,17 @@ def check_pam(user, password, service_name=b'vlock'):
         res = libpam.pam_start(service_name, user.encode('utf-8'), ctypes.byref(conv), ctypes.byref(pamh))
         if res != 0:
             return False
+
+        try:
+            pam_fail_delay_item = 10
+            delay_func_type = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_uint, ctypes.c_void_p)
+            def delay_cb(retval, usec, appdata):
+                pass
+            delay_func = delay_func_type(delay_cb)
+            libpam.pam_set_item(pamh, pam_fail_delay_item, delay_func)
+        except Exception:
+            pass
+
         res = libpam.pam_authenticate(pamh, 0)
         libpam.pam_end(pamh, res)
         return res == 0
@@ -69,17 +80,20 @@ def main():
         print(user)
         sys.exit(0)
 
-    # Read password without blocking
     password = sys.stdin.readline().rstrip('\r\n')
     if not password:
         print("FAILED")
         sys.exit(1)
 
-    # Fast PAM verification on standard user lock services
     for s in [b'vlock', b'system-auth', b'su', b'passwd']:
-        if check_pam(user, password, s):
-            print("OK")
-            sys.exit(0)
+        service_file = f"/etc/pam.d/{s.decode('utf-8')}"
+        if os.path.exists(service_file):
+            if check_pam(user, password, s):
+                print("OK")
+                sys.exit(0)
+            else:
+                print("FAILED")
+                sys.exit(1)
 
     print("FAILED")
     sys.exit(1)

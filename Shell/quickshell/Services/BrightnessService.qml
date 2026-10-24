@@ -8,8 +8,8 @@ Item {
     id: root
 
     property int brightness: 100
-    property int maxBrightness: 255
-    property real brightnessPercent: brightness / Math.max(1, maxBrightness)
+    property int maxBrightness: 100
+    property real brightnessPercent: brightness / 100.0
 
     function setBrightness(percent) {
         var p = Math.max(1, Math.min(100, percent));
@@ -20,7 +20,7 @@ Item {
     }
 
     function refresh() {
-        if (!getProc.running) {
+        if (!getProc.running && root.maxBrightness > 1) {
             getProc.running = true;
         }
     }
@@ -32,7 +32,11 @@ Item {
         stdout: SplitParser {
             onRead: data => {
                 var v = parseInt(data.trim());
-                if (!isNaN(v) && v > 0) root.maxBrightness = v;
+                if (!isNaN(v) && v > 0) {
+                    root.maxBrightness = v;
+                    if (v > 1 && !getProc.running)
+                        getProc.running = true;
+                }
             }
         }
     }
@@ -40,12 +44,12 @@ Item {
     Process {
         id: getProc
         command: ["brightnessctl", "g"]
-        running: true
+        running: false
         stdout: SplitParser {
             onRead: data => {
                 var v = parseInt(data.trim());
-                if (!isNaN(v)) {
-                    var percent = Math.round((v / Math.max(1, root.maxBrightness)) * 100);
+                if (!isNaN(v) && root.maxBrightness > 1) {
+                    var percent = Math.round((v / root.maxBrightness) * 100);
                     if (percent !== root.brightness) {
                         root.brightness = percent;
                         root.brightnessChanged();
