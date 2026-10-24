@@ -138,7 +138,7 @@ Singleton {
             property bool launcherCommandsNoPrefix: false
             property bool launcherCalculatorNoPrefix: false
             property bool launcherWebSearchNoPrefix: false
-            property bool colorsAutoGenerate: false
+            property bool colorsAutoGenerate: true
             property bool isDarkMode: true
             property bool appThemingEnabled: true
             property var disabledTemplates: []
@@ -159,7 +159,7 @@ Singleton {
             property int barVisualizerGap: 2
             property int barVisualizerSmoothing: 2
             property string wallpaperFolder: "/Pictures/Wallpapers"
-            property string wallpaper: Quickshell.env("HOME") + "/.config/quickshell/Assets/default_wallpaper.jpg"
+            property string wallpaper: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Assets/default_wallpaper.jpg") : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg")
             property var favoriteWallpapers: []
             property var favoritePresets: []
             property string wallpaperAnimation: "random"
@@ -292,5 +292,13 @@ Singleton {
         if (!file.text()) {
             file.writeAdapter();
         }
+        Qt.callLater(function() {
+            if (adapter.wallpaper) {
+                wallpaperService.applyWallpaper();
+                if (adapter.colorsAutoGenerate) {
+                    Colors.generateDynamicColors(adapter.wallpaper, adapter.isDarkMode, adapter.scheme);
+                }
+            }
+        });
     }
 }

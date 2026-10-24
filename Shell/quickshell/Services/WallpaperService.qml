@@ -14,8 +14,12 @@ Item {
     function applyWallpaper() {
         if (!root.wallpaper)
             return ;
+        var cleanWall = root.wallpaper.toString().replace(/^file:\/\//, "");
+        if (cleanWall.indexOf("~/") === 0) {
+            cleanWall = Quickshell.env("HOME") + cleanWall.substring(1);
+        }
         wallpaperProcess.running = false;
-        wallpaperProcess.command = ["sh", "-c", "awww img \"" + root.wallpaper + "\" --transition-type " + root.wallpaperAnimation + " --transition-duration " + root.wallpaperAnimationDuration];
+        wallpaperProcess.command = ["sh", "-c", "awww img \"" + cleanWall + "\" --transition-type " + root.wallpaperAnimation + " --transition-duration " + root.wallpaperAnimationDuration];
         wallpaperProcess.running = true;
     }
 

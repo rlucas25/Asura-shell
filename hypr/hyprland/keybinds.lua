@@ -3,17 +3,17 @@ local fn   = require("hyprland.functions")
 
 
 -- ASURA
-hl.bind("ALT + Tab", hl.dsp.exec_cmd("qs ipc call switcher next"))
-hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("qs ipc call switcher prev"))
+hl.bind("ALT + Tab", hl.dsp.exec_cmd("asura switcher next"))
+hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("asura switcher prev"))
 hl.bind("SUPER + O", function()
     hl.plugin.scrolloverview.overview("toggle all")
 end)
 
-hl.bind("SUPER + A", hl.dsp.exec_cmd("qs ipc call controlpanel toggle"))
-hl.bind("SUPER + P", hl.dsp.exec_cmd("qs ipc call player toggle"))
-hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("qs ipc call settings toggle"))
-hl.bind("SUPER + V", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))
-hl.bind(vars.kbLock, hl.dsp.exec_cmd("qs ipc call lock toggle"))
+hl.bind("SUPER + A", hl.dsp.exec_cmd("asura controlpanel"))
+hl.bind("SUPER + P", hl.dsp.exec_cmd("asura player"))
+hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("asura settings"))
+hl.bind("SUPER + V", hl.dsp.exec_cmd("asura clipboard"))
+hl.bind(vars.kbLock, hl.dsp.exec_cmd("asura lock toggle"))
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd("bash ~/.config/hypr/scripts/caffeine.sh"))
 hl.bind("SUPER + G", hl.dsp.exec_cmd("bash ~/.config/hypr/scripts/gamemode.sh"))
 -- Launcher

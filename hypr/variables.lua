@@ -6,8 +6,8 @@ return {
     ------------------
 
     -- Asura
-    launcher                   = "qs ipc call launcher toggle",
-    wallpaperSelector          = "qs ipc call wallpaper toggle",
+    launcher                   = "asura launcher",
+    wallpaperSelector          = "asura wallpaper",
 
     -- Apps
     terminal                   = "kitty",
