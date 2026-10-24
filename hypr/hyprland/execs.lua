@@ -1,10 +1,24 @@
 local vars = require("variables")
 local fn   = require("hyprland.functions")
+local home = os.getenv("HOME") or ""
 
 hl.on("hyprland.start", function()
     -- Keyring and auth
     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
-    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+    local polkit_gnome = "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+    local f = io.open(polkit_gnome, "r")
+    if f then
+        f:close()
+        hl.exec_cmd(polkit_gnome)
+    else
+        local f_alt = io.open("/usr/libexec/hyprpolkitagent", "r")
+        if f_alt then
+            f_alt:close()
+            hl.exec_cmd("/usr/libexec/hyprpolkitagent")
+        else
+            hl.exec_cmd("systemctl --user start hyprpolkitagent.service")
+        end
+    end
 
     -- Clipboard history
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -27,7 +41,7 @@ hl.on("hyprland.start", function()
 
     -- Start shell
     hl.exec_cmd("awww-daemon &")
-    hl.exec_cmd("asura run")
+    hl.exec_cmd(home .. "/.local/bin/asura run")
 
     -- Start hyprland plugins
     hl.exec_cmd("hyprpm reload")
