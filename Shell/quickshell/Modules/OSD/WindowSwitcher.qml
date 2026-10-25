@@ -455,19 +455,52 @@ PanelWindow {
                                     border.width: 1
                                     clip: true
 
+                                    readonly property bool hasScreencopy: screencopyLoader.item && screencopyLoader.item.children.length > 0 && screencopyLoader.item.children[0].hasContent
+
+                                    Loader {
+                                        id: screencopyLoader
+                                        anchors.fill: parent
+                                        active: root.isOpen && winItemRoot.targetToplevel && winItemRoot.targetToplevel.wayland !== null
+                                        sourceComponent: Component {
+                                            Item {
+                                                anchors.fill: parent
+
+                                                ScreencopyView {
+                                                    id: screencopyItem
+                                                    anchors.centerIn: parent
+                                                    captureSource: (winItemRoot.targetToplevel && winItemRoot.targetToplevel.wayland) ? winItemRoot.targetToplevel.wayland : null
+                                                    live: false
+                                                    paintCursor: false
+
+                                                    readonly property real srcW: (screencopyItem.sourceSize && screencopyItem.sourceSize.width > 0)
+                                                        ? screencopyItem.sourceSize.width
+                                                        : ((winItemRoot.ipcData && winItemRoot.ipcData.size && winItemRoot.ipcData.size[0] > 0) ? winItemRoot.ipcData.size[0] : 16)
+                                                    readonly property real srcH: (screencopyItem.sourceSize && screencopyItem.sourceSize.height > 0)
+                                                        ? screencopyItem.sourceSize.height
+                                                        : ((winItemRoot.ipcData && winItemRoot.ipcData.size && winItemRoot.ipcData.size[1] > 0) ? winItemRoot.ipcData.size[1] : 9)
+                                                    readonly property real coverScale: Math.max(previewBox.width / Math.max(1, srcW), previewBox.height / Math.max(1, srcH))
+
+                                                    width: Math.ceil(srcW * coverScale)
+                                                    height: Math.ceil(srcH * coverScale)
+                                                    visible: hasContent
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     Image {
                                         id: cachedPreviewImage
                                         anchors.fill: parent
                                         fillMode: Image.PreserveAspectCrop
                                         cache: true
                                         asynchronous: true
-                                        source: winItemRoot.cleanAddress !== "" ? ("file:///tmp/qs_preview_" + winItemRoot.cleanAddress + ".png") : ""
-                                        visible: status === Image.Ready
+                                        source: (!previewBox.hasScreencopy && winItemRoot.cleanAddress !== "") ? ("file:///tmp/qs_preview_" + winItemRoot.cleanAddress + ".png") : ""
+                                        visible: !previewBox.hasScreencopy && status === Image.Ready
                                     }
 
                                     Item {
                                         anchors.fill: parent
-                                        visible: !cachedPreviewImage.visible
+                                        visible: !previewBox.hasScreencopy && !cachedPreviewImage.visible
 
                                         Rectangle {
                                             anchors.centerIn: parent
