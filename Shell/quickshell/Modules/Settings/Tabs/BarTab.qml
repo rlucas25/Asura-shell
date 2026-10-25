@@ -386,9 +386,9 @@ ColumnLayout {
         id: sec3Header
         icon: "opacity"
         title: qsTr("Appearance & Visual Effects")
-        description: qsTr("Translucency, edge fillets, and live audio visualizer")
+        description: qsTr("Translucency and organic edge fillets")
         collapsible: true
-        hint: qsTr("Tune translucency, blur effects, organic corner fillets, and audio visualizer")
+        hint: qsTr("Tune translucency, blur effects, and organic corner fillets")
         targetContent: sec3Content
     }
 
@@ -482,106 +482,6 @@ ColumnLayout {
                 ]
                 onSelected: (val) => {
                     Config.cfg.barMeltStyle = val;
-                    Config.save();
-                }
-            }
-        }
-    }
-
-    SettingCard {
-        SettingToggle {
-            icon: "graphic_eq"
-            title: qsTr("Bar Audio Visualizer (in test)")
-            description: qsTr("Paints real-time audio spectrum across the bar background when music plays")
-            checked: Config.cfg ? Config.cfg.barVisualizerEnabled : false
-            onToggled: (val) => {
-                Config.cfg.barVisualizerEnabled = val;
-                Config.save();
-            }
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 12
-            visible: Config.cfg && Config.cfg.barVisualizerEnabled
-
-            SettingDivider {}
-
-            SettingPills {
-                title: qsTr("Visualizer Style")
-                currentValue: Config.cfg ? Config.cfg.barVisualizerType : "bars"
-                model: [
-                    { id: "bars", label: qsTr("Bars (Dynamic bands)") },
-                    { id: "wave", label: qsTr("Wave (Spline wave)") }
-                ]
-                onSelected: (val) => {
-                    Config.cfg.barVisualizerType = val;
-                    Config.save();
-                }
-            }
-
-            SettingPills {
-                title: qsTr("Spectrum Origin & Alignment")
-                currentValue: Config.cfg ? Config.cfg.barVisualizerBarsOrigin : "bottom"
-                model: [
-                    { id: "bottom", label: qsTr("Bottom") },
-                    { id: "center", label: qsTr("Center") },
-                    { id: "mirror", label: qsTr("Mirrored") },
-                    { id: "top", label: qsTr("Top") }
-                ]
-                onSelected: (val) => {
-                    Config.cfg.barVisualizerBarsOrigin = val;
-                    Config.save();
-                }
-            }
-
-            SettingSlider {
-                title: qsTr("Visualizer Height")
-                from: 0.10
-                to: 1.00
-                stepSize: 0.05
-                value: Config.cfg ? Config.cfg.barVisualizerHeight : 0.6
-                customValueText: Math.round((Config.cfg ? Config.cfg.barVisualizerHeight : 0.6) * 100) + "%"
-                onValueModified: (val) => {
-                    Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
-                    Config.saveDebounced(80);
-                }
-                onValueCommitted: (val) => {
-                    Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
-                    Config.save();
-                }
-            }
-
-            SettingSlider {
-                title: qsTr("Visualizer Opacity")
-                from: 0.05
-                to: 1.00
-                stepSize: 0.05
-                value: Config.cfg ? Config.cfg.barVisualizerOpacity : 0.8
-                customValueText: Math.round((Config.cfg ? Config.cfg.barVisualizerOpacity : 0.8) * 100) + "%"
-                onValueModified: (val) => {
-                    Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
-                    Config.saveDebounced(80);
-                }
-                onValueCommitted: (val) => {
-                    Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
-                    Config.save();
-                }
-            }
-
-            SettingSlider {
-                title: qsTr("Band Density / Step")
-                from: 4
-                to: 28
-                stepSize: 1
-                value: Config.cfg ? Config.cfg.barVisualizerDensity : 12
-                unit: "px"
-                onValueModified: (val) => {
-                    Config.cfg.barVisualizerDensity = Math.round(val);
-                    Config.saveDebounced(80);
-                }
-                onValueCommitted: (val) => {
-                    Config.cfg.barVisualizerDensity = Math.round(val);
                     Config.save();
                 }
             }
@@ -1388,5 +1288,120 @@ ColumnLayout {
     }
     }
 
+    SettingSectionHeader {
+        id: visualizerHeader
+        icon: "graphic_eq"
+        title: qsTr("Bar Audio Visualizer (in test)")
+        description: qsTr("Paints real-time audio spectrum across the bar background when music plays")
+        collapsible: true
+        hint: qsTr("Configure Cava audio visualizer styles, height, opacity, and band density")
+        targetContent: visualizerContent
+    }
+
+    ColumnLayout {
+        id: visualizerContent
+        Layout.fillWidth: true
+        spacing: 12
+
+        SettingCard {
+            SettingToggle {
+                icon: "graphic_eq"
+                title: qsTr("Bar Audio Visualizer (in test)")
+                description: qsTr("Paints real-time audio spectrum across the bar background when music plays")
+                checked: Config.cfg ? Config.cfg.barVisualizerEnabled : false
+                onToggled: (val) => {
+                    Config.cfg.barVisualizerEnabled = val;
+                    Config.save();
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 12
+                visible: Config.cfg && Config.cfg.barVisualizerEnabled
+
+                SettingDivider {}
+
+                SettingPills {
+                    title: qsTr("Visualizer Style")
+                    currentValue: Config.cfg ? Config.cfg.barVisualizerType : "bars"
+                    model: [
+                        { id: "bars", label: qsTr("Bars (Dynamic bands)") },
+                        { id: "wave", label: qsTr("Wave (Spline wave)") }
+                    ]
+                    onSelected: (val) => {
+                        Config.cfg.barVisualizerType = val;
+                        Config.save();
+                    }
+                }
+
+                SettingPills {
+                    title: qsTr("Spectrum Origin & Alignment")
+                    currentValue: Config.cfg ? Config.cfg.barVisualizerBarsOrigin : "bottom"
+                    model: [
+                        { id: "bottom", label: qsTr("Bottom") },
+                        { id: "center", label: qsTr("Center") },
+                        { id: "mirror", label: qsTr("Mirrored") },
+                        { id: "top", label: qsTr("Top") }
+                    ]
+                    onSelected: (val) => {
+                        Config.cfg.barVisualizerBarsOrigin = val;
+                        Config.save();
+                    }
+                }
+
+                SettingSlider {
+                    title: qsTr("Visualizer Height")
+                    from: 0.10
+                    to: 1.00
+                    stepSize: 0.05
+                    value: Config.cfg ? Config.cfg.barVisualizerHeight : 0.6
+                    customValueText: Math.round((Config.cfg ? Config.cfg.barVisualizerHeight : 0.6) * 100) + "%"
+                    onValueModified: (val) => {
+                        Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
+                        Config.saveDebounced(80);
+                    }
+                    onValueCommitted: (val) => {
+                        Config.cfg.barVisualizerHeight = Math.round(val * 100) / 100;
+                        Config.save();
+                    }
+                }
+
+                SettingSlider {
+                    title: qsTr("Visualizer Opacity")
+                    from: 0.05
+                    to: 1.00
+                    stepSize: 0.05
+                    value: Config.cfg ? Config.cfg.barVisualizerOpacity : 0.8
+                    customValueText: Math.round((Config.cfg ? Config.cfg.barVisualizerOpacity : 0.8) * 100) + "%"
+                    onValueModified: (val) => {
+                        Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
+                        Config.saveDebounced(80);
+                    }
+                    onValueCommitted: (val) => {
+                        Config.cfg.barVisualizerOpacity = Math.round(val * 100) / 100;
+                        Config.save();
+                    }
+                }
+
+                SettingSlider {
+                    title: qsTr("Band Density / Step")
+                    from: 4
+                    to: 28
+                    stepSize: 1
+                    value: Config.cfg ? Config.cfg.barVisualizerDensity : 12
+                    unit: "px"
+                    onValueModified: (val) => {
+                        Config.cfg.barVisualizerDensity = Math.round(val);
+                        Config.saveDebounced(80);
+                    }
+                    onValueCommitted: (val) => {
+                        Config.cfg.barVisualizerDensity = Math.round(val);
+                        Config.save();
+                    }
+                }
+            }
+        }
+    }
 }
 
