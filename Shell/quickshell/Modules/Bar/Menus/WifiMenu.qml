@@ -48,6 +48,8 @@ Item {
             root.showHiddenConnect = false;
             root.hiddenSsid = "";
             root.hiddenPassword = "";
+        } else {
+            WifiService.rescan();
         }
     }
 

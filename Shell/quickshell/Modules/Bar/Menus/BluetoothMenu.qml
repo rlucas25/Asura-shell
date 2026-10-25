@@ -30,6 +30,14 @@ Item {
         startOffsetY: 14
     }
 
+    onVisibleChanged: {
+        if (visible && BluetoothService.bluetoothEnabled) {
+            BluetoothService.startScan();
+        } else if (!visible && BluetoothService.isScanning) {
+            BluetoothService.stopScan();
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14

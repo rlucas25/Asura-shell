@@ -7,21 +7,49 @@ import Quickshell.Bluetooth
 
 Singleton {
     id: root
-    readonly property var adapter: Bluetooth.adapters && Bluetooth.adapters.values && Bluetooth.adapters.values.length > 0 
-        ? Bluetooth.adapters.values[0] 
-        : null
 
-    readonly property bool bluetoothEnabled: adapter ? (adapter.state === BluetoothAdapterState.Enabled) : false
-    readonly property var allDevices: Bluetooth.devices && Bluetooth.devices.values ? Bluetooth.devices.values : []
+    readonly property var adapter: (Bluetooth.defaultAdapter)
+        ? Bluetooth.defaultAdapter
+        : (Bluetooth.adapters && Bluetooth.adapters.values && Bluetooth.adapters.values.length > 0 
+            ? Bluetooth.adapters.values[0] 
+            : null)
 
-    readonly property var connectedDevices: allDevices.filter(d => d && d.state === BluetoothDeviceState.Connected)
-    readonly property var pairedDevices: allDevices.filter(d => d && d.paired && d.state !== BluetoothDeviceState.Connected)
+    readonly property bool bluetoothEnabled: adapter
+        ? (adapter.powered || (typeof BluetoothAdapterState !== "undefined" && adapter.state === BluetoothAdapterState.Enabled))
+        : false
+
+    readonly property var allDevices: {
+        var map = {};
+        var list = [];
+        function add(d) {
+            if (d && d.address && !map[d.address]) {
+                map[d.address] = true;
+                list.push(d);
+            }
+        }
+        if (adapter && adapter.devices && adapter.devices.values) {
+            for (var i = 0; i < adapter.devices.values.length; i++) {
+                add(adapter.devices.values[i]);
+            }
+        }
+        if (Bluetooth.devices && Bluetooth.devices.values) {
+            for (var j = 0; j < Bluetooth.devices.values.length; j++) {
+                add(Bluetooth.devices.values[j]);
+            }
+        }
+        return list;
+    }
+
+    readonly property var connectedDevices: allDevices.filter(d => d && (d.connected || (typeof BluetoothDeviceState !== "undefined" && d.state === BluetoothDeviceState.Connected)))
+    readonly property var pairedDevices: allDevices.filter(d => d && d.paired && !d.connected && (typeof BluetoothDeviceState === "undefined" || d.state !== BluetoothDeviceState.Connected))
     readonly property var availableDevices: allDevices.filter(d => d && !d.paired && d.name && d.name.trim() !== "")
 
     readonly property bool hasConnectedDevice: connectedDevices.length > 0
     readonly property string activeDeviceName: hasConnectedDevice ? (connectedDevices[0].name || "Device") : ""
 
-    property bool isScanning: false
+    property bool manualScanning: false
+    readonly property bool isScanning: (adapter && adapter.discovering !== undefined) ? adapter.discovering : manualScanning
+
     property string connectingAddress: ""
     property string statusMessage: ""
 
@@ -41,33 +69,58 @@ Singleton {
         command: []
     }
 
+    function findDevice(mac) {
+        if (!mac) return null;
+        return allDevices.find(d => d && d.address && d.address.toLowerCase() === mac.toLowerCase()) || null;
+    }
+
     function togglePower() {
         var newState = !bluetoothEnabled;
+        if (adapter && typeof adapter.powered !== "undefined") {
+            try { adapter.powered = newState; } catch (e) {}
+        }
         cmdProc.command = ["bluetoothctl", "power", newState ? "on" : "off"];
         cmdProc.running = true;
         showStatus(newState ? "Enabling Bluetooth..." : "Disabling Bluetooth...");
     }
 
-    Process {
-        id: scanProc
-        command: ["bluetoothctl", "scan", root.isScanning ? "off" : "on"]
-        onExited: {
+    function startScan() {
+        if (!bluetoothEnabled) return;
+        manualScanning = true;
+        if (adapter && typeof adapter.startDiscovery === "function") {
+            try { adapter.startDiscovery(); } catch (e) {}
         }
+        cmdProc.command = ["bluetoothctl", "scan", "on"];
+        cmdProc.running = true;
+        showStatus("Searching for devices...");
+    }
+
+    function stopScan() {
+        manualScanning = false;
+        if (adapter && typeof adapter.stopDiscovery === "function") {
+            try { adapter.stopDiscovery(); } catch (e) {}
+        }
+        cmdProc.command = ["bluetoothctl", "scan", "off"];
+        cmdProc.running = true;
+        showStatus("Search completed.");
     }
 
     function toggleScan() {
-        if (!bluetoothEnabled)
-            return;
-        root.isScanning = !root.isScanning;
-        cmdProc.command = ["bluetoothctl", "scan", root.isScanning ? "on" : "off"];
-        cmdProc.running = true;
-        showStatus(root.isScanning ? "Searching for devices..." : "Search completed.");
+        if (root.isScanning) {
+            root.stopScan();
+        } else {
+            root.startScan();
+        }
     }
 
     function connectDevice(mac) {
         if (!mac) return;
         connectingAddress = mac;
         showStatus("Connecting to " + mac + "...");
+        var dev = findDevice(mac);
+        if (dev && typeof dev.connect === "function") {
+            try { dev.connect(); } catch (e) {}
+        }
         cmdProc.command = ["bluetoothctl", "connect", mac];
         cmdProc.running = true;
     }
@@ -75,6 +128,10 @@ Singleton {
     function disconnectDevice(mac) {
         if (!mac) return;
         showStatus("Disconnecting...");
+        var dev = findDevice(mac);
+        if (dev && typeof dev.disconnect === "function") {
+            try { dev.disconnect(); } catch (e) {}
+        }
         cmdProc.command = ["bluetoothctl", "disconnect", mac];
         cmdProc.running = true;
     }
@@ -82,7 +139,11 @@ Singleton {
     function pairDevice(mac) {
         if (!mac) return;
         connectingAddress = mac;
-        showStatus("Paring...");
+        showStatus("Pairing...");
+        var dev = findDevice(mac);
+        if (dev && typeof dev.pair === "function") {
+            try { dev.pair(); } catch (e) {}
+        }
         cmdProc.command = ["bash", "-c", "bluetoothctl pair " + mac + " && bluetoothctl trust " + mac + " && bluetoothctl connect " + mac];
         cmdProc.running = true;
     }

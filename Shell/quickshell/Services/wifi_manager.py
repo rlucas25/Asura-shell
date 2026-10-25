@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 import subprocess
 import json
@@ -6,7 +7,9 @@ import re
 
 def run_cmd(cmd):
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        env = dict(os.environ)
+        env["LC_ALL"] = "C"
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=15, env=env)
         return res.returncode, res.stdout.strip(), res.stderr.strip()
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"

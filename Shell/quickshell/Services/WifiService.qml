@@ -31,9 +31,12 @@ Singleton {
     property bool isError: false
     property bool paused: false
 
-    readonly property string scriptPath: (typeof Quickshell.shellPath === "function")
-        ? Quickshell.shellPath("Services/wifi_manager.py")
-        : Quickshell.configPath("Services/wifi_manager.py")
+    readonly property string scriptPath: {
+        var p = (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("Services/wifi_manager.py").toString()
+            : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Services/wifi_manager.py");
+        return p.replace(/^file:\/\//, "").replace(/^file:/, "");
+    }
 
     function getSignalIcon(signal, enabled) {
         if (enabled === false)
