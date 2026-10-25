@@ -300,7 +300,7 @@ Item {
                                     spacing: 8
 
                                     Text {
-                                        text: BluetoothService.getDeviceIcon(connItem.modelData.icon, connItem.modelData.name)
+                                        text: BluetoothService.getDeviceIcon(connItem.modelData.icon, BluetoothService.getDeviceDisplayName(connItem.modelData))
                                         color: root.primary
                                         font {
                                             family: "Material Symbols Rounded"
@@ -313,7 +313,7 @@ Item {
                                         spacing: 1
 
                                         Text {
-                                            text: connItem.modelData.name || "Device"
+                                            text: BluetoothService.getDeviceDisplayName(connItem.modelData)
                                             color: root.textColor
                                             font {
                                                 family: "GeistMono Nerd Font Propo"
@@ -414,7 +414,7 @@ Item {
                                     spacing: 8
 
                                     Text {
-                                        text: BluetoothService.getDeviceIcon(pairedItem.modelData.icon, pairedItem.modelData.name)
+                                        text: BluetoothService.getDeviceIcon(pairedItem.modelData.icon, BluetoothService.getDeviceDisplayName(pairedItem.modelData))
                                         color: Qt.alpha(root.textColor, 0.7)
                                         font {
                                             family: "Material Symbols Rounded"
@@ -427,7 +427,7 @@ Item {
                                         spacing: 1
 
                                         Text {
-                                            text: pairedItem.modelData.name || "Device"
+                                            text: BluetoothService.getDeviceDisplayName(pairedItem.modelData)
                                             color: root.textColor
                                             font {
                                                 family: "GeistMono Nerd Font Propo"
@@ -544,7 +544,7 @@ Item {
                                     spacing: 8
 
                                     Text {
-                                        text: BluetoothService.getDeviceIcon(availItem.modelData.icon, availItem.modelData.name)
+                                        text: BluetoothService.getDeviceIcon(availItem.modelData.icon, BluetoothService.getDeviceDisplayName(availItem.modelData))
                                         color: root.primary
                                         font {
                                             family: "GeistMono Nerd Font Propo Propo"
@@ -557,7 +557,7 @@ Item {
                                         spacing: 1
 
                                         Text {
-                                            text: availItem.modelData.name || "Device"
+                                            text: BluetoothService.getDeviceDisplayName(availItem.modelData)
                                             color: root.textColor
                                             font {
                                                 family: "GeistMono Nerd Font Propo"

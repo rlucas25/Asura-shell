@@ -15,7 +15,7 @@ Singleton {
             : null)
 
     readonly property bool bluetoothEnabled: adapter
-        ? (adapter.powered || (typeof BluetoothAdapterState !== "undefined" && adapter.state === BluetoothAdapterState.Enabled))
+        ? (adapter.enabled || adapter.powered || (typeof BluetoothAdapterState !== "undefined" && adapter.state === BluetoothAdapterState.Enabled))
         : false
 
     readonly property var allDevices: {
@@ -40,12 +40,19 @@ Singleton {
         return list;
     }
 
+    function getDeviceDisplayName(d) {
+        if (!d) return "Device";
+        if (d.name && d.name.trim() !== "") return d.name.trim();
+        if (d.deviceName && d.deviceName.trim() !== "") return d.deviceName.trim();
+        return d.address || "Device";
+    }
+
     readonly property var connectedDevices: allDevices.filter(d => d && (d.connected || (typeof BluetoothDeviceState !== "undefined" && d.state === BluetoothDeviceState.Connected)))
     readonly property var pairedDevices: allDevices.filter(d => d && d.paired && !d.connected && (typeof BluetoothDeviceState === "undefined" || d.state !== BluetoothDeviceState.Connected))
-    readonly property var availableDevices: allDevices.filter(d => d && !d.paired && d.name && d.name.trim() !== "")
+    readonly property var availableDevices: allDevices.filter(d => d && !d.paired && getDeviceDisplayName(d) !== "")
 
     readonly property bool hasConnectedDevice: connectedDevices.length > 0
-    readonly property string activeDeviceName: hasConnectedDevice ? (connectedDevices[0].name || "Device") : ""
+    readonly property string activeDeviceName: hasConnectedDevice ? getDeviceDisplayName(connectedDevices[0]) : ""
 
     property bool manualScanning: false
     readonly property bool isScanning: (adapter && adapter.discovering !== undefined) ? adapter.discovering : manualScanning
@@ -59,6 +66,17 @@ Singleton {
         onTriggered: root.statusMessage = ""
     }
 
+    Timer {
+        id: autoStopScanTimer
+        interval: 25000
+        repeat: false
+        onTriggered: {
+            if (root.isScanning) {
+                root.stopScan();
+            }
+        }
+    }
+
     function showStatus(msg) {
         root.statusMessage = msg;
         statusResetTimer.restart();
@@ -69,6 +87,11 @@ Singleton {
         command: []
     }
 
+    Process {
+        id: scanProc
+        command: []
+    }
+
     function findDevice(mac) {
         if (!mac) return null;
         return allDevices.find(d => d && d.address && d.address.toLowerCase() === mac.toLowerCase()) || null;
@@ -76,9 +99,15 @@ Singleton {
 
     function togglePower() {
         var newState = !bluetoothEnabled;
-        if (adapter && typeof adapter.powered !== "undefined") {
-            try { adapter.powered = newState; } catch (e) {}
+        if (adapter) {
+            if (typeof adapter.enabled !== "undefined") {
+                try { adapter.enabled = newState; } catch (e) {}
+            }
+            if (typeof adapter.powered !== "undefined") {
+                try { adapter.powered = newState; } catch (e) {}
+            }
         }
+        cmdProc.running = false;
         cmdProc.command = ["bluetoothctl", "power", newState ? "on" : "off"];
         cmdProc.running = true;
         showStatus(newState ? "Enabling Bluetooth..." : "Disabling Bluetooth...");
@@ -87,19 +116,41 @@ Singleton {
     function startScan() {
         if (!bluetoothEnabled) return;
         manualScanning = true;
-        if (adapter && typeof adapter.startDiscovery === "function") {
-            try { adapter.startDiscovery(); } catch (e) {}
+
+        // 1. Quickshell native D-Bus discovery
+        if (adapter && typeof adapter.discovering !== "undefined") {
+            try {
+                adapter.discovering = true;
+            } catch (e) {
+                console.warn("BluetoothAdapter set discovering error: " + e);
+            }
         }
-        cmdProc.command = ["bluetoothctl", "scan", "on"];
-        cmdProc.running = true;
+
+        // 2. Parallel CLI trigger (with timeout so process terminates cleanly)
+        scanProc.running = false;
+        scanProc.command = ["bluetoothctl", "--timeout", "25", "scan", "on"];
+        scanProc.running = true;
+
+        autoStopScanTimer.restart();
         showStatus("Searching for devices...");
     }
 
     function stopScan() {
         manualScanning = false;
-        if (adapter && typeof adapter.stopDiscovery === "function") {
-            try { adapter.stopDiscovery(); } catch (e) {}
+        autoStopScanTimer.stop();
+
+        // 1. Quickshell native D-Bus discovery stop
+        if (adapter && typeof adapter.discovering !== "undefined") {
+            try {
+                adapter.discovering = false;
+            } catch (e) {
+                console.warn("BluetoothAdapter stop discovering error: " + e);
+            }
         }
+
+        // 2. Stop CLI scan process
+        scanProc.running = false;
+        cmdProc.running = false;
         cmdProc.command = ["bluetoothctl", "scan", "off"];
         cmdProc.running = true;
         showStatus("Search completed.");
@@ -121,6 +172,7 @@ Singleton {
         if (dev && typeof dev.connect === "function") {
             try { dev.connect(); } catch (e) {}
         }
+        cmdProc.running = false;
         cmdProc.command = ["bluetoothctl", "connect", mac];
         cmdProc.running = true;
     }
@@ -132,6 +184,7 @@ Singleton {
         if (dev && typeof dev.disconnect === "function") {
             try { dev.disconnect(); } catch (e) {}
         }
+        cmdProc.running = false;
         cmdProc.command = ["bluetoothctl", "disconnect", mac];
         cmdProc.running = true;
     }
@@ -144,6 +197,7 @@ Singleton {
         if (dev && typeof dev.pair === "function") {
             try { dev.pair(); } catch (e) {}
         }
+        cmdProc.running = false;
         cmdProc.command = ["bash", "-c", "bluetoothctl pair " + mac + " && bluetoothctl trust " + mac + " && bluetoothctl connect " + mac];
         cmdProc.running = true;
     }
@@ -151,6 +205,11 @@ Singleton {
     function removeDevice(mac) {
         if (!mac) return;
         showStatus("Removing device...");
+        var dev = findDevice(mac);
+        if (dev && typeof dev.forget === "function") {
+            try { dev.forget(); } catch (e) {}
+        }
+        cmdProc.running = false;
         cmdProc.command = ["bluetoothctl", "remove", mac];
         cmdProc.running = true;
     }
