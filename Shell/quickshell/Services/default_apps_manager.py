@@ -75,9 +75,14 @@ APP_CATEGORIES = {
         "hyprVar": "editor",
         "keybind": "SUPER + C",
         "default": "code",
-        "mime": ["text/plain"],
+        "mime": [
+            "text/plain", "text/markdown", "text/x-python", "text/x-c", "text/x-c++",
+            "text/x-csrc", "text/x-chdr", "text/x-lua", "text/x-shellscript",
+            "application/x-shellscript", "application/json", "application/xml",
+            "text/html", "text/css", "text/javascript", "application/javascript"
+        ],
         "known": [
-            {"id": "code", "name": "Visual Studio Code", "cmd": "code", "desktop": "code.desktop", "icon": "vscode"},
+            {"id": "code", "name": "Visual Studio Code", "cmd": "code", "desktop": "code.desktop", "altDesktop": "com.microsoft.VSCode.desktop", "icon": "vscode"},
             {"id": "codium", "name": "VSCodium", "cmd": "codium", "desktop": "vscodium.desktop", "icon": "vscodium"},
             {"id": "nvim", "name": "Neovim", "cmd": "kitty -e nvim", "desktop": "nvim.desktop", "icon": "nvim"},
             {"id": "vim", "name": "Vim", "cmd": "vim", "desktop": "vim.desktop", "icon": "gvim"},
@@ -415,15 +420,33 @@ def apply_settings(payload: dict):
     desktop_apps = get_installed_desktop_apps()
     for cat_key, meta in APP_CATEGORIES.items():
         chosen_cmd = payload.get(cat_key) or payload.get(meta["hyprVar"])
-        if not chosen_cmd or not meta.get("mime"):
+        if not chosen_cmd:
             continue
 
         base_bin = chosen_cmd.split()[0]
+
+        if cat_key == "terminal":
+            try:
+                subprocess.run(["gsettings", "set", "org.gnome.desktop.default-applications.terminal", "exec", base_bin], capture_output=True, timeout=2)
+                subprocess.run(["gsettings", "set", "org.gnome.desktop.default-applications.terminal", "exec-arg", "-e"], capture_output=True, timeout=2)
+            except Exception:
+                pass
+            continue
+
+        if not meta.get("mime"):
+            continue
+
         matched_desktop = ""
         # Find desktop file
         for k in meta["known"]:
-            if k["cmd"].split()[0] == base_bin and k.get("desktop"):
-                matched_desktop = k["desktop"]
+            if k["cmd"].split()[0] == base_bin:
+                candidates = [k.get("desktop"), k.get("altDesktop")]
+                for cand in candidates:
+                    if cand and any(da["desktop"] == cand for da in desktop_apps):
+                        matched_desktop = cand
+                        break
+                if not matched_desktop and k.get("desktop"):
+                    matched_desktop = k["desktop"]
                 break
         if not matched_desktop:
             for da in desktop_apps:

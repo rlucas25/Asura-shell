@@ -481,9 +481,9 @@ def apply_preset(preset_id):
     # 5. Apply Wallpaper via awww if general or theme tab was saved
     if ("general" in saved_tabs or "theme" in saved_tabs) and wp_copy and os.path.exists(wp_copy):
         anim = current_cfg.get("wallpaperAnimation", "wave")
-        duration = current_cfg.get("wallpaperAnimationDuration", 1.5)
+        wp_bin = shutil.which("awww") or shutil.which("swww") or "awww"
         try:
-            subprocess.run(["awww", "img", wp_copy, "--transition-type", str(anim), "--transition-duration", str(duration)], capture_output=True, timeout=4)
+            subprocess.run([wp_bin, "img", wp_copy, "--transition-type", str(anim), "--transition-duration", str(duration)], capture_output=True, timeout=4)
         except Exception:
             try:
                 subprocess.run(["hyprctl", "hyprpaper", "wallpaper", f",{wp_copy}"], capture_output=True, timeout=2)

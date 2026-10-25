@@ -23,17 +23,19 @@ Item {
         var dur = root.wallpaperAnimationDuration || 1;
 
         var cmd = [
-            "cmd='awww'",
-            "[ -x \"$(which awww 2>/dev/null)\" ] || cmd='swww'",
+            "export PATH=\"$HOME/.local/bin:/usr/local/bin:$PATH\"",
+            "cmd=''",
+            "if command -v awww >/dev/null 2>&1; then cmd='awww'; elif command -v swww >/dev/null 2>&1; then cmd='swww'; fi",
+            "if [ -z \"$cmd\" ]; then echo 'Neither awww nor swww is installed!' >&2; exit 1; fi",
             "daemon=\"${cmd}-daemon\"",
-            "if ! pgrep -x \"$daemon\" >/dev/null 2>&1 && which \"$daemon\" >/dev/null 2>&1; then \"$daemon\" & sleep 0.3; fi",
+            "if ! pgrep -x \"$daemon\" >/dev/null 2>&1; then",
+            "  if command -v \"$daemon\" >/dev/null 2>&1; then \"$daemon\" &",
+            "  elif [ \"$cmd\" = 'swww' ] && command -v swww >/dev/null 2>&1; then swww init & fi",
+            "  for i in $(seq 1 30); do \"$cmd\" query >/dev/null 2>&1 && break; sleep 0.1; done",
+            "fi",
             "img=\"" + cleanWall + "\"",
             "[ -f \"$img\" ] || img=\"" + defaultWall + "\"",
-            "if which \"$cmd\" >/dev/null 2>&1; then",
-            "  \"$cmd\" img \"$img\" --transition-type " + anim + " --transition-duration " + dur,
-            "else",
-            "  echo 'Neither awww nor swww is installed!' >&2",
-            "fi"
+            "\"$cmd\" img \"$img\" --transition-type " + anim + " --transition-duration " + dur
         ].join("; ");
 
         wallpaperProcess.running = false;

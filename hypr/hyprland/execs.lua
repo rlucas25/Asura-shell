@@ -39,8 +39,8 @@ hl.on("hyprland.start", function()
     -- Forward bluetooth media commands to MPRIS
     hl.exec_cmd("mpris-proxy")
 
-    -- Start shell
-    hl.exec_cmd("awww-daemon &")
+    -- Start wallpaper daemon (awww or swww)
+    hl.exec_cmd("bash " .. home .. "/.config/hypr/scripts/wallpaper-daemon.sh &")
     hl.exec_cmd(home .. "/.local/bin/asura run")
 
     -- Start hyprland plugins
