@@ -427,12 +427,6 @@ PanelWindow {
                                 return (ws.id < 0 || (ws.name && ws.name.indexOf("special") !== -1))
                             }
 
-                            onCleanAddressChanged: {
-                                previewLoader.active = false
-                                if (root.isOpen && cleanAddress !== "") {
-                                    previewLoader.active = true
-                                }
-                            }
 
                             implicitWidth: root.dynItemWidth
                             implicitHeight: root.dynItemHeight
@@ -456,8 +450,8 @@ PanelWindow {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: width
                                     radius: Math.max(2, 6 * root.scaleFactor)
-                                    color: Qt.alpha(root.background, 0.8)
-                                    border.color: Qt.alpha(root.textColor, 0.08)
+                                    color: winItemRoot.isSelected ? Qt.alpha(root.color1, 0.12) : Qt.alpha(root.background, 0.8)
+                                    border.color: winItemRoot.isSelected ? Qt.alpha(root.color1, 0.3) : Qt.alpha(root.textColor, 0.08)
                                     border.width: 1
                                     clip: true
 
@@ -465,62 +459,30 @@ PanelWindow {
                                         id: cachedPreviewImage
                                         anchors.fill: parent
                                         fillMode: Image.PreserveAspectCrop
-                                        cache: false
+                                        cache: true
                                         asynchronous: true
-                                        source: winItemRoot.cleanAddress !== "" ? ("file:///tmp/qs_preview_" + winItemRoot.cleanAddress + ".png?v=" + root.cacheVersion) : ""
-                                        visible: status === Image.Ready && (!previewLoader.item || !previewLoader.item.hasContent)
+                                        source: winItemRoot.cleanAddress !== "" ? ("file:///tmp/qs_preview_" + winItemRoot.cleanAddress + ".png") : ""
+                                        visible: status === Image.Ready
                                     }
 
                                     Item {
                                         anchors.fill: parent
-                                        visible: (!previewLoader.item || !previewLoader.item.hasContent) && !cachedPreviewImage.visible
+                                        visible: !cachedPreviewImage.visible
 
                                         Rectangle {
                                             anchors.centerIn: parent
-                                            width: Math.max(16, 48 * root.scaleFactor)
-                                            height: Math.max(16, 48 * root.scaleFactor)
+                                            width: Math.max(36, 64 * root.scaleFactor)
+                                            height: Math.max(36, 64 * root.scaleFactor)
                                             radius: width / 2
-                                            color: Qt.alpha(root.color1, 0.15)
+                                            color: winItemRoot.isSelected ? Qt.alpha(root.color1, 0.25) : Qt.alpha(root.color1, 0.12)
+                                            border.color: winItemRoot.isSelected ? root.color1 : "transparent"
+                                            border.width: 1
+
                                             ThemedIcon {
                                                 anchors.centerIn: parent
-                                                size: Math.max(12, Math.floor(24 * root.scaleFactor))
+                                                size: Math.max(20, Math.floor(32 * root.scaleFactor))
                                                 source: ActiveWindowService.getAppIcon(winItemRoot.appClass, winItemRoot.targetTitle)
-                                                color: root.color1
-                                            }
-                                        }
-                                    }
-
-                                    Loader {
-                                        id: previewLoader
-                                        anchors.fill: parent
-                                        active: root.isOpen && winItemRoot.cleanAddress !== ""
-                                        sourceComponent: Component {
-                                            Item {
-                                                anchors.fill: parent
-                                                readonly property bool hasContent: screencopyItem.hasContent
-
-                                                ScreencopyView {
-                                                    id: screencopyItem
-                                                    anchors.centerIn: parent
-                                                    constraintSize: Qt.size(Math.max(1, previewBox.width), Math.max(1, previewBox.height))
-                                                    captureSource: (winItemRoot.targetToplevel && winItemRoot.targetToplevel.wayland) ? winItemRoot.targetToplevel.wayland : null
-                                                    live: false
-                                                    paintCursor: false
-                                                    visible: hasContent
-
-                                                    onHasContentChanged: {
-                                                        if (hasContent && winItemRoot.cleanAddress !== "") {
-                                                            var clean = winItemRoot.cleanAddress
-                                                            var filePath = "/tmp/qs_preview_" + clean + ".png"
-                                                            screencopyItem.grabToImage(function(result) {
-                                                                if (result && winItemRoot.cleanAddress === clean) {
-                                                                    result.saveToFile(filePath)
-                                                                    root.cacheVersion = Date.now()
-                                                                }
-                                                            }, Qt.size(Math.max(1, previewBox.width), Math.max(1, previewBox.height)))
-                                                        }
-                                                    }
-                                                }
+                                                color: winItemRoot.isSelected ? root.color1 : root.textColor
                                             }
                                         }
                                     }

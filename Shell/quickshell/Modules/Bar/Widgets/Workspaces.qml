@@ -85,7 +85,7 @@ GridLayout {
 
     function switchToWorkspace(id) {
         try {
-            Hyprland.dispatch("workspace", "" + id);
+            Hyprland.dispatch('hl.dsp.focus({workspace = ' + id + '})');
         } catch (e) {}
         wsProc.command = ["hyprctl", "eval", "hl.dispatch(hl.dsp.focus({workspace = " + id + "}))"];
         wsProc.running = false;
