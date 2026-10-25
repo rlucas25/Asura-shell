@@ -28,15 +28,16 @@ Item {
             "if command -v awww >/dev/null 2>&1; then cmd='awww'; elif command -v swww >/dev/null 2>&1; then cmd='swww'; fi",
             "if [ -z \"$cmd\" ]; then echo 'Neither awww nor swww is installed!' >&2; exit 1; fi",
             "daemon=\"${cmd}-daemon\"",
-            "if ! pgrep -x \"$daemon\" >/dev/null 2>&1; then",
-            "  if command -v \"$daemon\" >/dev/null 2>&1; then \"$daemon\" &",
-            "  elif [ \"$cmd\" = 'swww' ] && command -v swww >/dev/null 2>&1; then swww init & fi",
-            "  for i in $(seq 1 30); do \"$cmd\" query >/dev/null 2>&1 && break; sleep 0.1; done",
+            "if ! pgrep -x \"$daemon\" >/dev/null 2>&1 && ! pgrep -x swww-daemon >/dev/null 2>&1 && ! pgrep -x awww-daemon >/dev/null 2>&1; then",
+            "  if command -v \"$daemon\" >/dev/null 2>&1; then \"$daemon\" >/dev/null 2>&1 &",
+            "  elif [ \"$cmd\" = 'swww' ] && command -v swww >/dev/null 2>&1; then swww init >/dev/null 2>&1 &",
+            "  fi",
             "fi",
+            "for i in $(seq 1 30); do \"$cmd\" query >/dev/null 2>&1 && break; sleep 0.1; done",
             "img=\"" + cleanWall + "\"",
             "[ -f \"$img\" ] || img=\"" + defaultWall + "\"",
             "\"$cmd\" img \"$img\" --transition-type " + anim + " --transition-duration " + dur
-        ].join("; ");
+        ].join("\n");
 
         wallpaperProcess.running = false;
         wallpaperProcess.command = ["sh", "-c", cmd];
