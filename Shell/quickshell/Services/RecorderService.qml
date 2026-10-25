@@ -26,7 +26,7 @@ Singleton {
 
     readonly property string scriptPath: (typeof Quickshell.shellPath === "function")
         ? Quickshell.shellPath("Services/recorder_manager.py").toString()
-        : (Quickshell.env("HOME") + "/.config/quickshell/Services/recorder_manager.py")
+        : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Services/recorder_manager.py")
 
     readonly property string resolvedFolder: {
         var f = (Config.cfg && Config.cfg.recordingsFolder) ? Config.cfg.recordingsFolder : "~/Videos/Recordings";
@@ -212,6 +212,22 @@ Singleton {
             stopRecording();
         } else {
             startRecording();
+        }
+    }
+
+    IpcHandler {
+        target: "recorder"
+
+        function toggle() {
+            root.toggleRecording();
+        }
+
+        function start() {
+            root.startRecording();
+        }
+
+        function stop() {
+            root.stopRecording();
         }
     }
 

@@ -240,6 +240,9 @@ hl.bind("CTRL + ALT + V", hl.dsp.exec_cmd(vars.audioSettings))
 hl.bind("Print", hl.dsp.exec_cmd("flameshot gui"))
 hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("flameshot gui"))
 
+-- RECORD
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("asura record toggle"))
+
 -- Volume
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })

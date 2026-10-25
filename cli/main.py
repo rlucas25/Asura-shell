@@ -6,7 +6,7 @@ from pathlib import Path
 
 import shutil
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 
 def get_quickshell_bin() -> str | None:
@@ -90,6 +90,8 @@ def doctor(args):
         "Quickshell": get_quickshell_bin(),
         "Hyprland": shutil.which("hyprland"),
         "Awww": shutil.which("awww") or shutil.which("swww"),
+        "Screen Recorder": shutil.which("wf-recorder"),
+        "Audio Visualizer": shutil.which("cava"),
         "Kitty": shutil.which("kitty"),
         "Fish": shutil.which("fish"),
         "Starship": shutil.which("starship"),
@@ -155,6 +157,10 @@ def main():
     p_switcher = subparsers.add_parser("switcher", help="Control window switcher (next, prev, toggle)")
     p_switcher.add_argument("action", nargs="?", default="next", help="Action to execute (default: next)")
     p_switcher.set_defaults(func=lambda args: ipc_call("switcher", args.action))
+
+    p_record = subparsers.add_parser("record", help="Toggle or control Screen Recorder")
+    p_record.add_argument("action", nargs="?", default="toggle", choices=["toggle", "start", "stop"], help="Action to execute (default: toggle)")
+    p_record.set_defaults(func=lambda args: ipc_call("recorder", args.action))
 
     p_toggle = subparsers.add_parser("toggle", help="Toggle an Asura shell module")
     p_toggle.add_argument("target", help="Module target name (e.g. launcher, controlpanel, wallpaper)")
