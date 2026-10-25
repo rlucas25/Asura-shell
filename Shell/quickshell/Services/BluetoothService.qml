@@ -218,17 +218,23 @@ Singleton {
         var lowerIcon = (iconName || "").toLowerCase();
         var lowerName = (name || "").toLowerCase();
 
-        if (lowerIcon.includes("headset") || lowerIcon.includes("audio-headset") || lowerName.includes("headphone") || lowerName.includes("fone") || lowerName.includes("buds") || lowerName.includes("airpods"))
+        if (lowerIcon.includes("headset") || lowerIcon.includes("headphones") || lowerIcon.includes("audio-headset") || lowerIcon.includes("audio-card") || lowerName.includes("headphone") || lowerName.includes("fone") || lowerName.includes("buds") || lowerName.includes("airpods") || lowerName.includes("earbuds"))
             return "headphones";
         if (lowerIcon.includes("gamepad") || lowerIcon.includes("gaming") || lowerIcon.includes("joystick") || lowerName.includes("controller") || lowerName.includes("xbox") || lowerName.includes("dualshock") || lowerName.includes("dualsense"))
-            return "stadia_controller";
+            return "sports_esports";
         if (lowerIcon.includes("keyboard") || lowerName.includes("keyboard") || lowerName.includes("teclado"))
             return "keyboard";
         if (lowerIcon.includes("mouse") || lowerName.includes("mouse"))
             return "mouse";
-        if (lowerIcon.includes("phone") || lowerName.includes("phone") || lowerName.includes("iphone") || lowerName.includes("galaxy"))
-            return "mobile_2";
-        if (lowerIcon.includes("speaker") || lowerIcon.includes("audio") || lowerName.includes("speaker") || lowerName.includes("caixa") || lowerName.includes("jbl"))
+        if (lowerIcon.includes("phone") || lowerName.includes("phone") || lowerName.includes("iphone") || lowerName.includes("galaxy") || lowerName.includes("celular"))
+            return "smartphone";
+        if (lowerIcon.includes("watch") || lowerName.includes("watch") || lowerName.includes("relogio") || lowerName.includes("band"))
+            return "watch";
+        if (lowerIcon.includes("tv") || lowerIcon.includes("video-display") || lowerName.includes("tv") || lowerName.includes("smart tv"))
+            return "tv";
+        if (lowerIcon.includes("computer") || lowerIcon.includes("laptop") || lowerName.includes("laptop") || lowerName.includes("notebook") || lowerName.includes("desktop") || lowerName.includes("pc"))
+            return "laptop";
+        if (lowerIcon.includes("speaker") || lowerIcon.includes("audio") || lowerName.includes("speaker") || lowerName.includes("caixa") || lowerName.includes("jbl") || lowerName.includes("som"))
             return "speaker";
 
         return "bluetooth";

@@ -336,13 +336,26 @@ Item {
                                                 }
                                             }
 
-                                            Text {
+                                            RowLayout {
                                                 visible: connItem.modelData.battery !== undefined && connItem.modelData.battery >= 0
-                                                text: "󰁹 " + Math.round((connItem.modelData.battery || 0) * 100) + "%"
-                                                color: root.secondary
-                                                font {
-                                                    family: "GeistMono Nerd Font Propo"
-                                                    pixelSize: 10
+                                                spacing: 2
+
+                                                Text {
+                                                    text: "battery_full"
+                                                    color: root.secondary
+                                                    font {
+                                                        family: "Material Symbols Rounded"
+                                                        pixelSize: 12
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: Math.round((connItem.modelData.battery || 0) * 100) + "%"
+                                                    color: root.secondary
+                                                    font {
+                                                        family: "GeistMono Nerd Font Propo"
+                                                        pixelSize: 10
+                                                    }
                                                 }
                                             }
                                         }
@@ -356,11 +369,11 @@ Item {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰅖"
-                                             color: root.warning
+                                            text: "close"
+                                            color: root.warning
                                             font {
-                                                family: "GeistMono Nerd Font Propo"
-                                                pixelSize: 14
+                                                family: "Material Symbols Rounded"
+                                                pixelSize: 16
                                             }
                                         }
 
@@ -455,11 +468,11 @@ Item {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰄬"
+                                            text: "link"
                                             color: root.primary
                                             font {
-                                                family: "GeistMono Nerd Font Propo"
-                                                pixelSize: 14
+                                                family: "Material Symbols Rounded"
+                                                pixelSize: 16
                                             }
                                         }
 
@@ -482,11 +495,11 @@ Item {
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰅖"
+                                            text: "delete"
                                             color: Qt.alpha(root.textColor, 0.5)
                                             font {
-                                                family: "GeistMono Nerd Font Propo"
-                                                pixelSize: 12
+                                                family: "Material Symbols Rounded"
+                                                pixelSize: 16
                                             }
                                         }
 
@@ -547,8 +560,8 @@ Item {
                                         text: BluetoothService.getDeviceIcon(availItem.modelData.icon, BluetoothService.getDeviceDisplayName(availItem.modelData))
                                         color: root.primary
                                         font {
-                                            family: "GeistMono Nerd Font Propo"
-                                            pixelSize: 16
+                                            family: "Material Symbols Rounded"
+                                            pixelSize: 25
                                         }
                                     }
 
@@ -620,11 +633,11 @@ Item {
                         visible: BluetoothService.connectedDevices.length === 0 && BluetoothService.pairedDevices.length === 0 && BluetoothService.availableDevices.length === 0
 
                         Text {
-                            text: "󰂲"
+                            text: BluetoothService.isScanning ? "bluetooth_searching" : "bluetooth_disabled"
                             color: Qt.alpha(root.textColor, 0.25)
                             font {
-                                family: "GeistMono Nerd Font Propo"
-                                pixelSize: 32
+                                family: "Material Symbols Rounded"
+                                pixelSize: 36
                             }
                             Layout.alignment: Qt.AlignHCenter
                         }

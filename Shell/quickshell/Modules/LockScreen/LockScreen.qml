@@ -21,6 +21,19 @@ PanelWindow {
     property bool authActive: false
     readonly property bool showAuth: authActive || typedPassword.length > 0 || LockScreenService.isAuthenticating || authError !== ""
 
+    readonly property string defaultWallpaperUrl: {
+        var p = (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("Assets/default_wallpaper.jpg").toString()
+            : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg");
+        return p.startsWith("file://") ? p : ("file://" + p);
+    }
+
+    function resolveWallpaper(path) {
+        if (!path) return defaultWallpaperUrl;
+        var url = Config.toFileUrl(path);
+        return url ? url : defaultWallpaperUrl;
+    }
+
     function clearInput() {
         hiddenInput.text = "";
         root.typedPassword = "";
@@ -162,17 +175,27 @@ PanelWindow {
     Item {
         anchors.fill: parent
 
+        Rectangle {
+            anchors.fill: parent
+            color: Colors.cfg.background
+        }
+
         Image {
             id: bgWallpaper
 
             anchors.fill: parent
-            source: {
-                var wp = Config.cfg.wallpaper;
-                return (wp && wp.startsWith("/")) ? "file://" + wp : (wp || "");
-            }
+            source: root.resolveWallpaper(Config.cfg ? Config.cfg.wallpaper : "")
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
+            cache: true
             visible: true
+
+            onStatusChanged: {
+                if (status === Image.Error && source.toString() !== root.defaultWallpaperUrl) {
+                    console.warn("LockScreen: wallpaper failed to load, falling back to default asset: " + root.defaultWallpaperUrl);
+                    source = root.defaultWallpaperUrl;
+                }
+            }
         }
 
         MultiEffect {
