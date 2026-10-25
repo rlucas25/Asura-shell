@@ -41,6 +41,8 @@ ColumnLayout {
     property real radius: -1
     // Thumb customizations
     property bool showThumb: true
+    property bool hideThumbAtMax: false
+    readonly property bool effectiveShowThumb: showThumb && (!hideThumbAtMax || fraction < 0.999)
     property color thumbColor: activeColor
     property color thumbBorderColor: "transparent"
     property real thumbBorderWidth: 0
@@ -426,7 +428,11 @@ ColumnLayout {
         Item {
             id: thumbHorizontalWrapper
 
-            visible: !sliderRoot.vertical && sliderRoot.showThumb
+            visible: !sliderRoot.vertical && sliderRoot.effectiveShowThumb
+            opacity: sliderRoot.effectiveShowThumb ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            }
             anchors.verticalCenter: parent.verticalCenter
             x: Math.max(0, Math.min(parent.width - width, (parent.width * trackContainer.fraction) - width / 2))
             width: thumbHorizontal.width
@@ -468,12 +474,12 @@ ColumnLayout {
 
                 anchors.centerIn: parent
                 width: sliderMa.pressed ? (sliderRoot.thumbWidth + 4) : (sliderMa.containsMouse ? (sliderRoot.thumbWidth + 2) : sliderRoot.thumbWidth)
-                height: (sliderRoot.thumbHeight > 0) ? sliderRoot.thumbHeight : (sliderRoot.fillHeight ? Math.max(12, trackContainer.height - 8) : (trackContainer.height + (sliderMa.pressed ? 6 : (sliderMa.containsMouse ? 4 : 2))))
+                height: (sliderRoot.thumbHeight > 0) ? sliderRoot.thumbHeight : (sliderRoot.fillHeight ? trackContainer.height : (trackContainer.height + (sliderMa.pressed ? 6 : (sliderMa.containsMouse ? 4 : 2))))
                 radius: Math.min(width, height) / 2
                 color: sliderRoot.thumbColor
                 border.color: sliderRoot.thumbBorderColor
                 border.width: sliderRoot.thumbBorderWidth
-                scale: sliderMa.pressed ? 1.12 : (sliderMa.containsMouse ? 1.05 : 1)
+                scale: sliderRoot.fillHeight ? 1.0 : (sliderMa.pressed ? 1.12 : (sliderMa.containsMouse ? 1.05 : 1))
 
                 Behavior on width {
                     NumberAnimation {
@@ -526,7 +532,11 @@ ColumnLayout {
         Item {
             id: thumbVerticalWrapper
 
-            visible: sliderRoot.vertical && sliderRoot.showThumb
+            visible: sliderRoot.vertical && sliderRoot.effectiveShowThumb
+            opacity: sliderRoot.effectiveShowThumb ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            }
             anchors.horizontalCenter: parent.horizontalCenter
             y: Math.max(0, Math.min(parent.height - height, (parent.height - (parent.height * trackContainer.fraction)) - height / 2))
             width: thumbVertical.width
@@ -567,12 +577,12 @@ ColumnLayout {
 
                 anchors.centerIn: parent
                 height: sliderMa.pressed ? (sliderRoot.thumbWidth + 4) : (sliderMa.containsMouse ? (sliderRoot.thumbWidth + 2) : sliderRoot.thumbWidth)
-                width: (sliderRoot.thumbHeight > 0) ? sliderRoot.thumbHeight : (sliderRoot.fillHeight ? Math.max(12, trackContainer.width - 8) : (trackContainer.width + (sliderMa.pressed ? 6 : (sliderMa.containsMouse ? 4 : 2))))
+                width: (sliderRoot.thumbHeight > 0) ? sliderRoot.thumbHeight : (sliderRoot.fillHeight ? trackContainer.width : (trackContainer.width + (sliderMa.pressed ? 6 : (sliderMa.containsMouse ? 4 : 2))))
                 radius: Math.min(width, height) / 2
                 color: sliderRoot.thumbColor
                 border.color: sliderRoot.thumbBorderColor
                 border.width: sliderRoot.thumbBorderWidth
-                scale: sliderMa.pressed ? 1.12 : (sliderMa.containsMouse ? 1.05 : 1)
+                scale: sliderRoot.fillHeight ? 1.0 : (sliderMa.pressed ? 1.12 : (sliderMa.containsMouse ? 1.05 : 1))
 
                 Behavior on height {
                     NumberAnimation {

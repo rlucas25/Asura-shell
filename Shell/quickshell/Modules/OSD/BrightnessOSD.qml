@@ -151,6 +151,8 @@ Scope {
                     trackBorderColor: "transparent"
                     radius: content.effectiveRadius
                     thumbWidth: 10
+                    thumbHeight: root.verticalMode ? (content.width > 0 ? content.width : panelWindow.width) : content.height
+                    hideThumbAtMax: true
                     showFloatingTooltip: false
 
                     onInteractionStarted: {
