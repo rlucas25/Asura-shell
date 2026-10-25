@@ -75,13 +75,154 @@ def reload(args):
     run(args)
 
 
+def ensure_valid_git_repo(asura_dir: Path) -> bool:
+    """Ensure asura_dir is a valid standalone git repository linked to remote."""
+    git_dir = asura_dir / ".git"
+    is_valid = False
+    if git_dir.exists():
+        res = subprocess.run(["git", "-C", str(asura_dir), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+        if res.returncode == 0 and res.stdout.strip() == "true":
+            rem_res = subprocess.run(["git", "-C", str(asura_dir), "remote", "get-url", "origin"], capture_output=True, text=True)
+            if rem_res.returncode == 0 and rem_res.stdout.strip():
+                is_valid = True
+
+    if not is_valid:
+        print("  Notice: ~/.local/share/asura is not a configured git repository.")
+        print("  -> Initializing git repository and linking to remote...")
+        if git_dir.is_file() or git_dir.is_symlink():
+            git_dir.unlink()
+        elif git_dir.is_dir():
+            shutil.rmtree(git_dir)
+
+        subprocess.run(["git", "-C", str(asura_dir), "init"], check=False)
+        subprocess.run(["git", "-C", str(asura_dir), "remote", "add", "origin", "https://github.com/rlucas25/Asura-shell.git"], check=False)
+        subprocess.run(["git", "-C", str(asura_dir), "fetch", "origin", "main"], check=False)
+        subprocess.run(["git", "-C", str(asura_dir), "reset", "--hard", "origin/main"], check=False)
+        subprocess.run(["git", "-C", str(asura_dir), "branch", "--set-upstream-to=origin/main", "main"], check=False)
+        return True
+    return True
+
+
+def check_update(asura_dir: Path, force: bool = False) -> dict:
+    """Check if a new version is available, with 24h caching for performance."""
+    import json
+    import time
+
+    cache_file = Path.home() / ".cache/asura/update_check.json"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+
+    current_ver = __version__
+
+    # 1. Check cache (24 hours = 86400 seconds)
+    if not force and cache_file.exists():
+        try:
+            cached = json.loads(cache_file.read_text())
+            if time.time() - cached.get("timestamp", 0) < 86400:
+                cached["current_version"] = current_ver
+                return cached
+        except Exception:
+            pass
+
+    # 2. Query latest version
+    latest_ver = current_ver
+    update_available = False
+
+    try:
+        import urllib.request
+        url = "https://raw.githubusercontent.com/rlucas25/Asura-shell/main/cli/main.py"
+        req = urllib.request.Request(url, headers={"User-Agent": "AsuraShell/UpdateCheck"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            content = resp.read().decode("utf-8")
+            for line in content.splitlines():
+                if line.startswith("__version__ ="):
+                    remote_v = line.split("=")[1].strip().strip('"').strip("'")
+                    if remote_v:
+                        latest_ver = remote_v
+                    break
+
+        if latest_ver != current_ver:
+            update_available = True
+        else:
+            # Check commit hash difference
+            res = subprocess.run(
+                ["git", "-C", str(asura_dir), "ls-remote", "origin", "refs/heads/main"],
+                capture_output=True, text=True, timeout=4
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                remote_hash = res.stdout.strip().split()[0]
+                loc_res = subprocess.run(
+                    ["git", "-C", str(asura_dir), "rev-parse", "HEAD"],
+                    capture_output=True, text=True
+                )
+                local_hash = loc_res.stdout.strip() if loc_res.returncode == 0 else ""
+                if local_hash and remote_hash and local_hash != remote_hash:
+                    update_available = True
+    except Exception:
+        pass
+
+    result = {
+        "timestamp": time.time(),
+        "current_version": current_ver,
+        "latest_version": latest_ver,
+        "update_available": update_available
+    }
+
+    try:
+        cache_file.write_text(json.dumps(result, indent=2))
+    except Exception:
+        pass
+
+    return result
+
+
 def update(args):
-    print("Updating Asura Shell...")
     asura_dir = Path.home() / ".local/share/asura"
-    if asura_dir.exists():
-        subprocess.run(["git", "-C", str(asura_dir), "pull"])
-    else:
+    if not asura_dir.exists():
         print(f"Error: Directory {asura_dir} does not exist.", file=sys.stderr)
+        return False
+
+    ensure_valid_git_repo(asura_dir)
+
+    # Check only flag
+    if getattr(args, "check", False):
+        info = check_update(asura_dir, force=getattr(args, "force", False))
+        if getattr(args, "json", False):
+            import json
+            print(json.dumps(info))
+        else:
+            print(f"Current version: {info['current_version']}")
+            print(f"Latest version:  {info['latest_version']}")
+            print(f"Update available: {'Yes' if info['update_available'] else 'No'}")
+        return info["update_available"]
+
+    print("Updating Asura Shell...")
+    res = subprocess.run(["git", "-C", str(asura_dir), "pull", "--recurse-submodules"], capture_output=True, text=True)
+    if res.returncode == 0:
+        print("✓ Asura Shell updated successfully!")
+        cache_file = Path.home() / ".cache/asura/update_check.json"
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+            except Exception:
+                pass
+        if not getattr(args, "no_reload", False):
+            reload(args)
+        return True
+    else:
+        print(f"Update notice: {res.stderr.strip()}", file=sys.stderr)
+        res_reset = subprocess.run(["git", "-C", str(asura_dir), "reset", "--hard", "origin/main"], capture_output=True, text=True)
+        if res_reset.returncode == 0:
+            print("✓ Asura Shell updated successfully (reset to origin/main)!")
+            cache_file = Path.home() / ".cache/asura/update_check.json"
+            if cache_file.exists():
+                try:
+                    cache_file.unlink()
+                except Exception:
+                    pass
+            if not getattr(args, "no_reload", False):
+                reload(args)
+            return True
+        return False
 
 
 def doctor(args):
@@ -120,6 +261,10 @@ def main():
     p_reload.set_defaults(func=reload)
 
     p_update = subparsers.add_parser("update", help="Update Asura shell")
+    p_update.add_argument("--check", action="store_true", help="Check for available updates without applying")
+    p_update.add_argument("--force", action="store_true", help="Force refresh update check bypassing cache")
+    p_update.add_argument("--json", action="store_true", help="Output update check result as JSON")
+    p_update.add_argument("--no-reload", action="store_true", help="Do not restart shell after updating")
     p_update.set_defaults(func=update)
 
     p_doctor = subparsers.add_parser("doctor", help="Run diagnostic on Asura shell")

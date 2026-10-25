@@ -662,9 +662,9 @@ FloatingWindow {
     }
 
     function refreshWallpapers() {
-        if (!wpListProc.running)
-            wpListProc.running = true;
-
+        wpListProc.command = ["python3", root.wallpaperListScriptPath, Config.toLocalPath(Config.cfg.wallpaperFolder || "/Pictures/Wallpapers")];
+        wpListProc.running = false;
+        wpListProc.running = true;
     }
 
     function playTestSound() {
@@ -1210,11 +1210,25 @@ FloatingWindow {
         }
     }
 
+    readonly property string wallpaperListScriptPath: {
+        var p = (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("Services/wallpaper_list.py").toString()
+            : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Services/wallpaper_list.py");
+        return p.replace(/^file:\/\//, "").replace(/^file:/, "");
+    }
+
+    readonly property string switchwallScriptPath: {
+        var p = (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("scripts/colors/switchwall.sh").toString()
+            : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/scripts/colors/switchwall.sh");
+        return p.replace(/^file:\/\//, "").replace(/^file:/, "");
+    }
+
     Process {
         id: applyTemplatesProc
 
         property bool feedbackActive: false
-        command: ["/usr/bin/bash", (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("scripts/colors/switchwall.sh") : (Quickshell.env("HOME") + "/.config/quickshell/scripts/colors/switchwall.sh")]
+        command: ["/usr/bin/bash", root.switchwallScriptPath]
         running: false
 
         onExited: (code) => {
@@ -1234,7 +1248,7 @@ FloatingWindow {
     Process {
         id: wpListProc
 
-        command: ["python3", Quickshell.shellPath ? Quickshell.shellPath("Services/wallpaper_list.py") : (Quickshell.env("HOME") + "/.config/quickshell/Services/wallpaper_list.py"), Config.cfg.wallpaperFolder]
+        command: ["python3", root.wallpaperListScriptPath, Config.toLocalPath(Config.cfg.wallpaperFolder || "/Pictures/Wallpapers")]
 
         stdout: StdioCollector {
             onStreamFinished: {

@@ -54,7 +54,7 @@ Item {
                 anchors.centerIn: parent
                 text: isVertical ? (root.openTray ? "󰅃" : "󰅀") : (root.openTray ? "󰅂" : "󰅀")
                 font.pixelSize: Math.round(16 * Config.barIconScale)
-                font.family: "GeistMono Nerd Font Propo Propo"
+                font.family: "GeistMono Nerd Font Propo"
                 color: root.color1
 
                 Behavior on color {

@@ -19,6 +19,9 @@ ColumnLayout {
     Component.onCompleted: {
         SystemMonitorService.subscribe();
         SystemMonitorService.refresh();
+        if (UpdateService.lastCheckTimestamp === 0) {
+            UpdateService.checkForUpdates(false);
+        }
     }
 
     Component.onDestruction: {
@@ -337,6 +340,282 @@ ColumnLayout {
             copyText: SystemMonitorService.uptimeStr
             accentColor: Colors.cfg.tertiary
             onCopied: (t) => root.showToast(qsTr("Uptime copied"), "content_copy")
+        }
+    }
+
+    SettingSectionHeader {
+        id: updateHeader
+        icon: "system_update"
+        title: qsTr("Software Updates")
+        description: qsTr("System releases, update channel and automatic update preferences")
+        collapsible: true
+        hint: qsTr("Check for Asura Shell updates and configure automatic background updates")
+        targetContent: updateCard
+    }
+
+    Rectangle {
+        id: updateCard
+        Layout.fillWidth: true
+        implicitHeight: updateCol.implicitHeight + 32
+        radius: 14
+        color: root.surface
+        border.color: root.borderCol
+        border.width: 1
+
+        ColumnLayout {
+            id: updateCol
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 14
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 14
+
+                Rectangle {
+                    implicitWidth: 46
+                    implicitHeight: 46
+                    radius: 12
+                    color: Qt.alpha(UpdateService.updateAvailable ? Colors.cfg.warning : Colors.cfg.primary, 0.15)
+                    border.color: Qt.alpha(UpdateService.updateAvailable ? Colors.cfg.warning : Colors.cfg.primary, 0.35)
+                    border.width: 1
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: UpdateService.updating ? "sync" : (UpdateService.updateAvailable ? "system_update" : "verified")
+                        font.pixelSize: 24
+                        font.family: "Material Symbols Rounded"
+                        color: UpdateService.updateAvailable ? Colors.cfg.warning : Colors.cfg.primary
+
+                        RotationAnimation on rotation {
+                            running: UpdateService.checking || UpdateService.updating
+                            from: 0
+                            to: 360
+                            loops: Animation.Infinite
+                            duration: 1200
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    RowLayout {
+                        spacing: 8
+
+                        Text {
+                            text: qsTr("Asura Shell Updates")
+                            font.pixelSize: 15
+                            font.bold: true
+                            font.family: "Google Sans"
+                            color: root.textBright
+                        }
+
+                        Rectangle {
+                            implicitWidth: badgeText.implicitWidth + 12
+                            implicitHeight: 20
+                            radius: 10
+                            color: {
+                                if (UpdateService.updating) return Qt.alpha(Colors.cfg.primary, 0.2);
+                                if (UpdateService.checking) return Qt.alpha(Colors.cfg.tertiary, 0.2);
+                                if (UpdateService.updateAvailable) return Qt.alpha(Colors.cfg.warning, 0.2);
+                                return Qt.alpha(Colors.cfg.secondary, 0.2);
+                            }
+                            border.color: {
+                                if (UpdateService.updating) return Qt.alpha(Colors.cfg.primary, 0.5);
+                                if (UpdateService.checking) return Qt.alpha(Colors.cfg.tertiary, 0.5);
+                                if (UpdateService.updateAvailable) return Qt.alpha(Colors.cfg.warning, 0.5);
+                                return Qt.alpha(Colors.cfg.secondary, 0.5);
+                            }
+                            border.width: 1
+
+                            Text {
+                                id: badgeText
+                                anchors.centerIn: parent
+                                text: {
+                                    if (UpdateService.updating) return qsTr("Updating...");
+                                    if (UpdateService.checking) return qsTr("Checking...");
+                                    if (UpdateService.updateAvailable) return qsTr("Update Available");
+                                    return qsTr("Up to Date");
+                                }
+                                font.pixelSize: 10
+                                font.bold: true
+                                font.family: "Google Sans"
+                                color: {
+                                    if (UpdateService.updating) return Colors.cfg.primary;
+                                    if (UpdateService.checking) return Colors.cfg.tertiary;
+                                    if (UpdateService.updateAvailable) return Colors.cfg.warning;
+                                    return Colors.cfg.secondary;
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: UpdateService.statusMessage + (UpdateService.lastCheckStr !== "" ? (" • " + qsTr("Last checked at %1").arg(UpdateService.lastCheckStr)) : "")
+                        font.pixelSize: 11
+                        font.family: "Google Sans"
+                        color: root.textMuted
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: 12
+                rowSpacing: 12
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 68
+                    radius: 12
+                    color: Qt.alpha(Colors.cfg.surfaceContainer, 0.6)
+                    border.color: Qt.alpha(Colors.cfg.base03, 0.4)
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 12
+
+                        Rectangle {
+                            implicitWidth: 36
+                            implicitHeight: 36
+                            radius: 10
+                            color: Qt.alpha(Colors.cfg.primary, 0.15)
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "check_circle"
+                                font.pixelSize: 20
+                                font.family: "Material Symbols Rounded"
+                                color: Colors.cfg.primary
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Text {
+                                text: qsTr("INSTALLED VERSION")
+                                font.pixelSize: 10
+                                font.bold: true
+                                font.family: "Google Sans"
+                                color: Colors.cfg.textSecondary
+                            }
+
+                            Text {
+                                text: UpdateService.currentVersion
+                                font.pixelSize: 15
+                                font.bold: true
+                                font.family: "Google Sans"
+                                color: root.textBright
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 68
+                    radius: 12
+                    color: UpdateService.updateAvailable ? Qt.alpha(Colors.cfg.primary, 0.08) : Qt.alpha(Colors.cfg.surfaceContainer, 0.6)
+                    border.color: UpdateService.updateAvailable ? Qt.alpha(Colors.cfg.primary, 0.45) : Qt.alpha(Colors.cfg.base03, 0.4)
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 12
+
+                        Rectangle {
+                            implicitWidth: 36
+                            implicitHeight: 36
+                            radius: 10
+                            color: Qt.alpha(UpdateService.updateAvailable ? Colors.cfg.primary : Colors.cfg.secondary, 0.15)
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: UpdateService.updateAvailable ? "upgrade" : "task_alt"
+                                font.pixelSize: 20
+                                font.family: "Material Symbols Rounded"
+                                color: UpdateService.updateAvailable ? Colors.cfg.primary : Colors.cfg.secondary
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Text {
+                                text: qsTr("LATEST VERSION")
+                                font.pixelSize: 10
+                                font.bold: true
+                                font.family: "Google Sans"
+                                color: Colors.cfg.textSecondary
+                            }
+
+                            Text {
+                                text: UpdateService.latestVersion
+                                font.pixelSize: 15
+                                font.bold: true
+                                font.family: "Google Sans"
+                                color: UpdateService.updateAvailable ? Colors.cfg.primary : root.textBright
+                            }
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                SettingButton {
+                    text: UpdateService.checking ? qsTr("Checking...") : qsTr("Check for Updates")
+                    icon: "refresh"
+                    variant: "secondary"
+                    compact: true
+                    disabled: UpdateService.checking || UpdateService.updating
+                    onClicked: {
+                        UpdateService.checkForUpdates(true);
+                    }
+                }
+
+                SettingButton {
+                    text: UpdateService.updating ? qsTr("Updating...") : qsTr("Update Now")
+                    icon: "system_update"
+                    variant: "primary"
+                    compact: true
+                    disabled: UpdateService.updating || (!UpdateService.updateAvailable && !UpdateService.checking)
+                    onClicked: {
+                        root.showToast(qsTr("Starting update process..."), "system_update");
+                        UpdateService.applyUpdate();
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+            }
+
+            SettingDivider {}
+
+            SettingToggle {
+                icon: "autorenew"
+                title: qsTr("Automatic Updates")
+                description: qsTr("Periodically check for updates in background and automatically apply new releases")
+                hint: qsTr("Checks every 12-24h using a low-overhead cached probe and automatically pulls improvements")
+                checked: Config.cfg.autoUpdate
+                onToggled: (newState) => {
+                    Config.cfg.autoUpdate = newState;
+                    Config.save();
+                    root.showToast(newState ? qsTr("Automatic updates enabled") : qsTr("Automatic updates disabled"), "autorenew");
+                }
+            }
         }
     }
 

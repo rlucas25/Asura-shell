@@ -326,7 +326,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: appCardRoot.currentMute ? "󰝟" : "󰕾"
                                         font.pixelSize: 10
-                                        font.family: "GeistMono Nerd Font Propo Propo"
+                                        font.family: "GeistMono Nerd Font Propo"
                                         color: appCardRoot.currentMute ? root.secondary : root.textColor
                                     }
 

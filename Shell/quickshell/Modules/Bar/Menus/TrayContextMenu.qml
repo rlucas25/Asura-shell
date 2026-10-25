@@ -143,7 +143,7 @@ Popup {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: menuItemRoot.modelData.buttonType !== 0 && menuItemRoot.modelData.checkState !== 0
                         text: menuItemRoot.modelData.checkState === Qt.Checked ? "󰄬" : "󰄱"
-                        font.family: "GeistMono Nerd Font Propo Propo"
+                        font.family: "GeistMono Nerd Font Propo"
                         font.pixelSize: 15
                         color: root.accentColor
                         opacity: menuItemRoot.modelData.enabled ? 1 : 0.35
@@ -159,7 +159,7 @@ Popup {
                         anchors.verticalCenter: parent.verticalCenter
                         text: menuItemRoot.modelData.text
                         color: menuItemRoot.modelData.enabled ? root.textColor : root.mutedColor
-                        font.family: "GeistMono Nerd Font Propo Propo"
+                        font.family: "GeistMono Nerd Font Propo"
                         font.pixelSize: 13
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
@@ -173,7 +173,7 @@ Popup {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: menuItemRoot.modelData.hasChildren
                         text: "󰅂"
-                        font.family: "GeistMono Nerd Font Propo Propo"
+                        font.family: "GeistMono Nerd Font Propo"
                         font.pixelSize: 15
                         color: itemMouse.containsMouse ? root.accentColor : root.mutedColor
                     }

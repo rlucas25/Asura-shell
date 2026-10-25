@@ -337,7 +337,7 @@ ColumnLayout {
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             text: TimerService.formatSeconds(TimerService.pomodoroSecondsLeft)
                                             font.pixelSize: text.length > 5 ? 30 : 38
-                                            font.family: "JetbrainsMono Nerd Font Propo"
+                                            font.family: "JetBrainsMono Nerd Font Propo"
                                             font.bold: true
                                             color: TimerService.pomodoroRunning ? root.color1 : root.textBright
 
@@ -1099,7 +1099,7 @@ ColumnLayout {
                                         anchors.centerIn: parent
                                         text: TimerService.formatSeconds(TimerService.timerSecondsLeft)
                                         font.pixelSize: text.length > 5 ? 30 : 38
-                                        font.family: "JetbrainsMono Nerd Font Propo"
+                                        font.family: "JetBrainsMono Nerd Font Propo"
                                         font.bold: true
                                         color: TimerService.timerRunning ? root.color1 : root.textBright
 
@@ -1325,7 +1325,7 @@ ColumnLayout {
                             Text {
                                 text: TimerService.formatSeconds(TimerService.stopwatchSeconds)
                                 font.pixelSize: 58
-                                font.family: "JetbrainsMono Nerd Font Propo"
+                                font.family: "JetBrainsMono Nerd Font Propo"
                                 font.bold: true
                                 color: TimerService.stopwatchRunning ? root.color1 : root.textMuted
                                 Layout.alignment: Qt.AlignHCenter
@@ -1457,7 +1457,7 @@ ColumnLayout {
                                                 Text {
                                                     text: modelData.time
                                                     font.pixelSize: 10
-                                                    font.family: "JetbrainsMono Nerd Font Propo"
+                                                    font.family: "JetBrainsMono Nerd Font Propo"
                                                     color: root.textColor
                                                     Layout.fillWidth: true
                                                     horizontalAlignment: Text.AlignRight

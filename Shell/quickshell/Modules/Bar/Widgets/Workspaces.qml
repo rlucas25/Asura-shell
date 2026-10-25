@@ -185,7 +185,8 @@ GridLayout {
                 anchors.centerIn: parent
                 text: (workspaceNode.isActive && root.isSpecialActive) ? "S" : root.formatWorkspaceLabel(workspaceNode.wsId)
                 font.pixelSize: (workspaceNode.isActive || workspaceNode.isExpanded) ? Math.round(11 * root.scaleFactor) : 0
-                font.family: "GeistMono Nerd Font Propo ExtraBold"
+                font.family: "GeistMono Nerd Font Propo"
+                font.bold: true
                 color: root.base
             }
 

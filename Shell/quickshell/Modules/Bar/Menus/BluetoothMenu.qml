@@ -359,7 +359,7 @@ Item {
                                             text: "󰅖"
                                              color: root.warning
                                             font {
-                                                family: "GeistMono Nerd Font Propo Propo"
+                                                family: "GeistMono Nerd Font Propo"
                                                 pixelSize: 14
                                             }
                                         }
@@ -458,7 +458,7 @@ Item {
                                             text: "󰄬"
                                             color: root.primary
                                             font {
-                                                family: "GeistMono Nerd Font Propo Propo"
+                                                family: "GeistMono Nerd Font Propo"
                                                 pixelSize: 14
                                             }
                                         }
@@ -485,7 +485,7 @@ Item {
                                             text: "󰅖"
                                             color: Qt.alpha(root.textColor, 0.5)
                                             font {
-                                                family: "GeistMono Nerd Font Propo Propo"
+                                                family: "GeistMono Nerd Font Propo"
                                                 pixelSize: 12
                                             }
                                         }
@@ -547,7 +547,7 @@ Item {
                                         text: BluetoothService.getDeviceIcon(availItem.modelData.icon, BluetoothService.getDeviceDisplayName(availItem.modelData))
                                         color: root.primary
                                         font {
-                                            family: "GeistMono Nerd Font Propo Propo"
+                                            family: "GeistMono Nerd Font Propo"
                                             pixelSize: 16
                                         }
                                     }
@@ -623,7 +623,7 @@ Item {
                             text: "󰂲"
                             color: Qt.alpha(root.textColor, 0.25)
                             font {
-                                family: "GeistMono Nerd Font Propo Propo"
+                                family: "GeistMono Nerd Font Propo"
                                 pixelSize: 32
                             }
                             Layout.alignment: Qt.AlignHCenter

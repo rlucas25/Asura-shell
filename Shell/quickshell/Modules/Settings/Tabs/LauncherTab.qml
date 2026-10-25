@@ -345,11 +345,11 @@ ColumnLayout {
                     id: screenWallpaper
 
                     anchors.fill: parent
-                    source: (Config.cfg && Config.cfg.wallpaper) ? ("file://" + Config.cfg.wallpaper) : ""
+                    source: Config.wallpaperUrl
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     opacity: 0.42
-                    visible: (Config.cfg && Config.cfg.wallpaper !== "")
+                    visible: Config.wallpaperUrl !== ""
                 }
 
                 Rectangle {

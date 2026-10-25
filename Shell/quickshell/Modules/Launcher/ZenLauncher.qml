@@ -1402,8 +1402,8 @@ PanelWindow {
 
                         Image {
                             anchors.fill: parent
-                            visible: Config.cfg && Config.cfg.wallpaper !== ""
-                            source: (Config.cfg && Config.cfg.wallpaper) ? ("file://" + Config.cfg.wallpaper) : ""
+                            visible: Config.wallpaperUrl !== ""
+                            source: Config.wallpaperUrl
                             fillMode: Image.PreserveAspectCrop
                             opacity: 0.22
                             asynchronous: true

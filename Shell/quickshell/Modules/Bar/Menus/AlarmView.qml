@@ -421,7 +421,7 @@ Item {
                                         text: AlarmService.formatTime(cardRoot.liveAlarm.hour, cardRoot.liveAlarm.minute)
                                         font.pixelSize: 26
                                         font.bold: true
-                                        font.family: "JetbrainsMono Nerd Font Propo"
+                                        font.family: "JetBrainsMono Nerd Font Propo"
                                         color: cardRoot.liveAlarm.enabled ? root.textBright : root.textSecondary
                                     }
 
@@ -712,7 +712,7 @@ Item {
                                         color: root.textBright
                                         font.pixelSize: 20
                                         font.bold: true
-                                        font.family: "JetbrainsMono Nerd Font Propo"
+                                        font.family: "JetBrainsMono Nerd Font Propo"
                                         horizontalAlignment: Text.AlignHCenter
                                         inputMethodHints: Qt.ImhDigitsOnly
                                         maximumLength: 2
@@ -821,7 +821,7 @@ Item {
                                         color: root.textBright
                                         font.pixelSize: 20
                                         font.bold: true
-                                        font.family: "JetbrainsMono Nerd Font Propo"
+                                        font.family: "JetBrainsMono Nerd Font Propo"
                                         horizontalAlignment: Text.AlignHCenter
                                         inputMethodHints: Qt.ImhDigitsOnly
                                         maximumLength: 2
@@ -886,7 +886,7 @@ Item {
                                     text: root.formHour >= 12 ? "PM" : "AM"
                                     font.pixelSize: 14
                                     font.bold: true
-                                    font.family: "JetbrainsMono Nerd Font Propo"
+                                    font.family: "JetBrainsMono Nerd Font Propo"
                                     color: root.primary
                                 }
 

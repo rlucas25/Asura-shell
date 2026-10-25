@@ -142,9 +142,16 @@ Item {
         applyTemplatesProc.running = true;
     }
 
+    readonly property string switchwallScriptPath: {
+        var p = (typeof Quickshell.shellPath === "function")
+            ? Quickshell.shellPath("scripts/colors/switchwall.sh").toString()
+            : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/scripts/colors/switchwall.sh");
+        return p.replace(/^file:\/\//, "").replace(/^file:/, "");
+    }
+
     Process {
         id: applyTemplatesProc
-        command: ["/usr/bin/bash", (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("scripts/colors/switchwall.sh") : (Quickshell.env("HOME") + "/.config/quickshell/scripts/colors/switchwall.sh")]
+        command: ["/usr/bin/bash", root.switchwallScriptPath]
         running: false
     }
 

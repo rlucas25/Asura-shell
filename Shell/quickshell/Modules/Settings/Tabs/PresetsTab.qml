@@ -335,7 +335,7 @@ ColumnLayout {
 
                         Image {
                             anchors.fill: parent
-                            source: Config.cfg.wallpaper ? ("file://" + Config.cfg.wallpaper) : ""
+                            source: Config.wallpaperUrl
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                         }

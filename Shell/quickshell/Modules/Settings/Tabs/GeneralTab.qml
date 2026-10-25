@@ -140,10 +140,25 @@ ColumnLayout {
                 ColorAnimation { duration: 180 }
             }
 
+            Rectangle {
+                anchors.fill: parent
+                radius: 14
+                color: root.surfaceContainer
+                visible: wallpaperThumbnail.status !== Image.Ready
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "wallpaper"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 42
+                    color: Qt.alpha(root.color1, 0.4)
+                }
+            }
+
             Image {
                 id: wallpaperThumbnail
                 anchors.fill: parent
-                source: Config.cfg.wallpaper ? ("file://" + Config.cfg.wallpaper) : ""
+                source: Config.wallpaperUrl
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: false
@@ -236,7 +251,7 @@ ColumnLayout {
 
                     Text {
                         id: currentWpLabel
-                        text: Config.cfg.wallpaper ? Config.cfg.wallpaper.split('/').pop() : qsTr("No wallpaper selected")
+                        text: Config.wallpaperCleanPath ? Config.wallpaperCleanPath.split('/').pop() : qsTr("No wallpaper selected")
                         font.family: "Google Sans"
                         font.pixelSize: 11
                         font.bold: true

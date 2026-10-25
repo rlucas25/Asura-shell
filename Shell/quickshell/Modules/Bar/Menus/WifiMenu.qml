@@ -90,7 +90,7 @@ Item {
                         text: "Wireless"
                         color: root.textColor
                         font {
-                            family: "Goggle Sans"
+                            family: "Google Sans"
                             pixelSize: 16
                             bold: true
                         }
@@ -206,7 +206,7 @@ Item {
                         text: ""
                         color: root.primary
                         font {
-                            family: "GeistMono Nerd Font Propo Propo"
+                            family: "GeistMono Nerd Font Propo"
                             pixelSize: 22
                         }
                     }
@@ -455,7 +455,7 @@ Item {
                     text: "󰤮"
                     color: root.primary
                     font {
-                        family: "GeistMono Nerd Font Propo Propo"
+                        family: "GeistMono Nerd Font Propo"
                         pixelSize: 42
                     }
                     opacity: 0.5
@@ -907,7 +907,7 @@ Item {
                                     text: "󰤫"
                                     color: root.primary
                                     font {
-                                        family: "GeistMono Nerd Font Propo Propo"
+                                        family: "GeistMono Nerd Font Propo"
                                         pixelSize: 15
                                     }
                                 }

@@ -12,6 +12,36 @@ Singleton {
     readonly property bool ready: file.loaded
     property bool reloading: false
 
+    function toFileUrl(path) {
+        if (!path) return "";
+        var s = path.toString().trim();
+        if (s.startsWith("file://")) {
+            if (s.startsWith("file://~/")) {
+                var h = Quickshell.env("HOME") || "";
+                return "file://" + h + s.substring(8);
+            }
+            return s;
+        }
+        if (s.startsWith("~/")) {
+            var home = Quickshell.env("HOME") || "";
+            s = home + s.substring(1);
+        }
+        return "file://" + s;
+    }
+
+    function toLocalPath(path) {
+        if (!path) return "";
+        var s = path.toString().trim().replace(/^file:\/\//, "").replace(/^file:/, "");
+        if (s.startsWith("~/")) {
+            var home = Quickshell.env("HOME") || "";
+            s = home + s.substring(1);
+        }
+        return s;
+    }
+
+    readonly property string wallpaperUrl: toFileUrl(adapter.wallpaper)
+    readonly property string wallpaperCleanPath: toLocalPath(adapter.wallpaper)
+
     readonly property real effectiveGeneralOpacity: (adapter.generalOpacity !== undefined && adapter.generalOpacity >= 0)
         ? Math.max(0, Math.min(1, adapter.generalOpacity))
         : 0.85
@@ -159,7 +189,7 @@ Singleton {
             property int barVisualizerGap: 2
             property int barVisualizerSmoothing: 2
             property string wallpaperFolder: "/Pictures/Wallpapers"
-            property string wallpaper: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Assets/default_wallpaper.jpg") : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg")
+            property string wallpaper: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Assets/default_wallpaper.jpg").toString().replace(/^file:\/\//, "") : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg")
             property var favoriteWallpapers: []
             property var favoritePresets: []
             property string wallpaperAnimation: "wave"
@@ -175,6 +205,7 @@ Singleton {
             property string notificationPosition: "top_right"
             property bool notificationPrivacy: false
             property bool ecoMode: false
+            property bool autoUpdate: false
             property int workspacesCount: 3
             property bool workspacesShowNumbers: true
             property string workspacesNumberStyle: "roman"

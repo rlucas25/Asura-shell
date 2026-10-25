@@ -132,7 +132,7 @@ Item {
                     anchors.centerIn: parent
                     text: btnRoot.iconText
                     font.pixelSize: 16
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: btnRoot.accentColor
                 }
             }
@@ -145,14 +145,14 @@ Item {
                     text: btnRoot.titleText
                     font.pixelSize: 11
                     font.bold: true
-                    font.family: "GeistMono Nerd Font Propo Propo SemiBold"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: root.textColor
                 }
 
                 Text {
                     text: btnRoot.fillLevel > 0.01 ? "Hold to confirm..." : "Hold to activate"
                     font.pixelSize: 9
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: btnRoot.fillLevel > 0.01 ? btnRoot.accentColor : Qt.alpha(root.textColor, 0.45)
                     opacity: btnHover.hovered || btnRoot.fillLevel > 0 ? 1.0 : 0.65
                 }

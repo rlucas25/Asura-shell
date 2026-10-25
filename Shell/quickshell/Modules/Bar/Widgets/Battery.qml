@@ -139,7 +139,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: root.percent
-                font.family: "GeistMono Mono Nerd Font Propo"
+                font.family: "GeistMono Nerd Font Propo"
                 font.pixelSize: root.percent >= 100 ? 9 : 10
                 font.bold: true
                 font.weight: Font.Bold

@@ -27,4 +27,5 @@ singleton DefaultAppsService 1.0 DefaultAppsService.qml
 singleton ShortcutsService 1.0 ShortcutsService.qml
 singleton SettingsService 1.0 SettingsService.qml
 singleton IconService 1.0 IconService.qml
+singleton UpdateService 1.0 UpdateService.qml
 WallpaperService 1.0 WallpaperService.qml

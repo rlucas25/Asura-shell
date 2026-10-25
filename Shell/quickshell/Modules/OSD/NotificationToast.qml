@@ -159,7 +159,7 @@ PanelWindow {
                     anchors.centerIn: parent
                     text: "󰅖"
                     font.pixelSize: 12
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: closeH.hovered ? Colors.cfg.warning : Qt.alpha(root.textColor, 0.6)
                 }
 

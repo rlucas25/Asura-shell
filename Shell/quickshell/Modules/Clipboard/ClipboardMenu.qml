@@ -208,7 +208,7 @@ Item {
                 Text {
                     text: "󰍉"
                     font.pixelSize: 13
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: searchInput.activeFocus ? root.color1 : root.textMuted
                 }
 
@@ -269,7 +269,7 @@ Item {
                 Text {
                     text: "󰅖"
                     font.pixelSize: 12
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: root.textMuted
                     visible: root.searchQuery.length > 0
                     MouseArea {
@@ -297,7 +297,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: root.allItems.length === 0 ? "󰅍" : "󰍉"
                     font.pixelSize: 32
-                    font.family: "GeistMono Nerd Font Propo Propo"
+                    font.family: "GeistMono Nerd Font Propo"
                     color: Qt.alpha(root.textMuted, 0.4)
                 }
 
@@ -396,7 +396,7 @@ Item {
                                 text:  (delegateItem.modelData.preview || "")
                                 font.pixelSize: 11
                                 font.bold: delegateItem.isImage
-                                font.family: delegateItem.isImage ? "Inter" : "GeistMono Nerd Font Propo Propo"
+                                font.family: delegateItem.isImage ? "Inter" : "GeistMono Nerd Font Propo"
                                 color: root.textColor
                                 wrapMode: Text.WrapAnywhere
                                 maximumLineCount: 2
@@ -445,7 +445,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "󰆏"
                                     font.pixelSize: 12
-                                    font.family: "GeistMono Nerd Font Propo Propo"
+                                    font.family: "GeistMono Nerd Font Propo"
                                     color: copyBtnMouse.hovered ? root.color1 : root.textMuted
                                 }
 
@@ -472,7 +472,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "󰆴"
                                     font.pixelSize: 12
-                                    font.family: "GeistMono Nerd Font Propo Propo"
+                                    font.family: "GeistMono Nerd Font Propo"
                                     color: delBtnMouse.hovered ? root.error : root.textMuted
                                 }
 
@@ -498,7 +498,7 @@ Item {
 
             Text {
                 text: "󰌌 ↑ / ↓ navigate • Enter / Click to paste • Esc to close"
-                font.family: "GeistMono Nerd Font Propo Propo"
+                font.family: "GeistMono Nerd Font Propo"
                 font.pixelSize: 9
                 color: Qt.alpha(root.textMuted, 0.6)
                 Layout.alignment: Qt.AlignHCenter

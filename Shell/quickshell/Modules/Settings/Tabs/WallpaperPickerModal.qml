@@ -254,7 +254,7 @@ Item {
                                 id: wpItemCard
                                 required property var modelData
 
-                                readonly property bool isSelected: Config.cfg.wallpaper === modelData.path
+                                readonly property bool isSelected: Config.wallpaperCleanPath === wpItemCard.modelData.path
 
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: width / 1.7
@@ -275,7 +275,7 @@ Item {
                                 Image {
                                     id: cardImg
                                     anchors.fill: parent
-                                    source: "file://" + wpItemCard.modelData.path
+                                    source: Config.toFileUrl(wpItemCard.modelData.path)
                                     fillMode: Image.PreserveAspectCrop
                                     sourceSize: Qt.size(280, 160)
                                     asynchronous: true
