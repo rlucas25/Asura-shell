@@ -109,6 +109,7 @@ fi
 
 if [[ -n "$IMAGE_PATH" ]]; then
     IMAGE_PATH="${IMAGE_PATH#file://}"
+    IMAGE_PATH="${IMAGE_PATH/#\~/$HOME}"
 fi
 
 # Handle video wallpaper frame extraction if needed

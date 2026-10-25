@@ -29,7 +29,7 @@ return {
     blurSpecialWs              = false,
     blurPopups                 = true,
     blurInputMethods           = true,
-    blurSize                   = 5,
+    blurSize                   = 3,
     blurPasses                 = 1,
     blurXray                   = false,
 

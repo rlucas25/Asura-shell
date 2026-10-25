@@ -1,102 +1,280 @@
 return {
-    primary_paletteKeyColor         = "7171ac",
-    secondary_paletteKeyColor       = "76758e",
-    tertiary_paletteKeyColor        = "9e648e",
-    neutral_paletteKeyColor         = "78767b",
-    neutral_variant_paletteKeyColor = "777680",
-    background                      = "131317",
-    onBackground                    = "e5e1e7",
-    surface                         = "131317",
-    surfaceDim                      = "131317",
-    surfaceBright                   = "39393d",
-    surfaceContainerLowest          = "0e0e12",
-    surfaceContainerLow             = "1c1b1f",
-    surfaceContainer                = "201f23",
-    surfaceContainerHigh            = "2a292e",
-    surfaceContainerHighest         = "353438",
-    onSurface                       = "e5e1e7",
-    surfaceVariant                  = "47464f",
-    onSurfaceVariant                = "c8c5d1",
-    inverseSurface                  = "e5e1e7",
-    inverseOnSurface                = "313034",
-    outline                         = "918f9a",
-    outlineVariant                  = "47464f",
-    shadow                          = "000000",
-    scrim                           = "000000",
-    surfaceTint                     = "c2c1ff",
-    primary                         = "c2c1ff",
-    onPrimary                       = "2a2a60",
-    primaryContainer                = "7171ac",
-    onPrimaryContainer              = "ffffff",
-    inversePrimary                  = "595992",
-    secondary                       = "c6c4e0",
-    onSecondary                     = "2e2e44",
-    secondaryContainer              = "45455c",
-    onSecondaryContainer            = "b4b2ce",
-    tertiary                        = "f5b2e0",
-    onTertiary                      = "4e1e44",
-    tertiaryContainer               = "bb7da9",
-    onTertiaryContainer             = "000000",
-    error                           = "ffb4ab",
-    onError                         = "690005",
-    errorContainer                  = "93000a",
-    onErrorContainer                = "ffdad6",
-    primaryFixed                    = "e2dfff",
-    primaryFixedDim                 = "c2c1ff",
-    onPrimaryFixed                  = "14134a",
-    onPrimaryFixedVariant           = "414178",
-    secondaryFixed                  = "e2e0fd",
-    secondaryFixedDim               = "c6c4e0",
-    onSecondaryFixed                = "19192e",
-    onSecondaryFixedVariant         = "45455c",
-    tertiaryFixed                   = "ffd7f0",
-    tertiaryFixedDim                = "f5b2e0",
-    onTertiaryFixed                 = "35082e",
-    onTertiaryFixedVariant          = "68355c",
-    term0                           = "353434",
-    term1                           = "ac73ff",
-    term2                           = "44def5",
-    term3                           = "ffdcf2",
-    term4                           = "99aad8",
-    term5                           = "b49fea",
-    term6                           = "9dceff",
-    term7                           = "e8d3de",
-    term8                           = "ac9fa9",
-    term9                           = "c093ff",
-    term10                          = "89ecff",
-    term11                          = "fff0f6",
-    term12                          = "b5c1dd",
-    term13                          = "c9b5f4",
-    term14                          = "bae0ff",
-    term15                          = "ffffff",
-    rosewater                       = "f7eff9",
-    flamingo                        = "e9def3",
-    pink                            = "e2d7ff",
-    mauve                           = "bfb8ff",
-    red                             = "c1a5fd",
-    maroon                          = "c9b5ed",
-    peach                           = "e0c2f9",
-    yellow                          = "ffecf3",
-    green                           = "c8e3ff",
-    teal                            = "d3dfff",
-    sky                             = "d0daff",
-    sapphire                        = "b7c5ff",
-    blue                            = "b0b8ff",
-    lavender                        = "c7c8ff",
-    text                            = "e5e1e7",
-    subtext1                        = "c8c5d1",
-    subtext0                        = "918f9a",
-    overlay2                        = "7e7c86",
-    overlay1                        = "6b6972",
-    overlay0                        = "595860",
-    surface2                        = "48474e",
-    surface1                        = "37373d",
-    surface0                        = "25252a",
-    base                            = "131317",
-    mantle                          = "131317",
-    crust                           = "121216",
-    success                         = "B5CCBA",
-    onSuccess                       = "213528",
-    successContainer                = "374B3E",
-    onSuccessContainer              = "D1E9D6",
+    image = (os.getenv("HOME") or "") .. "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg",
+
+    on_tertiary_fixed_variant = "454A72",
+
+    app_card_bg = "0F1417",
+
+    neutral_palette_key_color = "74777A",
+
+    app_border = "6F767D",
+
+    on_surface_variant = "A5ACB3",
+
+    secondary_dim = "A9BBCA",
+
+    app_dialog_bg = "1A2025",
+
+    app_headerbar_bg = "0B0F11",
+
+    on_tertiary_fixed = "282D53",
+
+    app_background = "0B0F11",
+
+    surface_container_lowest = "000000",
+
+    app_accent = "A7CBE7",
+
+    on_primary = "1E445B",
+
+    app_surface_elevated_hover = "292E33",
+
+    app_on_surface_popup = "DFE6EE",
+
+    app_view_bg = "0B0F11",
+
+    outline_variant = "42494F",
+
+    tertiary_fixed = "C4C9F8",
+
+    error = "FA746F",
+
+    source_color = "587B94",
+
+    on_error = "490006",
+
+    surface_container = "151A1E",
+
+    app_surface_elevated_active = "3D4348",
+
+    primary_fixed_dim = "AFD3EF",
+
+    shadow = "000000",
+
+    app_accent_container = "32566E",
+
+    inverse_on_surface = "525559",
+
+    app_on_surface_elevated = "DFE6EE",
+
+    outline = "6F767D",
+
+    on_secondary_fixed_variant = "4C5E6B",
+
+    surface_container_highest = "20272C",
+
+    on_secondary_fixed = "30414E",
+
+    error_palette_key_color = "C84F4C",
+
+    on_surface = "DFE6EE",
+
+    on_primary_fixed_variant = "385C74",
+
+    surface = "0B0F11",
+
+    tertiary = "D4D7FF",
+
+    primary_fixed = "BDE1FE",
+
+    primary_container = "32566E",
+
+    error_dim = "C54D4A",
+
+    surface_container_high = "1A2025",
+
+    secondary = "B7C9D8",
+
+    app_surface_hover = "1B2023",
+
+    app_sidebar_bg = "0B0F11",
+
+    app_selection_hover = "3F4C57",
+
+    on_error_container = "FF9993",
+
+    app_surface_popup = "1A2025",
+
+    on_success_container = "D1E9D6",
+
+    on_background = "DFE6EE",
+
+    secondary_container = "2C3D4A",
+
+    tertiary_container = "C4C9F8",
+
+    error_container = "871F21",
+
+    tertiary_dim = "C4C9F8",
+
+    surface_bright = "262D33",
+
+    surface_container_low = "0F1417",
+
+    surface_variant = "20272C",
+
+    tertiary_palette_key_color = "6F749E",
+
+    on_tertiary = "444A71",
+
+    app_surface = "0F1417",
+
+    scrim = "000000",
+
+    app_border_subtle = "42494F",
+
+    on_secondary = "31424F",
+
+    on_primary_container = "C9E7FF",
+
+    app_subtext = "80868C",
+
+    primary = "A7CBE7",
+
+    app_surface_popup_hover = "2E3439",
+
+    on_secondary_container = "AFC2D1",
+
+    app_surface_elevated = "151A1E",
+
+    on_success = "213528",
+
+    app_window_bg = "0B0F11",
+
+    app_surface_active = "262B2E",
+
+    app_surface_popup_active = "41484D",
+
+    app_on_surface_highest = "DFE6EE",
+
+    app_thumbnail_bg = "20272C",
+
+    app_on_surface = "A5ACB3",
+
+    background = "0B0F11",
+
+    secondary_fixed = "D2E5F5",
+
+    success = "B5CCBA",
+
+    primary_palette_key_color = "587B94",
+
+    app_popover_bg = "151A1E",
+
+    secondary_palette_key_color = "687987",
+
+    neutral_variant_palette_key_color = "71787F",
+
+    surface_dim = "0B0F11",
+
+    on_primary_fixed = "193F56",
+
+    on_tertiary_container = "3C4168",
+
+    app_on_selection = "DFE6EE",
+
+    inverse_primary = "40637B",
+
+    primary_dim = "99BDD9",
+
+    surface_tint = "A7CBE7",
+
+    success_container = "374B3E",
+
+    inverse_surface = "F8F9FD",
+
+    app_on_accent = "1E445B",
+
+    secondary_fixed_dim = "C4D7E7",
+
+    tertiary_fixed_dim = "B6BBE9",
+
+    app_foreground = "DFE6EE",
+
+    app_selection = "333F48",
+
+    base00 = "0B0F11",
+
+    base01 = "0F1417",
+
+    base02 = "151A1E",
+
+    base03 = "6F767D",
+
+    base04 = "A5ACB3",
+
+    base05 = "DFE6EE",
+
+    base06 = "DFE6EE",
+
+    base07 = "DFE6EE",
+
+    base08 = "FF9BAD",
+
+    base09 = "FFCFD7",
+
+    base0a = "FFF17B",
+
+    base0_a = "FFF17B",
+
+    base0b = "00FD98",
+
+    base0_b = "00FD98",
+
+    base0c = "3BF0FD",
+
+    base0_c = "3BF0FD",
+
+    base0d = "A7CBE7",
+
+    base0_d = "A7CBE7",
+
+    base0e = "D7B0FF",
+
+    base0_e = "D7B0FF",
+
+    base0f = "F0DFFF",
+
+    base0_f = "F0DFFF",
+
+    onBackground = "DFE6EE",
+    surfaceDim = "0B0F11",
+    surfaceBright = "1A2025",
+    surfaceContainerLowest = "0B0F11",
+    surfaceContainerLow = "0F1417",
+    surfaceContainer = "151A1E",
+    surfaceContainerHigh = "1A2025",
+    surfaceContainerHighest = "20272C",
+    onSurface = "DFE6EE",
+    surfaceVariant = "20272C",
+    onSurfaceVariant = "A5ACB3",
+    inverseSurface = "F8F9FD",
+    inverseOnSurface = "525559",
+    outlineVariant = "42494F",
+    surfaceTint = "A7CBE7",
+    onPrimary = "1E445B",
+    primaryContainer = "32566E",
+    onPrimaryContainer = "C9E7FF",
+    inversePrimary = "40637B",
+    onSecondary = "31424F",
+    secondaryContainer = "2C3D4A",
+    onSecondaryContainer = "AFC2D1",
+    onTertiary = "444A71",
+    tertiaryContainer = "C4C9F8",
+    onTertiaryContainer = "3C4168",
+    onError = "490006",
+    errorContainer = "871F21",
+    onErrorContainer = "FF9993",
+    primaryFixed = "BDE1FE",
+    primaryFixedDim = "AFD3EF",
+    onPrimaryFixed = "193F56",
+    onPrimaryFixedVariant = "385C74",
+    secondaryFixed = "D2E5F5",
+    secondaryFixedDim = "C4D7E7",
+    onSecondaryFixed = "30414E",
+    onSecondaryFixedVariant = "4C5E6B",
+    tertiaryFixed = "C4C9F8",
+    tertiaryFixedDim = "B6BBE9",
+    onTertiaryFixed = "282D53",
+    onTertiaryFixedVariant = "454A72"
 }

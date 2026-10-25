@@ -644,10 +644,10 @@ ColumnLayout {
                 from: 0.5
                 to: 5.0
                 stepSize: 0.25
-                value: (Config.cfg && Config.cfg.wallpaperAnimationDuration !== undefined) ? Config.cfg.wallpaperAnimationDuration : 1.5
-                customValueText: (((Config.cfg && Config.cfg.wallpaperAnimationDuration !== undefined) ? Config.cfg.wallpaperAnimationDuration : 1.5)).toFixed(2) + "s"
+                value: (Config.cfg && Config.cfg.wallpaperAnimationDuration !== undefined) ? Config.cfg.wallpaperAnimationDuration : 1.0
+                customValueText: (((Config.cfg && Config.cfg.wallpaperAnimationDuration !== undefined) ? Config.cfg.wallpaperAnimationDuration : 1.0)).toFixed(2) + "s"
                 showReset: true
-                resetValue: 1.5
+                resetValue: 1.0
                 onValueModified: (val) => {
                     Config.cfg.wallpaperAnimationDuration = Math.round(val * 100) / 100;
                     Config.saveDebounced(100);
@@ -735,7 +735,7 @@ ColumnLayout {
             to: 1
             stepSize: 0.01
             showReset: true
-            resetValue: 1
+            resetValue: 0.85
             customValueText: Math.round(Config.effectiveGeneralOpacity * 100) + "%"
             onValueModified: (val) => {
                 Config.cfg.generalOpacity = val;
@@ -782,7 +782,7 @@ ColumnLayout {
                 return 22;
 
             var num = parseInt(st);
-            return (!isNaN(num) && num > 0) ? Math.max(minBlur, Math.min(maxBlur, num)) : 10;
+            return (!isNaN(num) && num > 0) ? Math.max(minBlur, Math.min(maxBlur, num)) : 3;
         }
 
         visible: Config.cfg && (Config.cfg.blurEnabled === undefined || Config.cfg.blurEnabled)
@@ -795,7 +795,7 @@ ColumnLayout {
             stepSize: 1
             unit: "px"
             showReset: true
-            resetValue: 10
+            resetValue: 3
             onValueModified: (val) => {
                 Config.cfg.blurStrength = String(Math.round(val));
                 Config.saveDebounced(80);

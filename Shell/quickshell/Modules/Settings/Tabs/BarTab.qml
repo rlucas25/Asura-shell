@@ -79,7 +79,7 @@ ColumnLayout {
                 value: Config.effectiveBarThickness
                 unit: "px"
                 showReset: true
-                resetValue: 30
+                resetValue: 36
                 onValueModified: (val) => {
                     Config.cfg.barThickness = Math.round(val);
                     Config.saveDebounced(80);
@@ -245,7 +245,7 @@ ColumnLayout {
             value: Config.effectiveBarEdgeSpacing
             unit: "px"
             showReset: true
-            resetValue: 10
+            resetValue: 16
             onValueModified: (val) => {
                 Config.cfg.barEdgeSpacing = Math.round(val);
                 Config.saveDebounced(80);
@@ -317,7 +317,7 @@ ColumnLayout {
             value: Config.effectiveBarWidgetSpacing
             unit: "px"
             showReset: true
-            resetValue: 4
+            resetValue: 8
             onValueModified: (val) => {
                 Config.cfg.barWidgetSpacing = Math.round(val);
                 Config.saveDebounced(80);
@@ -354,7 +354,7 @@ ColumnLayout {
             value: Config.effectiveBarCapsuleWidgetSpacing
             unit: "px"
             showReset: true
-            resetValue: 2
+            resetValue: 4
             onValueModified: (val) => {
                 Config.cfg.barCapsuleWidgetSpacing = Math.round(val);
                 Config.saveDebounced(80);

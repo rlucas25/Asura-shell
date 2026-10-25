@@ -10,53 +10,46 @@ Singleton {
 
     readonly property var defaultLeft: [
         { "id": "left-1", "type": "launcher", "category": "general_icons", "visible": true },
-        { "id": "left-2", "type": "workspaces", "category": "general_icons", "visible": true },
-        { "id": "left-3", "type": "tray", "category": "general_icons", "visible": true }
+        { "id": "left-2", "type": "workspaces", "category": "general_icons", "visible": true, "hasBackground": false },
+        { "id": "left-cpu", "type": "cpu", "category": "status_capsule", "visible": true },
+        { "id": "left-ram", "type": "ram", "category": "status_capsule", "visible": true },
+        { "id": "left-gpu", "type": "gpu", "category": "status_capsule", "visible": true },
+        { "id": "left-3", "type": "tray", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     readonly property var defaultCenter: [
-        { "id": "center-1", "type": "player", "category": "general_icons", "visible": true }
+        { "id": "center-1", "type": "player", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     readonly property var defaultRight: [
-        { "id": "right-1", "type": "clock", "category": "general_icons", "visible": true },
-        { "id": "right-2", "type": "clipboard", "category": "status_capsule", "visible": true },
-        { "id": "right-3", "type": "volume", "category": "status_capsule", "visible": true },
-        { "id": "right-4", "type": "bluetooth", "category": "status_capsule", "visible": true },
-        { "id": "right-5", "type": "wifi", "category": "status_capsule", "visible": true },
-        { "id": "right-6", "type": "battery", "category": "status_capsule", "visible": true },
-        { "id": "right-cpu", "type": "cpu", "category": "status_capsule", "visible": true },
-        { "id": "right-ram", "type": "ram", "category": "status_capsule", "visible": true },
-        { "id": "right-gpu", "type": "gpu", "category": "status_capsule", "visible": true },
-        { "id": "right-disk", "type": "disk", "category": "status_capsule", "visible": false },
-        { "id": "right-brightness", "type": "brightness", "category": "status_capsule", "visible": true },
-        { "id": "right-kbd", "type": "keyboard", "category": "status_capsule", "visible": true },
-        { "id": "right-winmode", "type": "window_mode", "category": "status_capsule", "visible": true },
-        { "id": "right-7", "type": "power", "category": "general_icons", "visible": true }
+        { "id": "right-1", "type": "clock", "category": "general_icons", "visible": true, "hasBackground": false },
+        { "id": "right-3", "type": "volume", "category": "status_capsule", "visible": true, "hasBackground": true },
+        { "id": "right-bluetooth", "type": "bluetooth", "category": "status_capsule", "visible": true },
+        { "id": "right-wifi", "type": "wifi", "category": "status_capsule", "visible": true },
+        { "id": "right-6", "type": "battery", "category": "status_capsule", "visible": true, "hasBackground": true },
+        { "id": "right-7", "type": "power", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     property var leftWidgets: [
         { "id": "left-1", "type": "launcher", "category": "general_icons", "visible": true },
-        { "id": "left-2", "type": "workspaces", "category": "general_icons", "visible": true },
-        { "id": "left-3", "type": "tray", "category": "general_icons", "visible": true }
+        { "id": "left-2", "type": "workspaces", "category": "general_icons", "visible": true, "hasBackground": false },
+        { "id": "left-cpu", "type": "cpu", "category": "status_capsule", "visible": true },
+        { "id": "left-ram", "type": "ram", "category": "status_capsule", "visible": true },
+        { "id": "left-gpu", "type": "gpu", "category": "status_capsule", "visible": true },
+        { "id": "left-3", "type": "tray", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     property var centerWidgets: [
-        { "id": "center-1", "type": "player", "category": "general_icons", "visible": true }
+        { "id": "center-1", "type": "player", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     property var rightWidgets: [
-        { "id": "right-1", "type": "clock", "category": "general_icons", "visible": true },
-        { "id": "right-2", "type": "clipboard", "category": "status_capsule", "visible": true },
-        { "id": "right-3", "type": "volume", "category": "status_capsule", "visible": true },
-        { "id": "right-4", "type": "bluetooth", "category": "status_capsule", "visible": true },
-        { "id": "right-5", "type": "wifi", "category": "status_capsule", "visible": true },
-        { "id": "right-6", "type": "battery", "category": "status_capsule", "visible": true },
-        { "id": "right-cpu", "type": "cpu", "category": "status_capsule", "visible": true },
-        { "id": "right-ram", "type": "ram", "category": "status_capsule", "visible": true },
-        { "id": "right-gpu", "type": "gpu", "category": "status_capsule", "visible": true },
-        { "id": "right-winmode", "type": "window_mode", "category": "status_capsule", "visible": true },
-        { "id": "right-7", "type": "power", "category": "general_icons", "visible": true }
+        { "id": "right-1", "type": "clock", "category": "general_icons", "visible": true, "hasBackground": false },
+        { "id": "right-3", "type": "volume", "category": "status_capsule", "visible": true, "hasBackground": true },
+        { "id": "right-bluetooth", "type": "bluetooth", "category": "status_capsule", "visible": true },
+        { "id": "right-wifi", "type": "wifi", "category": "status_capsule", "visible": true },
+        { "id": "right-6", "type": "battery", "category": "status_capsule", "visible": true, "hasBackground": true },
+        { "id": "right-7", "type": "power", "category": "general_icons", "visible": true, "hasBackground": false }
     ]
 
     readonly property var iconMap: ({

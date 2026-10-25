@@ -1830,7 +1830,7 @@ PanelWindow {
         height: parent.height
         x: root.barPosition === "right" ? (parent.width - width + root.barSlideX) : root.barSlideX
         anchors.verticalCenter: parent.verticalCenter
-        visible: (Config.cfg && Config.cfg.barVisualizerEnabled !== undefined) ? Config.cfg.barVisualizerEnabled : true
+        visible: (Config.cfg && Config.cfg.barVisualizerEnabled !== undefined) ? Config.cfg.barVisualizerEnabled : false
         clip: true
 
         BarVisualizer {

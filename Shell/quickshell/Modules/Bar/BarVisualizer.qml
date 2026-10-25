@@ -6,7 +6,7 @@ Item {
     id: root
 
     property bool enabled: (Config.cfg && Config.cfg.barVisualizerEnabled !== undefined)
-        ? Config.cfg.barVisualizerEnabled : true
+        ? Config.cfg.barVisualizerEnabled : false
     property string visualizerType: (Config.cfg && Config.cfg.barVisualizerType)
         ? Config.cfg.barVisualizerType : "bars"
     property real heightRatio: (Config.cfg && Config.cfg.barVisualizerHeight !== undefined)

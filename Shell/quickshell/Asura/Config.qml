@@ -14,7 +14,7 @@ Singleton {
 
     readonly property real effectiveGeneralOpacity: (adapter.generalOpacity !== undefined && adapter.generalOpacity >= 0)
         ? Math.max(0, Math.min(1, adapter.generalOpacity))
-        : 1.0
+        : 0.85
 
     readonly property real effectiveBarOpacity: (adapter.barFollowsGeneralOpacity !== false)
         ? effectiveGeneralOpacity
@@ -22,7 +22,7 @@ Singleton {
 
     readonly property string effectiveBlurStrength: (adapter.blurStrength !== undefined)
         ? adapter.blurStrength
-        : "balanced"
+        : "3"
 
     readonly property bool effectiveBarMeltEnabled: (adapter.barMeltEnabled !== undefined)
         ? adapter.barMeltEnabled
@@ -55,7 +55,7 @@ Singleton {
     readonly property bool isBarHorizontal: !isBarVertical
     readonly property int effectiveBarThickness: (adapter.barThickness !== undefined && adapter.barThickness > 0)
         ? adapter.barThickness
-        : 30
+        : 36
     readonly property real barScale: effectiveBarThickness / 30.0
     readonly property real effectiveBarIconScale: (adapter.barIconScale !== undefined && adapter.barIconScale > 0)
         ? Math.max(0.6, Math.min(1.6, adapter.barIconScale))
@@ -64,7 +64,7 @@ Singleton {
 
     readonly property int effectiveBarEdgeSpacing: (adapter.barEdgeSpacing !== undefined && adapter.barEdgeSpacing >= 0)
         ? adapter.barEdgeSpacing
-        : 10
+        : 16
 
     readonly property int effectiveBarCapsulePadding: (adapter.barCapsulePadding !== undefined && adapter.barCapsulePadding >= 0)
         ? adapter.barCapsulePadding
@@ -72,11 +72,11 @@ Singleton {
 
     readonly property int effectiveBarWidgetSpacing: (adapter.barWidgetSpacing !== undefined && adapter.barWidgetSpacing >= 0)
         ? adapter.barWidgetSpacing
-        : 4
+        : 8
 
     readonly property int effectiveBarCapsuleWidgetSpacing: (adapter.barCapsuleWidgetSpacing !== undefined && adapter.barCapsuleWidgetSpacing >= 0)
         ? adapter.barCapsuleWidgetSpacing
-        : 2
+        : 4
 
     readonly property bool effectiveBarWidgetHoverTextEnabled: (adapter.barWidgetHoverTextEnabled !== undefined)
         ? adapter.barWidgetHoverTextEnabled
@@ -110,28 +110,28 @@ Singleton {
         JsonAdapter {
             id: adapter
             property string barPosition: "top"
-            property int barThickness: 30
+            property int barThickness: 36
             property real barIconScale: 1.0
             property int barMode: 1
             property bool exclusiveMode: true
             property bool autoHide: false
             property real opacity: 1.0
-            property real generalOpacity: 1.0
+            property real generalOpacity: 0.85
             property bool barFollowsGeneralOpacity: true
             property bool blurEnabled: true
-            property string blurStrength: "balanced"
+            property string blurStrength: "3"
             property bool barMeltEnabled: true
             property int barMeltRadius: 16
             property string barMeltStyle: "organic"
             property int generalRadius: 20
             property bool barFollowsGeneralRadius: true
             property int barCapsuleRadius: 15
-            property int barEdgeSpacing: 10
+            property int barEdgeSpacing: 16
             property int barCapsulePadding: 6
-            property int barWidgetSpacing: 4
-            property int barCapsuleWidgetSpacing: 2
+            property int barWidgetSpacing: 8
+            property int barCapsuleWidgetSpacing: 4
             property real widthS: 0.85
-            property string theme: "sandcastle"
+            property string theme: "ocean"
             property string primarySlot: "base0D"
             property string launcherPosition: "default"
             property var launcherHiddenApps: []
@@ -150,7 +150,7 @@ Singleton {
             property bool hardwareShowAbsolute: false
             property bool barWidgetHoverTextEnabled: true
             property bool barHoverMenusEnabled: false
-            property bool barVisualizerEnabled: true
+            property bool barVisualizerEnabled: false
             property string barVisualizerType: "bars"
             property real barVisualizerHeight: 0.75
             property real barVisualizerOpacity: 0.45
@@ -162,7 +162,7 @@ Singleton {
             property string wallpaper: (typeof Quickshell.shellPath === "function") ? Quickshell.shellPath("Assets/default_wallpaper.jpg") : (Quickshell.env("HOME") + "/.local/share/asura/Shell/quickshell/Assets/default_wallpaper.jpg")
             property var favoriteWallpapers: []
             property var favoritePresets: []
-            property string wallpaperAnimation: "random"
+            property string wallpaperAnimation: "wave"
             property real wallpaperAnimationDuration: 1
             property string scheme: "tonal-spot"
             property int pomodoroWork: 25
