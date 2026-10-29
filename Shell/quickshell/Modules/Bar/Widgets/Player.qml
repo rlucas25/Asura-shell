@@ -10,7 +10,6 @@ import qs.Modules.Bar.Widgets
 import qs.Services
 
 Item {
-
     id: root
 
     property color textColor: Colors.cfg.text
@@ -121,6 +120,7 @@ Item {
 
     HoverHandler {
         id: playerHoverHandler
+
         onHoveredChanged: root.hovered = hovered
     }
 
@@ -595,7 +595,7 @@ Item {
 
                     Icon {
                         text: TimerService.activeIcon
-                        fill: 1
+                        fill: 0
                         weight: 300
                         font.pixelSize: 22
                         color: root.textColor
@@ -649,7 +649,7 @@ Item {
                         text: TimerService.activeDisplayTime
                         color: root.primary
                         trackColor: Qt.alpha(root.textColor, 0.2)
-                        textColor: Colors.cfg.background
+                        textColor: TimerService.activeProgress < 0.5 ? root.textColor : Colors.cfg.background
                     }
 
                     Rectangle {
