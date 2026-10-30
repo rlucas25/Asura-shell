@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import qs.Services
-import qs.Modules.Bar.Widgets
 import qs.Asura
+import qs.Modules.Bar.Widgets
+import qs.Services
 
 Item {
     id: root
@@ -12,25 +12,15 @@ Item {
     property color color2: Colors.cfg.secondary
     property alias primary: root.text
     property alias secondary: root.color2
-
     property int volumeLevel: AudioService.masterVolume
     property bool hoverEnabled: (typeof Config !== "undefined" && Config.barWidgetHoverTextEnabled !== undefined) ? Config.barWidgetHoverTextEnabled : true
     property bool showPercent: false
     property bool isMuted: AudioService.masterMuted
     property alias muted: root.isMuted
-
-    onVolumeLevelChanged: {
-        if (root.hoverEnabled) {
-            root.showPercent = true;
-            hideTimer.restart();
-        }
-    }
-
     readonly property bool isHovered: hoverHandler.hovered
     readonly property bool expanded: (isHovered || showPercent) && root.hoverEnabled
     property alias hovered: root.isHovered
     property alias opened: root.isHovered
-
     readonly property string icon: {
         if (isMuted || volumeLevel === 0)
             return "volume_off";
@@ -40,21 +30,20 @@ Item {
 
         return "volume_down";
     }
+    readonly property bool isVertical: Config.isBarVertical
 
     signal clicked()
 
-    readonly property bool isVertical: Config.isBarVertical
+    onVolumeLevelChanged: {
+        if (root.hoverEnabled) {
+            root.showPercent = true;
+            hideTimer.restart();
+        }
+    }
     implicitWidth: isVertical ? Math.round(22 * Config.barIconScale) : (volumeLayout.implicitWidth + Math.round(12 * Config.barIconScale))
     implicitHeight: isVertical ? Math.round(22 * Config.barIconScale) : volumeLayout.implicitHeight
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
-
-    Behavior on implicitWidth {
-        NumberAnimation {
-            duration: 250
-            easing.type: Easing.OutCubic
-        }
-    }
 
     Timer {
         id: hideTimer
@@ -64,6 +53,7 @@ Item {
         onTriggered: {
             if (!root.isHovered)
                 root.showPercent = false;
+
         }
     }
 
@@ -86,11 +76,8 @@ Item {
         onClicked: {
             root.clicked();
         }
-
-        onWheel: wheel => {
-            AudioService.setMasterVolume(
-                AudioService.masterVolume + (wheel.angleDelta.y > 0 ? 5 : -5)
-            );
+        onWheel: (wheel) => {
+            AudioService.setMasterVolume(AudioService.masterVolume + (wheel.angleDelta.y > 0 ? 5 : -5));
             if (root.hoverEnabled) {
                 root.showPercent = true;
                 hideTimer.restart();
@@ -111,7 +98,9 @@ Item {
                 duration: 250
                 easing.type: Easing.OutCubic
             }
+
         }
+
     }
 
     RowLayout {
@@ -124,6 +113,7 @@ Item {
         Icon {
             id: volumeIcon
 
+            fill: 0
             name: root.icon
             color: root.isMuted ? root.color2 : root.text
         }
@@ -145,8 +135,11 @@ Item {
                     duration: 180
                     easing.type: Easing.OutCubic
                 }
+
             }
+
         }
+
     }
 
     Item {
@@ -171,7 +164,9 @@ Item {
                     duration: 180
                     easing.type: Easing.OutCubic
                 }
+
             }
+
         }
 
         Text {
@@ -193,7 +188,19 @@ Item {
                     duration: 180
                     easing.type: Easing.OutCubic
                 }
+
             }
+
         }
+
     }
+
+    Behavior on implicitWidth {
+        NumberAnimation {
+            duration: 250
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
 }

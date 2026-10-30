@@ -8,7 +8,7 @@ Text {
     property real size: 18
     readonly property real effectiveSize: Math.round(size * ((typeof Config !== "undefined" && Config.barIconScale !== undefined) ? Config.barIconScale : 1))
     property int weight: 400
-    property real fill: 1
+    property real fill: 0
     property real grade: 0
 
     width: effectiveSize
