@@ -46,8 +46,12 @@ return "ok"
         sys.stderr.write(f"apply_monitor hyprctl error: {e}\n")
         ok = False
 
-    persist_monitor(name, mode, position, scale, transform, vrr)
-    return ok
+    persist_ok = persist_monitor(name, mode, position, scale, transform, vrr)
+    try:
+        subprocess.run(["hyprctl", "reload"], capture_output=True, text=True, timeout=3)
+    except Exception as e:
+        sys.stderr.write(f"apply_monitor hyprctl reload error: {e}\n")
+    return ok or persist_ok
 
 def persist_monitor(name: str, mode: str, position: str, scale: float, transform: int, vrr: bool):
     config_path = os.path.expanduser("~/.config/hypr/hyprland.lua")
@@ -158,6 +162,10 @@ def apply_all_monitors(monitors_list: list):
                 int(m.get("transform", 0)),
                 bool(m.get("vrr", False))
             )
+    try:
+        subprocess.run(["hyprctl", "reload"], capture_output=True, text=True, timeout=3)
+    except Exception as e:
+        sys.stderr.write(f"apply_all hyprctl reload error: {e}\n")
     return ok
 
 def main():

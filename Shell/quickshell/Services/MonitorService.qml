@@ -104,6 +104,12 @@ Item {
                                 root.monitors[i].height = parseInt(wh[1]);
                             }
                         }
+                        if (parts.length > 1) {
+                            var parsedHz = parseFloat(parts[1].replace(/Hz/i, ""));
+                            if (!isNaN(parsedHz) && parsedHz > 0) {
+                                root.monitors[i].refreshRate = parsedHz;
+                            }
+                        }
                     }
                     if (position && position !== "auto") {
                         var p = position.split("x");
@@ -148,6 +154,22 @@ Item {
                         if (updateItem.scale !== undefined) root.monitors[i].scale = updateItem.scale;
                         if (updateItem.transform !== undefined) root.monitors[i].transform = updateItem.transform;
                         if (updateItem.vrr !== undefined) root.monitors[i].vrr = updateItem.vrr;
+                        if (updateItem.mode && updateItem.mode !== "preferred") {
+                            var mparts = updateItem.mode.split("@");
+                            if (mparts.length > 0) {
+                                var mwh = mparts[0].split("x");
+                                if (mwh.length === 2) {
+                                    root.monitors[i].width = parseInt(mwh[0]);
+                                    root.monitors[i].height = parseInt(mwh[1]);
+                                }
+                            }
+                            if (mparts.length > 1) {
+                                var mhz = parseFloat(mparts[1].replace(/Hz/i, ""));
+                                if (!isNaN(mhz) && mhz > 0) {
+                                    root.monitors[i].refreshRate = mhz;
+                                }
+                            }
+                        }
                         break;
                     }
                 }

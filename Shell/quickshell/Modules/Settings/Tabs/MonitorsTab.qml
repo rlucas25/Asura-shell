@@ -25,6 +25,184 @@ ColumnLayout {
     property var previousSnapshot: []
     property bool isReverting: false
 
+    function formatRateValue(rate) {
+        if (!rate || isNaN(rate)) return "60";
+        var num = Number(rate);
+        return (Math.abs(num - Math.round(num)) < 0.05) ? String(Math.round(num)) : num.toFixed(2);
+    }
+
+    function formatRefreshRateLabel(rate) {
+        if (!rate || isNaN(rate)) return "60 Hz";
+        var num = Number(rate);
+        return ((Math.abs(num - Math.round(num)) < 0.05) ? Math.round(num) : num.toFixed(2)) + " Hz";
+    }
+
+    readonly property string currentResolution: {
+        if (!tabRoot.activeMon)
+            return "";
+        if (tabRoot.stagedMode && tabRoot.stagedMode !== "preferred") {
+            var parts = tabRoot.stagedMode.split("@");
+            if (parts.length > 0 && parts[0].indexOf("x") !== -1)
+                return parts[0].trim();
+        }
+        if (tabRoot.activeMon.width && tabRoot.activeMon.height)
+            return tabRoot.activeMon.width + "x" + tabRoot.activeMon.height;
+        return "";
+    }
+
+    readonly property real currentRefreshRate: {
+        if (!tabRoot.activeMon)
+            return 60.0;
+        if (tabRoot.stagedMode && tabRoot.stagedMode !== "preferred") {
+            var parts = tabRoot.stagedMode.split("@");
+            if (parts.length > 1) {
+                var hz = parseFloat(parts[1].replace(/Hz/i, ""));
+                if (!isNaN(hz) && hz > 0)
+                    return hz;
+            }
+        }
+        return tabRoot.activeMon.refreshRate ? Number(tabRoot.activeMon.refreshRate) : 60.0;
+    }
+
+    readonly property var availableResolutions: getAvailableResolutions()
+    readonly property var availableRefreshRates: getAvailableRefreshRates(currentResolution)
+
+    function getAvailableResolutions() {
+        if (!activeMon) return [];
+        var modes = activeMon.availableModes || [];
+        var list = [];
+        var seen = {};
+
+        var nativeRes = (activeMon.width && activeMon.height) ? (activeMon.width + "x" + activeMon.height) : "";
+        if (nativeRes) {
+            seen[nativeRes] = true;
+            list.push({
+                label: qsTr("Native"),
+                res: nativeRes,
+                desc: nativeRes
+            });
+        }
+
+        list.push({
+            label: qsTr("Preferred"),
+            res: "preferred",
+            desc: qsTr("Auto")
+        });
+
+        var standardCandidates = [
+            { res: "1920x1080", label: "1080p", desc: "1920x1080" },
+            { res: "2560x1440", label: "1440p", desc: "2560x1440" },
+            { res: "3840x2160", label: "4K UHD", desc: "3840x2160" },
+            { res: "1280x720", label: "720p HD", desc: "1280x720" },
+            { res: "1680x1050", label: "1680x1050", desc: "1680x1050" },
+            { res: "1440x900", label: "1440x900", desc: "1440x900" }
+        ];
+
+        for (var c = 0; c < standardCandidates.length; c++) {
+            var cand = standardCandidates[c];
+            if (!seen[cand.res]) {
+                seen[cand.res] = true;
+                list.push(cand);
+                if (list.length >= 5) break;
+            }
+        }
+
+        return list;
+    }
+
+    function getAvailableRefreshRates(res) {
+        if (!activeMon) return [];
+        var modes = activeMon.availableModes;
+        var targetRes = res || tabRoot.currentResolution;
+        if (!targetRes || targetRes === "preferred") {
+            if (activeMon.width && activeMon.height)
+                targetRes = activeMon.width + "x" + activeMon.height;
+        }
+
+        var rates = [];
+        var seen = {};
+
+        if (modes && Array.isArray(modes) && modes.length > 0) {
+            for (var i = 0; i < modes.length; i++) {
+                var mStr = modes[i];
+                if (typeof mStr !== "string") continue;
+                var parts = mStr.split("@");
+                if (parts.length === 2) {
+                    var rRes = parts[0].trim();
+                    if (!targetRes || rRes === targetRes) {
+                        var rawHz = parts[1].replace(/Hz/i, "").trim();
+                        var hzNum = parseFloat(rawHz);
+                        if (!isNaN(hzNum) && hzNum > 0) {
+                            var isCloseToInt = (Math.abs(hzNum - Math.round(hzNum)) < 0.05);
+                            var key = isCloseToInt ? String(Math.round(hzNum)) : hzNum.toFixed(2);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                rates.push({
+                                    rate: hzNum,
+                                    label: isCloseToInt ? (Math.round(hzNum) + " Hz") : (hzNum.toFixed(2) + " Hz"),
+                                    val: isCloseToInt ? String(Math.round(hzNum)) : hzNum.toFixed(2),
+                                    raw: rawHz
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        rates.sort(function(a, b) { return b.rate - a.rate; });
+
+        if (rates.length > 5) {
+            rates = rates.slice(0, 5);
+        }
+
+        if (rates.length === 0) {
+            var defRate = (activeMon.refreshRate ? Number(activeMon.refreshRate) : 60.0);
+            var isInt = (Math.abs(defRate - Math.round(defRate)) < 0.05);
+            rates.push({
+                rate: defRate,
+                label: (isInt ? Math.round(defRate) : defRate.toFixed(2)) + " Hz",
+                val: isInt ? String(Math.round(defRate)) : defRate.toFixed(2),
+                raw: String(defRate)
+            });
+        }
+        return rates;
+    }
+
+    function applyResolution(selectedRes) {
+        if (!activeMon) return;
+        if (selectedRes === "preferred") {
+            tabRoot.applyPropertyChange("preferred", tabRoot.stagedPosition, tabRoot.stagedScale, tabRoot.stagedTransform, tabRoot.stagedVrr);
+            return;
+        }
+
+        var availRates = tabRoot.getAvailableRefreshRates(selectedRes);
+        var targetRate = null;
+        for (var i = 0; i < availRates.length; i++) {
+            if (Math.abs(availRates[i].rate - tabRoot.currentRefreshRate) < 0.05) {
+                targetRate = availRates[i].val;
+                break;
+            }
+        }
+        if (!targetRate && availRates.length > 0) {
+            targetRate = availRates[0].val;
+        }
+        if (!targetRate) targetRate = "60";
+
+        var newMode = selectedRes + "@" + targetRate;
+        tabRoot.applyPropertyChange(newMode, tabRoot.stagedPosition, tabRoot.stagedScale, tabRoot.stagedTransform, tabRoot.stagedVrr);
+    }
+
+    function applyRefreshRate(selectedRateVal) {
+        if (!activeMon) return;
+        var res = tabRoot.currentResolution;
+        if (!res || res === "preferred") {
+            res = (activeMon.width && activeMon.height) ? (activeMon.width + "x" + activeMon.height) : "preferred";
+        }
+        var newMode = (res === "preferred") ? "preferred" : (res + "@" + selectedRateVal);
+        tabRoot.applyPropertyChange(newMode, tabRoot.stagedPosition, tabRoot.stagedScale, tabRoot.stagedTransform, tabRoot.stagedVrr);
+    }
+
     function captureMonitorsSnapshot() {
         var mons = MonitorService.monitors;
         if (!mons || mons.length === 0)
@@ -33,7 +211,7 @@ ColumnLayout {
         var snap = [];
         for (var i = 0; i < mons.length; i++) {
             var m = mons[i];
-            var mMode = (m.width && m.height) ? (m.width + "x" + m.height + "@" + Math.round(m.refreshRate || 60)) : "preferred";
+            var mMode = (m.width && m.height) ? (m.width + "x" + m.height + "@" + tabRoot.formatRateValue(m.refreshRate)) : "preferred";
             var mPos = (m.x !== undefined && m.y !== undefined) ? (m.x + "x" + m.y) : "auto";
             snap.push({
                 "name": m.name,
@@ -120,7 +298,7 @@ ColumnLayout {
         if (!activeMon)
             return ;
 
-        stagedMode = (activeMon.width && activeMon.height) ? (activeMon.width + "x" + activeMon.height + "@" + Math.round(activeMon.refreshRate || 60)) : "preferred";
+        stagedMode = (activeMon.width && activeMon.height) ? (activeMon.width + "x" + activeMon.height + "@" + tabRoot.formatRateValue(activeMon.refreshRate)) : "preferred";
         stagedScale = activeMon.scale || 1;
         stagedTransform = activeMon.transform || 0;
         stagedPosition = (activeMon.x !== undefined && activeMon.y !== undefined) ? (activeMon.x + "x" + activeMon.y) : "auto";
@@ -379,7 +557,7 @@ ColumnLayout {
         stagedTransform = newTransform;
         stagedVrr = newVrr;
         MonitorService.applyMonitor(activeMon.name, newMode, newPos, newScale, newTransform, newVrr);
-        lastAppliedNotification = qsTr("Applied %1 (%2x) - Confirm in %3s").arg(activeMon.name).arg(newScale).arg(revertCountdown);
+        lastAppliedNotification = qsTr("Applied %1 (%2) - Confirm in %3s").arg(activeMon.name).arg(newMode).arg(revertCountdown);
         notifTimer.restart();
     }
 
@@ -398,7 +576,7 @@ ColumnLayout {
             var isRot = (m.transform === 1 || m.transform === 3);
             var lw = Math.round(isRot ? ((m.height || 1080) / sc) : ((m.width || 1920) / sc));
             var lh = Math.round(isRot ? ((m.width || 1920) / sc) : ((m.height || 1080) / sc));
-            var mMode = (m.width && m.height) ? (m.width + "x" + m.height + "@" + Math.round(m.refreshRate || 60)) : "preferred";
+            var mMode = (m.width && m.height) ? (m.width + "x" + m.height + "@" + tabRoot.formatRateValue(m.refreshRate)) : "preferred";
             payload.push({
                 "name": m.name,
                 "mode": mMode,
@@ -581,8 +759,8 @@ ColumnLayout {
                     }
                 }
             }
-            var modeA = (tA.monData.width && tA.monData.height) ? (tA.monData.width + "x" + tA.monData.height + "@" + Math.round(tA.monData.refreshRate || 60)) : "preferred";
-            var modeB = (tB.monData.width && tB.monData.height) ? (tB.monData.width + "x" + tB.monData.height + "@" + Math.round(tB.monData.refreshRate || 60)) : "preferred";
+            var modeA = (tA.monData.width && tA.monData.height) ? (tA.monData.width + "x" + tA.monData.height + "@" + tabRoot.formatRateValue(tA.monData.refreshRate)) : "preferred";
+            var modeB = (tB.monData.width && tB.monData.height) ? (tB.monData.width + "x" + tB.monData.height + "@" + tabRoot.formatRateValue(tB.monData.refreshRate)) : "preferred";
             var payload = [{
                 "name": tA.monData.name,
                 "mode": modeA,
@@ -617,7 +795,7 @@ ColumnLayout {
             var tn = tiles[n];
             var lX = Math.round((tn.x - minCanvasX) / tabRoot.canvasScale);
             var lY = Math.round((tn.y - minCanvasY) / tabRoot.canvasScale);
-            var mModeN = (tn.monData.width && tn.monData.height) ? (tn.monData.width + "x" + tn.monData.height + "@" + Math.round(tn.monData.refreshRate || 60)) : "preferred";
+            var mModeN = (tn.monData.width && tn.monData.height) ? (tn.monData.width + "x" + tn.monData.height + "@" + tabRoot.formatRateValue(tn.monData.refreshRate)) : "preferred";
             payloadN.push({
                 "name": tn.monData.name,
                 "mode": mModeN,
@@ -660,7 +838,7 @@ ColumnLayout {
                 stagedVrr = activeMon.vrr || false;
                 stagedPosition = (activeMon.x !== undefined && activeMon.y !== undefined) ? (activeMon.x + "x" + activeMon.y) : "auto";
                 if (activeMon.width && activeMon.height)
-                    stagedMode = activeMon.width + "x" + activeMon.height + "@" + Math.round(activeMon.refreshRate || 60);
+                    stagedMode = activeMon.width + "x" + activeMon.height + "@" + tabRoot.formatRateValue(activeMon.refreshRate);
 
             }
         }
@@ -697,7 +875,7 @@ ColumnLayout {
     SettingSectionHeader {
         icon: "desktop_windows"
         title: qsTr("Monitors & Displays")
-        description: qsTr("Arrange screens by dragging, adjust scale and resolution")
+        description: qsTr("Arrange screens by dragging, adjust scale, resolution and refresh rate")
 
         SettingButton {
             icon: "refresh"
@@ -1192,7 +1370,7 @@ ColumnLayout {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: draggableTile.modelData.width + "×" + draggableTile.modelData.height + (draggableTile.modelData.refreshRate ? (" @ " + Math.round(draggableTile.modelData.refreshRate) + "Hz") : "")
+                                text: draggableTile.modelData.width + "×" + draggableTile.modelData.height + (draggableTile.modelData.refreshRate ? (" @ " + tabRoot.formatRefreshRateLabel(draggableTile.modelData.refreshRate)) : "")
                                 font.family: "Google Sans"
                                 font.pixelSize: tabRoot.monitorCount <= 1 ? 11 : (tabRoot.monitorCount === 2 ? 9 : 8)
                                 color: root.textMuted
@@ -1558,7 +1736,7 @@ ColumnLayout {
                 Layout.fillWidth: true
 
                 Text {
-                    text: qsTr("Resolution & Refresh Rate:")
+                    text: qsTr("Resolution:")
                     font.family: "Google Sans"
                     font.pixelSize: 11
                     font.bold: true
@@ -1567,13 +1745,12 @@ ColumnLayout {
                 }
 
                 Text {
-                    text: tabRoot.stagedMode
+                    text: (tabRoot.stagedMode === "preferred") ? qsTr("Preferred (Auto)") : tabRoot.currentResolution
                     font.family: "Google Sans"
                     font.pixelSize: 11
                     font.bold: true
                     color: root.color1
                 }
-
             }
 
             Text {
@@ -1588,93 +1765,158 @@ ColumnLayout {
                 Layout.fillWidth: true
 
                 Repeater {
-                    model: {
-                        var resList = [];
-                        if (tabRoot.activeMon && tabRoot.activeMon.width && tabRoot.activeMon.height) {
-                            var nativeMode = tabRoot.activeMon.width + "x" + tabRoot.activeMon.height + "@" + Math.round(tabRoot.activeMon.refreshRate || 60);
-                            resList.push({
-                                "label": qsTr("Native"),
-                                "mode": nativeMode,
-                                "desc": tabRoot.activeMon.width + "x" + tabRoot.activeMon.height
-                            });
-                        }
-                        resList.push({
-                            "label": qsTr("Preferred"),
-                            "mode": "preferred",
-                            "desc": qsTr("Auto")
-                        });
-                        resList.push({
-                            "label": "1080p",
-                            "mode": "1920x1080@60",
-                            "desc": "1920x1080"
-                        });
-                        resList.push({
-                            "label": "1440p",
-                            "mode": "2560x1440@60",
-                            "desc": "2560x1440"
-                        });
-                        resList.push({
-                            "label": "4K UHD",
-                            "mode": "3840x2160@60",
-                            "desc": "3840x2160"
-                        });
-                        return resList;
-                    }
+                    model: tabRoot.availableResolutions
 
                     Rectangle {
-                        id: modeChip
+                        id: resChip
 
                         required property var modelData
-                        readonly property bool isSelected: tabRoot.stagedMode === modelData.mode
+                        readonly property bool isSelected: (modelData.res === "preferred")
+                            ? (tabRoot.stagedMode === "preferred")
+                            : (tabRoot.stagedMode !== "preferred" && tabRoot.currentResolution === modelData.res)
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 34
                         radius: 8
-                        color: isSelected ? root.color1 : (modeChipH.hovered ? Qt.alpha(root.color1, 0.15) : root.surfaceContainer)
+                        color: isSelected ? root.color1 : (resChipH.hovered ? Qt.alpha(root.color1, 0.15) : root.surfaceContainer)
 
                         ColumnLayout {
                             anchors.centerIn: parent
                             spacing: 1
 
                             Text {
-                                text: modeChip.modelData.label
+                                text: resChip.modelData.label
                                 font.family: "Google Sans"
                                 font.pixelSize: 10
                                 font.bold: true
-                                color: modeChip.isSelected ? root.foreground : root.textColor
+                                color: resChip.isSelected ? root.foreground : root.textColor
                                 Layout.alignment: Qt.AlignHCenter
                             }
 
                             Text {
-                                text: modeChip.modelData.desc
+                                text: resChip.modelData.desc
                                 font.family: "Google Sans"
                                 font.pixelSize: 8
-                                color: modeChip.isSelected ? Qt.alpha(root.foreground, 0.75) : root.textMuted
+                                color: resChip.isSelected ? Qt.alpha(root.foreground, 0.75) : root.textMuted
                                 Layout.alignment: Qt.AlignHCenter
                             }
-
                         }
 
                         HoverHandler {
-                            id: modeChipH
+                            id: resChipH
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                tabRoot.applyPropertyChange(modeChip.modelData.mode, tabRoot.stagedPosition, tabRoot.stagedScale, tabRoot.stagedTransform, tabRoot.stagedVrr);
+                                tabRoot.applyResolution(resChip.modelData.res);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 116
+        radius: 14
+        color: root.surface
+        visible: tabRoot.activeMon !== null
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Text {
+                    text: qsTr("Refresh Rate:")
+                    font.family: "Google Sans"
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: root.textColor
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: tabRoot.formatRefreshRateLabel(tabRoot.currentRefreshRate)
+                    font.family: "Google Sans"
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: root.color1
+                }
+            }
+
+            Text {
+                text: qsTr("Select display refresh rate for smooth animations and motion.")
+                font.family: "Google Sans"
+                font.pixelSize: 10
+                color: root.textMuted
+            }
+
+            RowLayout {
+                spacing: 6
+                Layout.fillWidth: true
+
+                Repeater {
+                    model: tabRoot.availableRefreshRates
+
+                    Rectangle {
+                        id: hzChip
+
+                        required property var modelData
+                        required property int index
+                        readonly property bool isSelected: Math.abs(tabRoot.currentRefreshRate - modelData.rate) < 0.05 || String(modelData.val) === tabRoot.formatRateValue(tabRoot.currentRefreshRate)
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        radius: 8
+                        color: isSelected ? root.color1 : (hzChipH.hovered ? Qt.alpha(root.color1, 0.15) : root.surfaceContainer)
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: 1
+
+                            Text {
+                                text: hzChip.modelData.label
+                                font.family: "Google Sans"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: hzChip.isSelected ? root.foreground : root.textColor
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            Text {
+                                text: (index === 0 && tabRoot.availableRefreshRates.length > 1)
+                                    ? qsTr("Maximum")
+                                    : (Math.abs(hzChip.modelData.rate - 60.0) < 0.05 ? qsTr("Standard") : (hzChip.modelData.val + " FPS"))
+                                font.family: "Google Sans"
+                                font.pixelSize: 8
+                                color: hzChip.isSelected ? Qt.alpha(root.foreground, 0.75) : root.textMuted
+                                Layout.alignment: Qt.AlignHCenter
                             }
                         }
 
+                        HoverHandler {
+                            id: hzChipH
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                tabRoot.applyRefreshRate(hzChip.modelData.val);
+                            }
+                        }
                     }
-
                 }
-
             }
-
         }
-
     }
 
     Rectangle {
