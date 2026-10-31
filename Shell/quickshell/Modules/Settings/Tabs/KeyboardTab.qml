@@ -766,46 +766,14 @@ ColumnLayout {
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 1
+                            spacing: 2
 
-                            RowLayout {
-                                spacing: 6
-
-                                Text {
-                                    text: layoutCard.layoutName
-                                    font.family: "Google Sans"
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                    color: root.textBright
-                                }
-
-                                Rectangle {
-                                    visible: layoutCard.isPrimary
-                                    implicitWidth: 62
-                                    implicitHeight: 18
-                                    radius: 9
-                                    color: root.color1
-
-                                    RowLayout {
-                                        anchors.centerIn: parent
-                                        spacing: 3
-
-                                        Text {
-                                            text: "check"
-                                            font.pixelSize: 9
-                                            font.family: "Material Symbols Rounded"
-                                            color: root.foreground
-                                        }
-
-                                        Text {
-                                            text: qsTr("PRIMARY")
-                                            font.family: "Google Sans"
-                                            font.pixelSize: 8
-                                            font.bold: true
-                                            color: root.foreground
-                                        }
-                                    }
-                                }
+                            Text {
+                                text: layoutCard.layoutName
+                                font.family: "Google Sans"
+                                font.pixelSize: 12
+                                font.bold: true
+                                color: root.textBright
                             }
 
                             Text {
