@@ -17,7 +17,11 @@ hl.bind(vars.kbLock, hl.dsp.exec_cmd("asura lock toggle"))
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd("bash ~/.config/hypr/scripts/caffeine.sh"))
 hl.bind("SUPER + G", hl.dsp.exec_cmd("bash ~/.config/hypr/scripts/gamemode.sh"))
 -- Launcher
-hl.bind(vars.kbLauncher, hl.dsp.exec_cmd(vars.launcher))
+local launcher_flags = {}
+if vars.kbLauncher:match("[Ss][Uu][Pp][Ee][Rr]_[LR]") or vars.kbLauncherRelease then
+    launcher_flags.release = true
+end
+hl.bind(vars.kbLauncher, hl.dsp.exec_cmd(vars.launcher), launcher_flags)
 hl.bind(vars.kbWallpaperSelector, hl.dsp.exec_cmd(vars.wallpaperSelector))
 
 local check_file = io.open("/tmp/gamemode_on", "r")
