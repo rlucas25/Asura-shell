@@ -308,7 +308,7 @@ RowLayout {
 
         command: [
             "bash", "-c",
-            "if [ -f \"$HOME/.config/hypr/scripts/caffeine.sh\" ]; then bash \"$HOME/.config/hypr/scripts/caffeine.sh\"; elif pidof hypridle >/dev/null 2>&1; then pkill hypridle; else hypridle >/dev/null 2>&1 & fi"
+            "if [ -f \"$HOME/.config/hypr/scripts/caffeine.sh\" ]; then bash \"$HOME/.config/hypr/scripts/caffeine.sh\"; elif pidof hypridle >/dev/null 2>&1; then pkill hypridle; else nohup hypridle >/dev/null 2>&1 & fi"
         ]
         running: false
         onExited: {
@@ -1828,7 +1828,7 @@ RowLayout {
 
                 DashboardQuickToggle {
                     id: generic3
-                    active: Config.cfg ? !Config.cfg.alertsPopups : false
+                    active: (Config.cfg && Config.cfg.alertsPopups !== undefined) ? !Config.cfg.alertsPopups : false
                     icon: active ? "do_not_disturb_on" : "do_not_disturb_off"
                     onClicked: {
                         Config.cfg.alertsPopups = !Config.cfg.alertsPopups;

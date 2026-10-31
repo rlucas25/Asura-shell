@@ -1,4 +1,5 @@
 {
+  "alertsPopups": true,
   "colorsAutoGenerate": true,
   "isDarkMode": true,
   "scheme": "tonal-spot",
