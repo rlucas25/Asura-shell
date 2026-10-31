@@ -226,14 +226,15 @@ def write_hypr_user_file_input(
     tp_ttc_str = "true" if tp_tap_to_click else "false"
     no_warps_str = "true" if no_warps else "false"
 
+    accel_line = f'\n    accel_profile = "{accel_profile}",' if accel_profile in ("adaptive", "flat", "custom") else ""
+
     blocks["input"] = f"""input = {{
     kb_layout = "{layouts_str}",
     kb_options = "{kb_options}",
     numlock_by_default = {numlock_str},
     repeat_rate = {repeat_rate},
     repeat_delay = {repeat_delay},
-    sensitivity = {sensitivity},
-    accel_profile = "{accel_profile}",
+    sensitivity = {sensitivity},{accel_line}
     natural_scroll = {nat_scroll_str},
     left_handed = {left_handed_str},
     scroll_factor = {scroll_factor},
@@ -367,6 +368,8 @@ def apply_settings(payload_str: str):
     tp_ttc_str = "true" if tp_tap_to_click else "false"
     no_warps_str = "true" if no_warps else "false"
 
+    accel_lua = f'\n        accel_profile = "{accel_profile}",' if accel_profile in ("adaptive", "flat", "custom") else ""
+
     # Real-time evaluation in Hyprland
     lua_code = f"""
 hl.config({{
@@ -376,8 +379,7 @@ hl.config({{
         numlock_by_default = {numlock_str},
         repeat_rate = {repeat_rate},
         repeat_delay = {repeat_delay},
-        sensitivity = {sensitivity},
-        accel_profile = "{accel_profile}",
+        sensitivity = {sensitivity},{accel_lua}
         natural_scroll = {nat_scroll_str},
         left_handed = {left_handed_str},
         scroll_factor = {scroll_factor},

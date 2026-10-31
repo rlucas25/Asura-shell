@@ -229,7 +229,6 @@ def write_hypr_user_file(layout: str = "dwindle", smart_split: bool = False):
     repeat_rate = 35,
     repeat_delay = 250,
     sensitivity = 0.0,
-    accel_profile = "",
     natural_scroll = false,
     left_handed = false,
     scroll_factor = 1.0,
