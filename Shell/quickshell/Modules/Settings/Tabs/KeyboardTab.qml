@@ -24,12 +24,12 @@ ColumnLayout {
     property string testInputText: ""
 
     readonly property var switchShortcuts: [
-        { "id": "grp:win_space_toggle", "name": "Super + Space", "desc": "Windows and macOS default switcher" },
-        { "id": "grp:alt_shift_toggle", "name": "Alt + Shift", "desc": "Classic Windows and Linux switcher" },
-        { "id": "grp:ctrl_shift_toggle", "name": "Ctrl + Shift", "desc": "Quick terminal-friendly toggle" },
-        { "id": "grp:caps_toggle", "name": "Caps Lock", "desc": "Toggle layout with single Caps Lock press" },
-        { "id": "grp:alt_space_toggle", "name": "Alt + Space", "desc": "Emacs & spotlight style shortcut" },
-        { "id": "grp:shift_caps_toggle", "name": "Shift + Caps Lock", "desc": "Safe toggle preserving standard Caps Lock" }
+        { "id": "grp:win_space_toggle", "name": "Super + Space" },
+        { "id": "grp:alt_shift_toggle", "name": "Alt + Shift" },
+        { "id": "grp:ctrl_shift_toggle", "name": "Ctrl + Shift" },
+        { "id": "grp:caps_toggle", "name": "Caps Lock" },
+        { "id": "grp:alt_space_toggle", "name": "Alt + Space" },
+        { "id": "grp:shift_caps_toggle", "name": "Shift + Caps Lock" }
     ]
 
     SettingSectionHeader {
@@ -967,7 +967,7 @@ ColumnLayout {
                     id: shortcutCard
                     required property var modelData
                     Layout.fillWidth: true
-                    implicitHeight: 52
+                    implicitHeight: 40
                     radius: 10
                     readonly property bool isSelected: KeyboardService.kbOptions === modelData.id
                     color: isSelected ? Qt.alpha(root.color1, 0.16) : root.surfaceContainer
@@ -1002,24 +1002,14 @@ ColumnLayout {
                             }
                         }
 
-                        ColumnLayout {
+                        Text {
                             Layout.fillWidth: true
-                            spacing: 1
-
-                            Text {
-                                text: shortcutCard.modelData.name
-                                font.family: "Google Sans"
-                                font.pixelSize: 11
-                                font.bold: true
-                                color: shortcutCard.isSelected ? root.textBright : root.textColor
-                            }
-
-                            Text {
-                                text: shortcutCard.modelData.desc
-                                font.family: "Google Sans"
-                                font.pixelSize: 9
-                                color: root.textMuted
-                            }
+                            text: shortcutCard.modelData.name
+                            font.family: "Google Sans"
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: shortcutCard.isSelected ? root.textBright : root.textColor
+                            elide: Text.ElideRight
                         }
 
                         Rectangle {
