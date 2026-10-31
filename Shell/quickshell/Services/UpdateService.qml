@@ -8,8 +8,8 @@ import qs.Asura
 Item {
     id: root
 
-    property string currentVersion: "v0.1.3"
-    property string latestVersion: "v0.1.3"
+    property string currentVersion: "v0.1.4"
+    property string latestVersion: "v0.1.4"
     property bool updateAvailable: false
     property bool checking: false
     property bool updating: false
