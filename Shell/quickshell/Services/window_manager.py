@@ -223,7 +223,7 @@ def write_hypr_user_file(layout: str = "dwindle", smart_split: bool = False):
 }}"""
     if "input" not in blocks:
         blocks["input"] = """input = {
-    kb_layout = "br,us",
+    kb_layout = "us",
     kb_options = "grp:win_space_toggle",
     numlock_by_default = false,
     repeat_rate = 35,

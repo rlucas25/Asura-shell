@@ -2,7 +2,7 @@ local vars = require("variables")
 
 hl.config({
     input = {
-        kb_layout          = "br,us",
+        kb_layout          = "us",
         kb_options         = "grp:win_space_toggle",
         numlock_by_default = false,
         repeat_delay       = 250,

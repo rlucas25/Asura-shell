@@ -7,8 +7,8 @@ import Quickshell.Io
 Item {
     id: root
 
-    property var activeLayouts: ["br", "us"]
-    property string primaryLayout: "br"
+    property var activeLayouts: ["us"]
+    property string primaryLayout: "us"
     property string kbOptions: "grp:win_space_toggle"
     property bool numlockByDefault: false
     property int repeatRate: 35

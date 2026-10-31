@@ -282,7 +282,7 @@ def get_settings():
         layouts = [p.strip() for p in raw_layout_str.split(",") if p.strip()]
 
     if not layouts:
-        layouts = ["br", "us"]
+        layouts = ["us"]
 
     kb_options = (kb_options_opt.get("str") if kb_options_opt else "") or cfg.get("keyboardSwitchOption", "grp:win_space_toggle")
     numlock = (numlock_opt.get("bool") if numlock_opt else False) if numlock_opt else cfg.get("keyboardNumlockByDefault", False)
@@ -308,7 +308,7 @@ def get_settings():
 
     out = {
         "layouts": layouts,
-        "primaryLayout": layouts[0] if layouts else "br",
+        "primaryLayout": layouts[0] if layouts else "us",
         "kbOptions": kb_options,
         "numlockByDefault": bool(numlock),
         "repeatRate": repeat_rate,
@@ -336,7 +336,7 @@ def apply_settings(payload_str: str):
         print(json.dumps({"status": "error", "message": str(e)}))
         return
 
-    layouts = data.get("layouts", ["br", "us"])
+    layouts = data.get("layouts", ["us"])
     if not layouts:
         layouts = ["us"]
 
