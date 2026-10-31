@@ -48,21 +48,21 @@ hl.config({
         explicit_column_widths   = "0.25, 0.5, 0.75, 1.0",
     },
 
-    plugin = {
-        scrolloverview = {
-            gesture_distance = 300,
-            scale = 0.5,
-            workspace_gap = 50,
-            layout = "auto",
-            wallpaper = 0,
-            blur = false,
+--    plugin = {
+--        scrolloverview = {
+--            gesture_distance = 300,
+--            scale = 0.5,
+--            workspace_gap = 50,
+--            layout = "auto",
+--            wallpaper = 0,
+--            blur = false,
 
-            shadow = {
-                enabled = true,
-                range = 25,
-            },
-        },
-    },
+--            shadow = {
+--                enabled = true,
+--                range = 25,
+--            },
+--        },
+--    },
 })
 hl.bind("SUPER + R", hl.dsp.layout("colresize +conf"))
 hl.bind("SUPER + SHIFT + Left", layout_bind({
