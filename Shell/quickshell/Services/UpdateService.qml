@@ -8,8 +8,8 @@ import qs.Asura
 Item {
     id: root
 
-    property string currentVersion: "v0.1.2"
-    property string latestVersion: "v0.1.2"
+    property string currentVersion: "v0.1.3"
+    property string latestVersion: "v0.1.3"
     property bool updateAvailable: false
     property bool checking: false
     property bool updating: false
@@ -17,6 +17,28 @@ Item {
     property double lastCheckTimestamp: 0
     property string lastCheckStr: ""
     property bool lastCheckWasAuto: false
+
+    Process {
+        id: readVersionProc
+        command: ["cat", Quickshell.env("HOME") + "/.local/share/asura/VERSION"]
+        running: false
+        stdout: SplitParser {
+            splitMarker: ""
+            onRead: (data) => {
+                var v = data.trim();
+                if (v.length > 0) {
+                    root.currentVersion = "v" + v.replace(/^v/, "");
+                    if (!root.updateAvailable) {
+                        root.latestVersion = root.currentVersion;
+                    }
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        readVersionProc.running = true;
+    }
 
     signal checkFinished(bool success, bool available)
     signal updateFinished(bool success, string message)

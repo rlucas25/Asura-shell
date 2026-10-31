@@ -6,8 +6,30 @@ from pathlib import Path
 
 import shutil
 
-__version__ = "0.1.2"
 
+def get_version() -> str:
+    repo_v = Path(__file__).resolve().parent.parent / "VERSION"
+    if repo_v.exists():
+        try:
+            v = repo_v.read_text().strip()
+            if v:
+                return v
+        except Exception:
+            pass
+
+    inst_v = Path.home() / ".local/share/asura/VERSION"
+    if inst_v.exists():
+        try:
+            v = inst_v.read_text().strip()
+            if v:
+                return v
+        except Exception:
+            pass
+
+    return "0.1.3"
+
+
+__version__ = get_version()
 
 def get_quickshell_bin() -> str | None:
     """Find the Quickshell executable ('qs' or 'quickshell')."""
@@ -129,16 +151,14 @@ def check_update(asura_dir: Path, force: bool = False) -> dict:
 
     try:
         import urllib.request
-        url = "https://raw.githubusercontent.com/rlucas25/Asura-shell/main/cli/main.py"
+        url = "https://raw.githubusercontent.com/rlucas25/Asura-shell/main/VERSION"
         req = urllib.request.Request(url, headers={"User-Agent": "AsuraShell/UpdateCheck"})
         with urllib.request.urlopen(req, timeout=3) as resp:
-            content = resp.read().decode("utf-8")
-            for line in content.splitlines():
-                if line.startswith("__version__ ="):
-                    remote_v = line.split("=")[1].strip().strip('"').strip("'")
-                    if remote_v:
-                        latest_ver = remote_v
-                    break
+            content = resp.read().decode("utf-8").strip()
+            if content:
+                remote_v = content.splitlines()[0].strip()
+                if remote_v:
+                    latest_ver = remote_v
 
         if latest_ver != current_ver:
             update_available = True
