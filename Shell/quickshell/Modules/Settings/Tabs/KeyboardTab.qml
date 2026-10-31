@@ -718,9 +718,11 @@ ColumnLayout {
                     border.width: isPrimary ? 1.5 : 1
 
                     RowLayout {
-                        anchors.fill: parent
+                        anchors.left: parent.left
                         anchors.leftMargin: 12
+                        anchors.right: actionBtnsRow.left
                         anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 10
 
                         Rectangle {
@@ -766,123 +768,132 @@ ColumnLayout {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             spacing: 2
 
                             Text {
+                                Layout.fillWidth: true
                                 text: layoutCard.layoutName
                                 font.family: "Google Sans"
                                 font.pixelSize: 12
                                 font.bold: true
                                 color: root.textBright
+                                elide: Text.ElideRight
                             }
 
                             Text {
+                                Layout.fillWidth: true
                                 text: layoutCard.isPrimary
                                     ? qsTr("Hyprland default active layout upon startup & window resets")
                                     : qsTr("Alternative layout — switchable dynamically with keyboard shortcut")
                                 font.family: "Google Sans"
                                 font.pixelSize: 9
                                 color: root.textMuted
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        id: actionBtnsRow
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+
+                        Rectangle {
+                            id: moveUpBtn
+                            readonly property bool canMoveUp: layoutCard.index > 0
+                            implicitWidth: 28
+                            implicitHeight: 28
+                            radius: 6
+                            opacity: canMoveUp ? 1.0 : 0.25
+                            color: (canMoveUp && moveUpH.hovered) ? Qt.alpha(root.color1, 0.25) : root.surface
+                            border.color: (canMoveUp && moveUpH.hovered) ? root.color1 : Qt.alpha(root.borderCol, 0.4)
+                            border.width: 1
+
+                            HoverHandler {
+                                id: moveUpH
+                                enabled: moveUpBtn.canMoveUp
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "arrow_upward"
+                                font.pixelSize: 12
+                                font.family: "Material Symbols Rounded"
+                                color: (moveUpBtn.canMoveUp && moveUpH.hovered) ? root.color1 : root.textColor
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: moveUpBtn.canMoveUp
+                                cursorShape: moveUpBtn.canMoveUp ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: KeyboardService.moveUp(layoutCard.index)
                             }
                         }
 
-                        RowLayout {
-                            spacing: 6
+                        Rectangle {
+                            id: moveDownBtn
+                            readonly property bool canMoveDown: layoutCard.index < layoutCard.totalCount - 1
+                            implicitWidth: 28
+                            implicitHeight: 28
+                            radius: 6
+                            opacity: canMoveDown ? 1.0 : 0.25
+                            color: (canMoveDown && moveDownH.hovered) ? Qt.alpha(root.color1, 0.25) : root.surface
+                            border.color: (canMoveDown && moveDownH.hovered) ? root.color1 : Qt.alpha(root.borderCol, 0.4)
+                            border.width: 1
 
-                            Rectangle {
-                                id: moveUpBtn
-                                readonly property bool canMoveUp: layoutCard.index > 0
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                radius: 6
-                                opacity: canMoveUp ? 1.0 : 0.25
-                                color: (canMoveUp && moveUpH.hovered) ? Qt.alpha(root.color1, 0.25) : root.surface
-                                border.color: (canMoveUp && moveUpH.hovered) ? root.color1 : Qt.alpha(root.borderCol, 0.4)
-                                border.width: 1
-
-                                HoverHandler {
-                                    id: moveUpH
-                                    enabled: moveUpBtn.canMoveUp
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "arrow_upward"
-                                    font.pixelSize: 12
-                                    font.family: "Material Symbols Rounded"
-                                    color: (moveUpBtn.canMoveUp && moveUpH.hovered) ? root.color1 : root.textColor
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    enabled: moveUpBtn.canMoveUp
-                                    cursorShape: moveUpBtn.canMoveUp ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: KeyboardService.moveUp(layoutCard.index)
-                                }
+                            HoverHandler {
+                                id: moveDownH
+                                enabled: moveDownBtn.canMoveDown
                             }
 
-                            Rectangle {
-                                id: moveDownBtn
-                                readonly property bool canMoveDown: layoutCard.index < layoutCard.totalCount - 1
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                radius: 6
-                                opacity: canMoveDown ? 1.0 : 0.25
-                                color: (canMoveDown && moveDownH.hovered) ? Qt.alpha(root.color1, 0.25) : root.surface
-                                border.color: (canMoveDown && moveDownH.hovered) ? root.color1 : Qt.alpha(root.borderCol, 0.4)
-                                border.width: 1
-
-                                HoverHandler {
-                                    id: moveDownH
-                                    enabled: moveDownBtn.canMoveDown
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "arrow_downward"
-                                    font.pixelSize: 12
-                                    font.family: "Material Symbols Rounded"
-                                    color: (moveDownBtn.canMoveDown && moveDownH.hovered) ? root.color1 : root.textColor
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    enabled: moveDownBtn.canMoveDown
-                                    cursorShape: moveDownBtn.canMoveDown ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: KeyboardService.moveDown(layoutCard.index)
-                                }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "arrow_downward"
+                                font.pixelSize: 12
+                                font.family: "Material Symbols Rounded"
+                                color: (moveDownBtn.canMoveDown && moveDownH.hovered) ? root.color1 : root.textColor
                             }
 
-                            Rectangle {
-                                id: removeBtn
-                                readonly property bool canRemove: layoutCard.totalCount > 1
-                                implicitWidth: 28
-                                implicitHeight: 28
-                                radius: 6
-                                opacity: canRemove ? 1.0 : 0.25
-                                color: (canRemove && removeH.hovered) ? Qt.alpha(Colors.cfg.error || "#ff5555", 0.2) : root.surface
-                                border.color: (canRemove && removeH.hovered) ? (Colors.cfg.error || "#ff5555") : Qt.alpha(root.borderCol, 0.4)
-                                border.width: 1
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: moveDownBtn.canMoveDown
+                                cursorShape: moveDownBtn.canMoveDown ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: KeyboardService.moveDown(layoutCard.index)
+                            }
+                        }
 
-                                HoverHandler {
-                                    id: removeH
-                                    enabled: removeBtn.canRemove
-                                }
+                        Rectangle {
+                            id: removeBtn
+                            readonly property bool canRemove: layoutCard.totalCount > 1
+                            implicitWidth: 28
+                            implicitHeight: 28
+                            radius: 6
+                            opacity: canRemove ? 1.0 : 0.25
+                            color: (canRemove && removeH.hovered) ? Qt.alpha(Colors.cfg.error || "#ff5555", 0.2) : root.surface
+                            border.color: (canRemove && removeH.hovered) ? (Colors.cfg.error || "#ff5555") : Qt.alpha(root.borderCol, 0.4)
+                            border.width: 1
 
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "delete"
-                                    font.pixelSize: 11
-                                    font.family: "Material Symbols Rounded"
-                                    color: (removeBtn.canRemove && removeH.hovered) ? (Colors.cfg.error || "#ff5555") : root.textMuted
-                                }
+                            HoverHandler {
+                                id: removeH
+                                enabled: removeBtn.canRemove
+                            }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    enabled: removeBtn.canRemove
-                                    cursorShape: removeBtn.canRemove ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: KeyboardService.removeLayout(layoutCard.modelData)
-                                }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "delete"
+                                font.pixelSize: 11
+                                font.family: "Material Symbols Rounded"
+                                color: (removeBtn.canRemove && removeH.hovered) ? (Colors.cfg.error || "#ff5555") : root.textMuted
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: removeBtn.canRemove
+                                cursorShape: removeBtn.canRemove ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: KeyboardService.removeLayout(layoutCard.modelData)
                             }
                         }
                     }
@@ -958,23 +969,6 @@ ColumnLayout {
                             font.bold: true
                             color: shortcutCard.isSelected ? root.textBright : root.textColor
                             elide: Text.ElideRight
-                        }
-
-                        Rectangle {
-                            implicitWidth: 32
-                            implicitHeight: 20
-                            radius: 4
-                            color: root.surface
-                            border.color: Qt.alpha(root.borderCol, 0.3)
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "keyboard"
-                                font.pixelSize: 10
-                                font.family: "Material Symbols Rounded"
-                                color: shortcutCard.isSelected ? root.color1 : root.textMuted
-                            }
                         }
                     }
 
